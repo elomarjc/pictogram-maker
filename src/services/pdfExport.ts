@@ -301,16 +301,29 @@ export async function generatePdf(
     const daySubtitle = day.headerSubtitle || plan.shortCode || 'K.';
 
     if (settings.layoutMode === 'board') {
-      const boardWidth = pageWidth - margin * 2;
-      const headerHeight = 18;
-      const stripHeight = Math.max(settings.cardHeightCm * 2.5, 22);
-      const gap = 3;
+      // Reference proportions: Narrow vertical strip (e.g. 108 mm) centered on A4 (pageWidth = 210 mm)
+      const boardWidth = 108;
+      const boardX = (pageWidth - boardWidth) / 2;
+      const topMargin = 12;
+      const bottomMargin = 12;
+      const availableH = pageHeight - topMargin - bottomMargin;
+      const headerHeight = settings.showDayHeader ? 18 : 0;
+      const headerGap = settings.showDayHeader ? 3 : 0;
 
-      let currentY = margin;
+      const numPics = day.pictograms.length;
+      const gap = numPics > 7 ? 2 : 2.5;
+      const totalGaps = Math.max(numPics - 1, 0) * gap;
+      const remainingH = availableH - headerHeight - headerGap - totalGaps;
+      // Dynamically calculate stripHeight so that all activities fit on 1 single page!
+      const maxStripH = Math.max(settings.cardHeightCm * 2.5, 24);
+      const calculatedStripH = numPics > 0 ? remainingH / numPics : maxStripH;
+      const stripHeight = Math.min(maxStripH, Math.max(calculatedStripH, 16));
+
+      let currentY = topMargin;
 
       if (!isFirstPage) {
         doc.addPage();
-        currentY = margin;
+        currentY = topMargin;
       }
       isFirstPage = false;
 
@@ -319,48 +332,27 @@ export async function generatePdf(
           doc,
           day.dayName,
           daySubtitle,
-          margin,
+          boardX,
           currentY,
           boardWidth,
           headerHeight,
           settings.showHeaderIcons,
           settings.colorMode
         );
-        currentY += headerHeight + 4;
+        currentY += headerHeight + headerGap;
       }
 
-      if (day.pictograms.length === 0) {
+      if (numPics === 0) {
         doc.setFont('helvetica', 'italic');
         doc.setFontSize(12);
         doc.setTextColor(148, 163, 184);
-        doc.text('Ingen piktogrammer tilføjet denne dag.', margin + boardWidth / 2, currentY + 20, { align: 'center' });
+        doc.text('Ingen piktogrammer tilføjet denne dag.', boardX + boardWidth / 2, currentY + 20, { align: 'center' });
         continue;
       }
 
-      for (let i = 0; i < day.pictograms.length; i++) {
+      for (let i = 0; i < numPics; i++) {
         const pic = day.pictograms[i];
-
-        if (currentY + stripHeight > pageHeight - margin) {
-          doc.addPage();
-          currentY = margin;
-
-          if (settings.showDayHeader) {
-            drawDayHeader(
-              doc,
-              day.dayName,
-              `${daySubtitle} (fortsat)`,
-              margin,
-              currentY,
-              boardWidth,
-              headerHeight * 0.8,
-              settings.showHeaderIcons,
-              settings.colorMode
-            );
-            currentY += headerHeight * 0.8 + 4;
-          }
-        }
-
-        drawBoardStrip(doc, pic, activePersona, margin, currentY, boardWidth, stripHeight, settings.colorMode);
+        drawBoardStrip(doc, pic, activePersona, boardX, currentY, boardWidth, stripHeight, settings.colorMode);
         currentY += stripHeight + gap;
       }
     } else {

@@ -166,10 +166,10 @@ export const DailyBoard: React.FC<DailyBoardProps> = ({
         </div>
       </div>
 
-      {/* Main Board Container - Matching "eksempel på pictogram.jpeg" styling */}
-      <div className="bg-white rounded-3xl border-4 border-slate-900 shadow-xl overflow-hidden p-3 sm:p-5">
+      {/* Main Board Container - Matching reference proportions */}
+      <div className="bg-white rounded-3xl border-4 border-slate-900 shadow-xl overflow-hidden p-3 sm:p-5 max-w-xl mx-auto">
         {/* Board Header: Sky-blue banner with Sun, Title, and Cloud */}
-        <div className="bg-[#7ECBFC] border-3 border-slate-900 rounded-2xl p-2.5 sm:p-3 mb-4 flex items-center justify-between shadow-xs">
+        <div className="bg-[#7ECBFC] border-3 border-slate-900 rounded-2xl p-2.5 sm:p-3 mb-3 flex items-center justify-between shadow-xs">
           {/* Sun icon on the left */}
           <div className="flex items-center justify-center w-11 h-11 sm:w-14 sm:h-14 shrink-0">
             <img src={REFERENCE_ICONS.sun} alt="Sol" className="w-full h-full object-contain filter drop-shadow-xs" />
