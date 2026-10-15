@@ -24,7 +24,7 @@ En brugervenlig, responsiv webapplikation designet til at oprette, tilpasse og u
    - 8 rolige, venlige pastel-farvetemaer samt valg af tekststørrelse.
 
 4. **Flere ugeplaner og skabeloner**
-   - Understøttelse af flere separate ugeplaner (f.eks. "Kristian – Ugeplan", "Skole & Fritid", "Aflastning").
+   - Understøttelse af flere separate ugeplaner (f.eks. "K. – Ugeplan", "Skole & Fritid", "Aflastning").
    - Opret, omdøb, kopiér og slet planer (med sikkerhedsbekræftelse).
    - Indbyggede standardskabeloner baseret på de 18 dagsnotater. Skabelonerne kan altid gendannes.
 
@@ -149,7 +149,7 @@ pictogram-maker/
 │   ├── data/
 │   │   ├── icons.tsx           # Lucide-piktogrammer og farvepaletter
 │   │   ├── illustrations.tsx   # Specialdesignede SVG-illustrationer
-│   │   └── templates.ts        # Standardskabeloner (Kristian m.fl.)
+│   │   └── templates.ts        # Standardskabeloner (K. m.fl.)
 │   ├── services/
 │   │   ├── pdfExport.ts        # jsPDF layoutmotor med mm-mål og sideskift
 │   │   └── storage.ts          # sessionStorage og lokal JSON import/export
