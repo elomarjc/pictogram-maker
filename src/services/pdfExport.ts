@@ -1,6 +1,7 @@
 import jsPDF from 'jspdf';
-import type { DaySchedule, Pictogram, PrintSettings, WeekPlan } from '../types';
+import type { DaySchedule, Pictogram, PrintSettings, WeekPlan, Persona } from '../types';
 import { DAYS_OF_WEEK } from '../types';
+import { getPersona, resolveSceneImage } from './personas';
 
 // Convert hex color to RGB tuple
 function hexToRgb(hex: string): [number, number, number] {
@@ -34,8 +35,8 @@ function drawDayHeader(
   showIcons: boolean,
   colorMode: 'color' | 'grayscale'
 ) {
-  // Background rectangle with rounded top corners
-  const [bgR, bgG, bgB] = colorMode === 'color' ? hexToRgb('#BAE6FD') : [230, 230, 230];
+  // Background rectangle with rounded top corners (Authentic Sky Blue #7ECBFC)
+  const [bgR, bgG, bgB] = colorMode === 'color' ? hexToRgb('#7ECBFC') : [230, 230, 230];
   doc.setFillColor(bgR, bgG, bgB);
   doc.setDrawColor(30, 41, 59);
   doc.setLineWidth(0.8);
@@ -105,6 +106,7 @@ function drawDayHeader(
 function drawBoardStrip(
   doc: jsPDF,
   pic: Pictogram,
+  persona: Persona,
   x: number,
   y: number,
   width: number,
@@ -123,20 +125,19 @@ function drawBoardStrip(
   doc.roundedRect(x, y, width, height, 3, 3, 'FD');
 
   // Left side: Illustration indicator box
-  const leftBoxW = 42;
+  const leftBoxW = 48;
   doc.setDrawColor(30, 41, 59);
   doc.setLineWidth(0.4);
   doc.line(x + leftBoxW, y, x + leftBoxW, y + height);
 
-  // If user uploaded a custom image and it's valid base64
-  if (pic.customImageUrl && pic.customImageUrl.startsWith('data:image')) {
+  const sceneUrl = resolveSceneImage(pic, persona);
+  if (sceneUrl && sceneUrl.startsWith('data:image')) {
     try {
-      const imgPad = 2;
+      const imgPad = 1.5;
       const imgW = leftBoxW - imgPad * 2;
       const imgH = height - imgPad * 2;
-      doc.addImage(pic.customImageUrl, 'JPEG', x + imgPad, y + imgPad, imgW, imgH, undefined, 'FAST');
+      doc.addImage(sceneUrl, 'JPEG', x + imgPad, y + imgPad, imgW, imgH, undefined, 'FAST');
     } catch {
-      // Fallback symbol
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(8);
       doc.setTextColor(100, 116, 139);
@@ -144,7 +145,7 @@ function drawBoardStrip(
     }
   } else {
     // Crisp graphic badge / symbol on left
-    const badgePad = 3;
+    const badgePad = 2.5;
     const badgeH = height - badgePad * 2;
     const badgeW = leftBoxW - badgePad * 2;
     doc.setFillColor(255, 255, 255);
@@ -153,14 +154,14 @@ function drawBoardStrip(
 
     // Small category/action label or illustration badge
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9);
-    doc.setTextColor(71, 85, 105);
-    const shortLabel = pic.illustrationId ? pic.illustrationId.toUpperCase().slice(0, 8) : 'PIKTO';
+    doc.setFontSize(8.5);
+    doc.setTextColor(30, 41, 59);
+    const shortLabel = pic.illustrationId ? pic.illustrationId.toUpperCase().slice(0, 10) : 'FIGUR';
     doc.text(shortLabel, x + leftBoxW / 2, y + height / 2 + 1, { align: 'center' });
   }
 
   // Right side: Pictogram icon symbol box
-  const rightBoxW = 28;
+  const rightBoxW = 26;
   const rightX = x + width - rightBoxW;
   doc.setDrawColor(30, 41, 59);
   doc.setLineWidth(0.4);
@@ -172,10 +173,10 @@ function drawBoardStrip(
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8);
   doc.setTextColor(15, 23, 42);
-  const iconShort = (pic.iconId || 'icon').toUpperCase().slice(0, 5);
+  const iconShort = (pic.iconId || 'ikon').toUpperCase().slice(0, 6);
   doc.text(iconShort, rightX + rightBoxW / 2, y + height / 2 + 1, { align: 'center' });
 
-  // Center: Activity Title & Subtitle
+  // Center: Activity Title & Subtitle (prominent bold uppercase)
   const textX = x + leftBoxW + 6;
   const maxTextW = width - leftBoxW - rightBoxW - 12;
 
@@ -185,14 +186,15 @@ function drawBoardStrip(
   const titleFontSize = pic.fontSize === 'xl' ? 14 : pic.fontSize === 'lg' ? 13 : 11;
   doc.setFontSize(titleFontSize);
 
+  const displayTitle = pic.title.toUpperCase();
   if (pic.subtitle) {
-    doc.text(pic.title, textX, y + height / 2 - 1.5, { maxWidth: maxTextW });
+    doc.text(displayTitle, textX, y + height / 2 - 1.5, { maxWidth: maxTextW });
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8.5);
     doc.setTextColor(71, 85, 105);
     doc.text(pic.subtitle, textX, y + height / 2 + 4, { maxWidth: maxTextW });
   } else {
-    doc.text(pic.title, textX, y + height / 2 + 2, { maxWidth: maxTextW });
+    doc.text(displayTitle, textX, y + height / 2 + 2, { maxWidth: maxTextW });
   }
 
   // Optional Time badge in top right of center area
@@ -210,6 +212,7 @@ function drawBoardStrip(
 function drawVerticalCard(
   doc: jsPDF,
   pic: Pictogram,
+  persona: Persona,
   x: number,
   y: number,
   width: number,
@@ -248,9 +251,10 @@ function drawVerticalCard(
   doc.setLineWidth(0.5);
   doc.roundedRect(x + imgPad, y + imgPad, imgBoxW, imgBoxH, 3, 3, 'FD');
 
-  if (pic.customImageUrl && pic.customImageUrl.startsWith('data:image')) {
+  const sceneUrl = resolveSceneImage(pic, persona);
+  if (sceneUrl && sceneUrl.startsWith('data:image')) {
     try {
-      doc.addImage(pic.customImageUrl, 'JPEG', x + imgPad + 1, y + imgPad + 1, imgBoxW - 2, imgBoxH - 2, undefined, 'FAST');
+      doc.addImage(sceneUrl, 'JPEG', x + imgPad + 1, y + imgPad + 1, imgBoxW - 2, imgBoxH - 2, undefined, 'FAST');
     } catch {
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(8);
@@ -308,6 +312,7 @@ export async function generatePdf(
     format: 'a4',
   });
 
+  const activePersona = getPersona(plan.personaId);
   const pageWidth = 210;
   const pageHeight = 297;
   const margin = 12;
@@ -326,6 +331,7 @@ export async function generatePdf(
 
   for (const day of targetDays) {
     if (!day) continue;
+    const daySubtitle = day.headerSubtitle || plan.shortCode || 'K.';
 
     if (settings.layoutMode === 'board') {
       const boardWidth = pageWidth - margin * 2;
@@ -345,7 +351,7 @@ export async function generatePdf(
         drawDayHeader(
           doc,
           day.dayName,
-          day.headerSubtitle || '',
+          daySubtitle,
           margin,
           currentY,
           boardWidth,
@@ -375,7 +381,7 @@ export async function generatePdf(
             drawDayHeader(
               doc,
               day.dayName,
-              `${day.headerSubtitle ? day.headerSubtitle + ' ' : ''}(fortsat)`,
+              `${daySubtitle} (fortsat)`,
               margin,
               currentY,
               boardWidth,
@@ -387,7 +393,7 @@ export async function generatePdf(
           }
         }
 
-        drawBoardStrip(doc, pic, margin, currentY, boardWidth, stripHeight, settings.colorMode);
+        drawBoardStrip(doc, pic, activePersona, margin, currentY, boardWidth, stripHeight, settings.colorMode);
         currentY += stripHeight + gap;
       }
     } else {
@@ -412,7 +418,7 @@ export async function generatePdf(
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(14);
         doc.setTextColor(15, 23, 42);
-        const headerText = `${day.dayName} ${day.headerSubtitle ? '– ' + day.headerSubtitle : ''} (Piktogramkort)`;
+        const headerText = `${day.dayName} – ${daySubtitle} (Piktogramkort)`;
         doc.text(headerText, margin, margin + 8);
       }
 
@@ -444,7 +450,7 @@ export async function generatePdf(
         const cardX = margin + currentCol * (cardWidth + colGap);
         const cardY = startY + currentRow * (cardHeight + rowGap);
 
-        drawVerticalCard(doc, pic, cardX, cardY, cardWidth, cardHeight, settings.colorMode, settings.showCutLines);
+        drawVerticalCard(doc, pic, activePersona, cardX, cardY, cardWidth, cardHeight, settings.colorMode, settings.showCutLines);
 
         currentCol++;
         if (currentCol >= cols) {

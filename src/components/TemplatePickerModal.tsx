@@ -58,7 +58,7 @@ export const TemplatePickerModal: React.FC<TemplatePickerModalProps> = ({
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-white border-2 border-slate-900 flex items-center justify-center shrink-0">
-                      {tpl.id === 'kristian_fuld_uge' ? (
+                      {tpl.id.startsWith('k_') ? (
                         <Calendar size={22} className="text-amber-500" />
                       ) : tpl.id === 'enkel_hverdag' ? (
                         <Sun size={22} className="text-amber-500" />

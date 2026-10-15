@@ -25,15 +25,27 @@ export const DAYS_OF_WEEK: DayInfo[] = [
 
 export type CardFontSize = 'sm' | 'base' | 'lg' | 'xl';
 
+export interface Persona {
+  id: string; // 'man_k' | 'woman_a' | 'custom'
+  name: string; // 'Mand (K.)' | 'Kvinde (A.)' | 'Tilpasset'
+  shortCode: string; // 'K.' | 'A.' | ...
+  avatarUrl: string;
+  description?: string;
+  activityScenes: Record<string, string>; // activity key -> scene image URL
+}
+
 export interface Pictogram {
   id: string;
   title: string;
   subtitle?: string;
   time?: string;
   iconId: string; // ID from icon registry
-  illustrationId?: string; // Predefined person drawing illustration (like the example image)
+  illustrationId?: string; // Predefined person drawing illustration key (e.g. 'vasketoj', 'kaffe')
+  sceneImageUrl?: string; // Direct image URL for character scene (overrides persona default if set)
+  rightIconUrl?: string; // Direct image URL for right pictogram symbol (overrides iconId if set)
+  cardImageUrl?: string; // Whole card image URL (if using scanned full strip)
   customImageUrl?: string; // Base64 data URL if user uploaded a picture locally
-  bgColor: string; // Card background color
+  bgColor: string; // Card pastel background color
   borderColor?: string;
   textColor?: string;
   fontSize?: CardFontSize;
@@ -42,7 +54,7 @@ export interface Pictogram {
 export interface DaySchedule {
   dayId: DayOfWeek;
   dayName: string;
-  headerSubtitle?: string; // e.g. "AV" or "Aften" or "Dag"
+  headerSubtitle?: string; // e.g. "K." or "AV" or "Aften" or "Dag"
   pictograms: Pictogram[];
 }
 
@@ -50,6 +62,9 @@ export interface WeekPlan {
   id: string;
   name: string;
   description?: string;
+  personaId?: string; // Active persona ID (e.g. 'man_k')
+  shortCode?: string; // Short code/abbreviation e.g. 'K.'
+  avatarUrl?: string; // Custom avatar URL if uploaded
   days: Record<DayOfWeek, DaySchedule>;
   createdAt: string;
   updatedAt: string;
@@ -74,5 +89,7 @@ export interface TemplateDefinition {
   name: string;
   description: string;
   icon: string;
+  personaId?: string;
+  shortCode?: string;
   days: Record<DayOfWeek, { headerSubtitle?: string; pictograms: Omit<Pictogram, 'id'>[] }>;
 }

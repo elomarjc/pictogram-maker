@@ -7,15 +7,15 @@ describe('Ugeplaner og Skabeloner', () => {
   it('indeholder standardskabeloner med alle 7 ugedage', () => {
     expect(BUILTIN_TEMPLATES.length).toBeGreaterThanOrEqual(3);
 
-    const kristianTemplate = BUILTIN_TEMPLATES.find((t) => t.id === 'kristian_fuld_uge');
-    expect(kristianTemplate).toBeDefined();
+    const kTemplate = BUILTIN_TEMPLATES.find((t) => t.id === 'k_fuld_uge');
+    expect(kTemplate).toBeDefined();
 
     DAYS_OF_WEEK.forEach((day) => {
-      expect(kristianTemplate?.days[day.id]).toBeDefined();
+      expect(kTemplate?.days[day.id]).toBeDefined();
     });
 
     // Check that Monday has the specific pictograms from the reference picture
-    const mondayPics = kristianTemplate!.days.mandag.pictograms;
+    const mondayPics = kTemplate!.days.mandag.pictograms;
     expect(mondayPics.length).toBe(9);
     expect(mondayPics[0].title).toBe('Hænge vasketøj op');
     expect(mondayPics[1].title).toBe('The & Kaffe');
@@ -81,5 +81,41 @@ describe('Privatliv og Lokal Lagring (sessionStorage)', () => {
     const validFile = new File([validJsonStr], 'valid.json', { type: 'application/json' });
     const imported = await importPlansFromJsonFile(validFile);
     expect(imported.plans[0].name).toBe('Gyldig Backup');
+  });
+});
+
+describe('Persona & Figursystem samt Navnebeskyttelse', () => {
+  it('overholder streng navnebeskyttelse: bruger aldrig det fulde navn, kun forkortelser som K.', () => {
+    const templatesJson = JSON.stringify(BUILTIN_TEMPLATES);
+    // User constraint: "og brug ikke navne brug forkortelse som fx K. isteadet for kristian"
+    expect(templatesJson.toLowerCase().includes('kristian')).toBe(false);
+  });
+
+  it('indeholder standardfigurer Mand (K.) og Kvinde (A.)', async () => {
+    const { DEFAULT_PERSONAS, getPersona, resolveSceneImage } = await import('../services/personas');
+    expect(DEFAULT_PERSONAS.length).toBeGreaterThanOrEqual(2);
+
+    const man = getPersona('man_k');
+    expect(man.shortCode).toBe('K.');
+    expect(man.activityScenes.kaffe).toBeDefined();
+
+    const woman = getPersona('woman_a');
+    expect(woman.shortCode).toBe('A.');
+    expect(woman.activityScenes.kaffe).toBeDefined();
+
+    // Verify scene resolution swaps depending on persona
+    const testPic = {
+      id: 'test_1',
+      title: 'The & Kaffe',
+      iconId: 'coffee',
+      illustrationId: 'kaffe',
+      bgColor: '#FFFFFF',
+    };
+
+    const manScene = resolveSceneImage(testPic, man);
+    const womanScene = resolveSceneImage(testPic, woman);
+    expect(manScene).not.toBe(womanScene);
+    expect(manScene).toContain('kaffe');
+    expect(womanScene).toContain('woman_kaffe');
   });
 });

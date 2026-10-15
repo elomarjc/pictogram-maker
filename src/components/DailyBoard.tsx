@@ -1,13 +1,11 @@
 import React, { useState } from 'react';
-import type { DaySchedule, Pictogram, PrintLayoutMode } from '../types';
+import type { DaySchedule, Pictogram, PrintLayoutMode, Persona } from '../types';
 import { PictogramCard } from './PictogramCard';
 import {
   Plus,
   Copy,
   RotateCcw,
   Trash2,
-  Sun,
-  Cloud,
   Edit2,
   Check,
   LayoutList,
@@ -16,8 +14,10 @@ import {
 
 interface DailyBoardProps {
   schedule: DaySchedule;
+  persona: Persona;
   viewMode: PrintLayoutMode;
   onChangeViewMode: (mode: PrintLayoutMode) => void;
+  onOpenPersonaModal: () => void;
   onAddPictogram: () => void;
   onEditPictogram: (pic: Pictogram) => void;
   onDuplicatePictogram: (pic: Pictogram) => void;
@@ -32,8 +32,10 @@ interface DailyBoardProps {
 
 export const DailyBoard: React.FC<DailyBoardProps> = ({
   schedule,
+  persona,
   viewMode,
   onChangeViewMode,
+  onOpenPersonaModal,
   onAddPictogram,
   onEditPictogram,
   onDuplicatePictogram,
@@ -103,6 +105,18 @@ export const DailyBoard: React.FC<DailyBoardProps> = ({
             Tilføj piktogram
           </button>
 
+          {/* Persona / Figure selector button */}
+          <button
+            onClick={onOpenPersonaModal}
+            title="Vælg figur og forkortelse for tavlen"
+            className="inline-flex items-center gap-2 px-3 py-1.5 bg-white hover:bg-amber-50 text-slate-900 font-black rounded-xl border-2 border-slate-900 shadow-xs hover:shadow transition-all text-xs"
+          >
+            <div className="w-5 h-5 rounded-md border border-slate-900 overflow-hidden shrink-0 bg-amber-100">
+              <img src={persona.avatarUrl} alt="" className="w-full h-full object-cover" />
+            </div>
+            <span>Figur: <strong>{persona.shortCode || 'K.'}</strong></span>
+          </button>
+
           {/* View mode toggle */}
           <div className="hidden sm:flex items-center bg-slate-100 p-1 rounded-xl border border-slate-300">
             <button
@@ -163,13 +177,13 @@ export const DailyBoard: React.FC<DailyBoardProps> = ({
       {/* Main Board Container - Matching "eksempel på pictogram.jpeg" styling */}
       <div className="bg-white rounded-3xl border-4 border-slate-900 shadow-xl overflow-hidden p-3 sm:p-5">
         {/* Board Header: Sky-blue banner with Sun, Title, and Cloud */}
-        <div className="bg-[#BAE6FD] border-3 border-slate-900 rounded-2xl p-3 sm:p-4 mb-4 flex items-center justify-between shadow-xs">
+        <div className="bg-[#7ECBFC] border-3 border-slate-900 rounded-2xl p-2.5 sm:p-3 mb-4 flex items-center justify-between shadow-xs">
           {/* Sun icon on the left */}
-          <div className="flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-amber-300 border-2 border-slate-900 text-slate-900 shadow-sm shrink-0">
-            <Sun size={24} className="stroke-[2.5] text-amber-600 animate-spin-slow" />
+          <div className="flex items-center justify-center w-11 h-11 sm:w-14 sm:h-14 shrink-0">
+            <img src="/reference/icons/sun.png" alt="Sol" className="w-full h-full object-contain filter drop-shadow-xs" />
           </div>
 
-          {/* Central Title: e.g. "Mandag - AV" */}
+          {/* Central Title: e.g. "Mandag - K." */}
           <div className="text-center px-2 flex-1">
             {isEditingSubtitle ? (
               <div className="flex items-center justify-center gap-2">
@@ -180,7 +194,7 @@ export const DailyBoard: React.FC<DailyBoardProps> = ({
                   type="text"
                   value={subtitleInput}
                   onChange={(e) => setSubtitleInput(e.target.value)}
-                  placeholder="Undertitel, f.eks. AV eller Aften"
+                  placeholder="Undertitel, f.eks. K. eller AV"
                   className="px-2 py-1 text-base font-bold bg-white border-2 border-slate-900 rounded-lg max-w-[150px]"
                   autoFocus
                 />
@@ -195,25 +209,25 @@ export const DailyBoard: React.FC<DailyBoardProps> = ({
               <div className="flex items-center justify-center gap-2 group cursor-pointer" onClick={() => setIsEditingSubtitle(true)}>
                 <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
                   {schedule.dayName}
-                  {schedule.headerSubtitle ? ` – ${schedule.headerSubtitle}` : ''}
+                  {schedule.headerSubtitle ? ` – ${schedule.headerSubtitle}` : ` – ${persona.shortCode || 'K.'}`}
                 </h1>
                 <button
                   type="button"
                   title="Rediger overskrift / undertitel"
-                  className="text-slate-600 hover:text-slate-900 opacity-60 group-hover:opacity-100 transition-opacity"
+                  className="text-slate-700 hover:text-slate-900 opacity-60 group-hover:opacity-100 transition-opacity"
                 >
                   <Edit2 size={15} />
                 </button>
               </div>
             )}
-            <p className="text-xs font-bold text-slate-700 mt-0.5">
+            <p className="text-xs font-bold text-slate-800 mt-0.5">
               {schedule.pictograms.length} {schedule.pictograms.length === 1 ? 'aktivitet' : 'aktiviteter'} (læses fra top mod bund)
             </p>
           </div>
 
           {/* Cloud icon on the right */}
-          <div className="flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white border-2 border-slate-900 text-slate-900 shadow-sm shrink-0">
-            <Cloud size={24} className="stroke-[2.5] text-sky-500" />
+          <div className="flex items-center justify-center w-11 h-11 sm:w-14 sm:h-14 shrink-0">
+            <img src="/reference/icons/cloud.png" alt="Sky" className="w-full h-full object-contain filter drop-shadow-xs" />
           </div>
         </div>
 
@@ -253,6 +267,7 @@ export const DailyBoard: React.FC<DailyBoardProps> = ({
                 pictogram={pic}
                 index={idx}
                 totalCount={schedule.pictograms.length}
+                persona={persona}
                 viewMode="vertical"
                 onEdit={onEditPictogram}
                 onDuplicate={onDuplicatePictogram}
@@ -275,6 +290,7 @@ export const DailyBoard: React.FC<DailyBoardProps> = ({
                 pictogram={pic}
                 index={idx}
                 totalCount={schedule.pictograms.length}
+                persona={persona}
                 viewMode="strip"
                 onEdit={onEditPictogram}
                 onDuplicate={onDuplicatePictogram}

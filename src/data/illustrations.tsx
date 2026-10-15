@@ -298,4 +298,23 @@ export const ILLUSTRATIONS: Record<string, IllustrationItem> = {
       </svg>
     ),
   },
+  handle: {
+    id: 'handle',
+    name: 'Handle indkøb',
+    category: 'Pligter',
+    svg: ({ className = 'w-full h-full' }) => (
+      <svg viewBox="0 0 160 100" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M25 35 H40 L55 75 H125 L135 45 H45" stroke="#1E293B" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+        <circle cx="65" cy="85" r="7" fill="#64748B" stroke="#1E293B" strokeWidth="2.5" />
+        <circle cx="115" cy="85" r="7" fill="#64748B" stroke="#1E293B" strokeWidth="2.5" />
+        <rect x="60" y="40" width="16" height="25" rx="3" fill="#3B82F6" />
+        <rect x="80" y="35" width="18" height="30" rx="3" fill="#EF4444" />
+        <rect x="102" y="45" width="15" height="20" rx="3" fill="#10B981" />
+      </svg>
+    ),
+  },
 };
+
+// Aliases
+ILLUSTRATIONS.vaesketoeg = ILLUSTRATIONS.vasketoj;
+

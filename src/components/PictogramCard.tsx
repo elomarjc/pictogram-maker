@@ -1,7 +1,8 @@
 import type React from 'react';
-import type { Pictogram } from '../types';
+import type { Pictogram, Persona } from '../types';
 import { ICONS } from '../data/icons';
 import { ILLUSTRATIONS } from '../data/illustrations';
+import { resolveSceneImage, resolveRightIcon, getPersona } from '../services/personas';
 import {
   Pencil,
   Copy,
@@ -18,6 +19,7 @@ interface PictogramCardProps {
   pictogram: Pictogram;
   index: number;
   totalCount: number;
+  persona?: Persona;
   viewMode?: 'strip' | 'vertical';
   onEdit: (pic: Pictogram) => void;
   onDuplicate: (pic: Pictogram) => void;
@@ -35,6 +37,7 @@ export const PictogramCard: React.FC<PictogramCardProps> = ({
   pictogram,
   index,
   totalCount,
+  persona,
   viewMode = 'strip',
   onEdit,
   onDuplicate,
@@ -46,6 +49,9 @@ export const PictogramCard: React.FC<PictogramCardProps> = ({
   onDragOver,
   onDrop,
 }) => {
+  const activePersona = persona || getPersona();
+  const sceneImageUrl = resolveSceneImage(pictogram, activePersona);
+  const rightIconImageUrl = resolveRightIcon(pictogram);
   const IconComponent = ICONS[pictogram.iconId]?.icon;
   const IllustrationComponent = pictogram.illustrationId
     ? ILLUSTRATIONS[pictogram.illustrationId]?.svg
@@ -88,15 +94,17 @@ export const PictogramCard: React.FC<PictogramCardProps> = ({
         </div>
 
         {/* Top/Middle: Large illustration / image */}
-        <div className="flex-1 bg-white rounded-xl border-2 border-slate-900 overflow-hidden flex items-center justify-center p-2 my-1 shadow-inner relative">
-          {pictogram.customImageUrl ? (
+        <div className="flex-1 bg-white rounded-xl border-2 border-slate-900 overflow-hidden flex items-center justify-center my-1 shadow-inner relative">
+          {sceneImageUrl ? (
             <img
-              src={pictogram.customImageUrl}
+              src={sceneImageUrl}
               alt={pictogram.title}
-              className="w-full h-full object-contain"
+              className="w-full h-full object-cover object-center"
             />
           ) : IllustrationComponent ? (
-            <IllustrationComponent className="w-full h-full max-h-[110px]" />
+            <div className="p-2 w-full h-full flex items-center justify-center">
+              <IllustrationComponent className="w-full h-full max-h-[110px]" />
+            </div>
           ) : IconComponent ? (
             <IconComponent size={48} className="text-slate-800 stroke-[2.2]" />
           ) : (
@@ -116,11 +124,15 @@ export const PictogramCard: React.FC<PictogramCardProps> = ({
               </p>
             )}
           </div>
-          {IconComponent && (
+          {rightIconImageUrl ? (
+            <div className="w-8 h-8 rounded-lg bg-white border border-slate-900 flex items-center justify-center shrink-0 shadow-sm overflow-hidden p-0.5">
+              <img src={rightIconImageUrl} alt="" className="w-full h-full object-contain" />
+            </div>
+          ) : IconComponent ? (
             <div className="w-8 h-8 rounded-lg bg-white border border-slate-900 flex items-center justify-center shrink-0 shadow-sm">
               <IconComponent size={18} className="text-slate-900" />
             </div>
-          )}
+          ) : null}
         </div>
 
         {/* Hover action menu buttons */}
@@ -169,15 +181,17 @@ export const PictogramCard: React.FC<PictogramCardProps> = ({
       className="group relative flex items-center justify-between w-full min-h-[72px] sm:min-h-[82px] rounded-xl border-3 border-slate-900 shadow-sm hover:shadow-md transition-all select-none overflow-hidden my-1.5"
     >
       {/* Left section: Graphic illustration / Photo */}
-      <div className="w-28 sm:w-36 h-full min-h-[72px] sm:min-h-[82px] bg-white/70 border-r-3 border-slate-900 flex items-center justify-center p-1.5 shrink-0 overflow-hidden">
-        {pictogram.customImageUrl ? (
+      <div className="w-32 sm:w-44 md:w-52 h-full min-h-[76px] sm:min-h-[88px] bg-white border-r-3 border-slate-900 flex items-center justify-center shrink-0 overflow-hidden relative">
+        {sceneImageUrl ? (
           <img
-            src={pictogram.customImageUrl}
+            src={sceneImageUrl}
             alt={pictogram.title}
-            className="w-full h-full object-contain max-h-[70px]"
+            className="w-full h-full object-cover object-center"
           />
         ) : IllustrationComponent ? (
-          <IllustrationComponent className="w-full h-full max-h-[68px]" />
+          <div className="p-1.5 w-full h-full flex items-center justify-center">
+            <IllustrationComponent className="w-full h-full max-h-[72px]" />
+          </div>
         ) : (
           <div className="flex flex-col items-center justify-center text-slate-400">
             {IconComponent ? (
@@ -190,12 +204,12 @@ export const PictogramCard: React.FC<PictogramCardProps> = ({
       </div>
 
       {/* Middle section: Activity Title, Subtitle, Time */}
-      <div className="flex-1 px-3 sm:px-4 py-2 min-w-0">
+      <div className="flex-1 px-3 sm:px-5 py-2 min-w-0">
         <div className="flex items-center gap-2">
           <span className="w-5 h-5 rounded-full bg-slate-900 text-white text-[11px] font-bold flex items-center justify-center shrink-0">
             {index + 1}
           </span>
-          <h3 className={`${titleSizeClass} text-slate-900 leading-tight uppercase tracking-wider truncate`}>
+          <h3 className={`${titleSizeClass} text-slate-900 font-black leading-tight uppercase tracking-wider truncate`}>
             {pictogram.title}
           </h3>
           {pictogram.time && (
@@ -213,9 +227,13 @@ export const PictogramCard: React.FC<PictogramCardProps> = ({
       </div>
 
       {/* Right section: Distinct pictogram symbol */}
-      <div className="w-20 sm:w-24 h-full min-h-[72px] sm:min-h-[82px] border-l-3 border-slate-900 bg-white/60 flex items-center justify-center shrink-0 p-2">
-        {IconComponent ? (
-          <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-white border-2 border-slate-900 flex items-center justify-center shadow-sm">
+      <div className="w-20 sm:w-28 h-full min-h-[76px] sm:min-h-[88px] border-l-3 border-slate-900 bg-white/40 flex items-center justify-center shrink-0 p-2">
+        {rightIconImageUrl ? (
+          <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-white border-2 border-slate-900 flex items-center justify-center shadow-sm overflow-hidden p-1">
+            <img src={rightIconImageUrl} alt="" className="w-full h-full object-contain" />
+          </div>
+        ) : IconComponent ? (
+          <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-white border-2 border-slate-900 flex items-center justify-center shadow-sm">
             <IconComponent size={24} className="text-slate-900 stroke-[2.3]" />
           </div>
         ) : (

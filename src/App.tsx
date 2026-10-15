@@ -19,6 +19,8 @@ import { MoveToDayModal } from './components/MoveToDayModal';
 import { CopyDayModal } from './components/CopyDayModal';
 import { PrivacyInfoModal } from './components/PrivacyInfoModal';
 import { ReferenceViewerModal } from './components/ReferenceViewerModal';
+import { PersonaSelectorModal } from './components/PersonaSelectorModal';
+import { getPersona } from './services/personas';
 
 export const App: React.FC = () => {
   // Load plans from sessionStorage on initial render
@@ -43,6 +45,7 @@ export const App: React.FC = () => {
   const [isTemplatePickerOpen, setIsTemplatePickerOpen] = useState(false);
   const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false);
   const [isReferenceModalOpen, setIsReferenceModalOpen] = useState(false);
+  const [isPersonaModalOpen, setIsPersonaModalOpen] = useState(false);
   const [movingPictogram, setMovingPictogram] = useState<Pictogram | null>(null);
   const [copyingSourceDayId, setCopyingSourceDayId] = useState<DayOfWeek | null>(null);
 
@@ -53,6 +56,7 @@ export const App: React.FC = () => {
 
   // Active plan lookup
   const currentPlan = plans.find((p) => p.id === activePlanId) || plans[0];
+  const activePersona = getPersona(currentPlan.personaId);
 
   // Helper to update current plan
   const updateCurrentPlan = (updater: (prev: WeekPlan) => WeekPlan) => {
@@ -65,6 +69,15 @@ export const App: React.FC = () => {
         return p;
       })
     );
+  };
+
+  const handleSelectPersona = (personaId: string, customShortCode: string, customAvatarUrl?: string) => {
+    updateCurrentPlan((prev) => ({
+      ...prev,
+      personaId,
+      shortCode: customShortCode,
+      avatarUrl: customAvatarUrl || prev.avatarUrl,
+    }));
   };
 
   // --- Pictogram Operations ---
@@ -396,8 +409,10 @@ export const App: React.FC = () => {
         ) : (
           <DailyBoard
             schedule={activeDaySchedule}
+            persona={activePersona}
             viewMode={viewMode}
             onChangeViewMode={setViewMode}
+            onOpenPersonaModal={() => setIsPersonaModalOpen(true)}
             onAddPictogram={() => handleOpenAddPictogram(selectedDayId)}
             onEditPictogram={handleOpenEditPictogram}
             onDuplicatePictogram={handleDuplicatePictogram}
@@ -447,6 +462,7 @@ export const App: React.FC = () => {
       <PictogramEditorModal
         pictogram={editingPictogram}
         isOpen={isEditorOpen}
+        persona={activePersona}
         onClose={() => {
           setIsEditorOpen(false);
           setEditingPictogram(null);
@@ -508,6 +524,14 @@ export const App: React.FC = () => {
       <ReferenceViewerModal
         isOpen={isReferenceModalOpen}
         onClose={() => setIsReferenceModalOpen(false)}
+      />
+
+      <PersonaSelectorModal
+        isOpen={isPersonaModalOpen}
+        currentPersona={activePersona}
+        currentShortCode={currentPlan.shortCode || 'K.'}
+        onClose={() => setIsPersonaModalOpen(false)}
+        onSelectPersona={handleSelectPersona}
       />
     </div>
   );
