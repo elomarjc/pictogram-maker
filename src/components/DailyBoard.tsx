@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import type { DaySchedule, Pictogram, PrintLayoutMode, Persona } from '../types';
 import { PictogramCard } from './PictogramCard';
+import { REFERENCE_ICONS } from '../services/personas';
 import {
   Plus,
   Copy,
@@ -180,7 +181,7 @@ export const DailyBoard: React.FC<DailyBoardProps> = ({
         <div className="bg-[#7ECBFC] border-3 border-slate-900 rounded-2xl p-2.5 sm:p-3 mb-4 flex items-center justify-between shadow-xs">
           {/* Sun icon on the left */}
           <div className="flex items-center justify-center w-11 h-11 sm:w-14 sm:h-14 shrink-0">
-            <img src="/reference/icons/sun.png" alt="Sol" className="w-full h-full object-contain filter drop-shadow-xs" />
+            <img src={REFERENCE_ICONS.sun} alt="Sol" className="w-full h-full object-contain filter drop-shadow-xs" />
           </div>
 
           {/* Central Title: e.g. "Mandag - K." */}
@@ -227,7 +228,7 @@ export const DailyBoard: React.FC<DailyBoardProps> = ({
 
           {/* Cloud icon on the right */}
           <div className="flex items-center justify-center w-11 h-11 sm:w-14 sm:h-14 shrink-0">
-            <img src="/reference/icons/cloud.png" alt="Sky" className="w-full h-full object-contain filter drop-shadow-xs" />
+            <img src={REFERENCE_ICONS.cloud} alt="Sky" className="w-full h-full object-contain filter drop-shadow-xs" />
           </div>
         </div>
 

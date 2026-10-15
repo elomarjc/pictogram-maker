@@ -39,7 +39,7 @@ export const ReferenceViewerModal: React.FC<ReferenceViewerModalProps> = ({
 
         <div className="flex-1 overflow-y-auto p-4 bg-slate-100 flex items-center justify-center">
           <img
-            src="./reference/eksempel-paa-piktogram.jpeg"
+            src={`${import.meta.env.BASE_URL.endsWith('/') ? import.meta.env.BASE_URL : import.meta.env.BASE_URL + '/'}reference/eksempel-paa-piktogram.webp`}
             alt="Reference layout: Mandag - AV"
             className="max-h-[70vh] w-auto rounded-xl border-3 border-slate-900 shadow-lg object-contain bg-white"
           />
