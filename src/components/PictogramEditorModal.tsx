@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import type { Pictogram, CardFontSize, Persona } from '../types';
-import { ICONS } from '../data/icons';
-import { getPersona, REFERENCE_ICONS } from '../services/personas';
+import { getPersona } from '../services/personas';
 import { PictogramCard } from './PictogramCard';
 import { X, Upload, Trash2, Check, Sparkles } from 'lucide-react';
 
@@ -43,19 +42,6 @@ const SCENE_DESCRIPTIONS: Record<string, string> = {
   handle: 'Handle indkøb',
 };
 
-const REFERENCE_ICON_NAMES: Record<string, string> = {
-  toej_snor: 'Tørresnor',
-  kop: 'Kaffekop',
-  piller: 'Medicin/Piller',
-  bruser: 'Bruser',
-  tallerken_bestik: 'Tallerken & Bestik',
-  opvask: 'Opvask',
-  bolle_ikon: 'Bolle',
-  seng_ikon: 'Seng',
-  sun: 'Sol',
-  cloud: 'Sky',
-};
-
 export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
   pictogram,
   isOpen,
@@ -67,17 +53,13 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
 
   const activePersona = persona || getPersona();
   const [title, setTitle] = useState(pictogram.title);
-  const [subtitle, setSubtitle] = useState(pictogram.subtitle || '');
   const [time, setTime] = useState(pictogram.time || '');
-  const [iconId, setIconId] = useState(pictogram.iconId || 'smile');
   const [illustrationId, setIllustrationId] = useState(pictogram.illustrationId || 'spisetid');
   const [sceneImageUrl, setSceneImageUrl] = useState(pictogram.sceneImageUrl || '');
-  const [rightIconUrl, setRightIconUrl] = useState(pictogram.rightIconUrl || '');
   const [customImageUrl, setCustomImageUrl] = useState(pictogram.customImageUrl || '');
   const [bgColor, setBgColor] = useState(pictogram.bgColor || '#fdef8c');
   const [fontSize, setFontSize] = useState<CardFontSize>(pictogram.fontSize || 'base');
-  const [activeTab, setActiveTab] = useState<'illustrations' | 'icons' | 'upload'>('illustrations');
-  const [selectedCategory, setSelectedCategory] = useState<string>('Alle');
+  const [activeTab, setActiveTab] = useState<'illustrations' | 'upload'>('illustrations');
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -107,12 +89,12 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
     onSave({
       ...pictogram,
       title: title.trim(),
-      subtitle: subtitle.trim() || undefined,
+      subtitle: undefined,
       time: time.trim() || undefined,
-      iconId,
+      iconId: pictogram.iconId,
       illustrationId: customImageUrl ? undefined : illustrationId,
       sceneImageUrl: sceneImageUrl || undefined,
-      rightIconUrl: rightIconUrl || undefined,
+      rightIconUrl: undefined,
       customImageUrl: customImageUrl || undefined,
       bgColor,
       fontSize,
@@ -124,21 +106,15 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
   const previewPic: Pictogram = {
     ...pictogram,
     title: title || 'Aktivitetsnavn',
-    subtitle: subtitle || undefined,
+    subtitle: undefined,
     time: time || undefined,
-    iconId,
     illustrationId: customImageUrl ? undefined : illustrationId,
     sceneImageUrl: sceneImageUrl || undefined,
-    rightIconUrl: rightIconUrl || undefined,
+    rightIconUrl: undefined,
     customImageUrl: customImageUrl || undefined,
     bgColor,
     fontSize,
   };
-
-  const iconCategories = ['Alle', 'Mad & Drikke', 'Hygiejne & Pleje', 'Pligter', 'Aktiviteter', 'Rutine & Ro'];
-  const filteredIcons = Object.values(ICONS).filter(
-    (icon) => selectedCategory === 'Alle' || icon.category === selectedCategory
-  );
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto">
@@ -164,13 +140,18 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
 
         {/* Form Body */}
         <form onSubmit={handleSave} className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-6">
-          {/* Live Preview section */}
+          {/* Live Preview section showing exact print / board appearance */}
           <div className="space-y-1.5">
-            <label className="text-xs font-black uppercase tracking-wider text-slate-700">
-              Forhåndsvisning (som det vises på tavlen)
-            </label>
-            <div className="p-3 bg-slate-100 rounded-2xl border-2 border-slate-900 flex justify-center">
-              <div className="w-full max-w-xl">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-black uppercase tracking-wider text-slate-700">
+                Forhåndsvisning (vises præcis som ved udskrivning / tavle)
+              </label>
+              <span className="text-[11px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full border border-amber-300">
+                Kompakt stribebredde • Centreret rund titel
+              </span>
+            </div>
+            <div className="p-4 bg-slate-100/90 rounded-2xl border-2 border-slate-900 flex justify-center items-center overflow-x-auto">
+              <div className="w-full max-w-[480px]">
                 <PictogramCard
                   pictogram={previewPic}
                   persona={activePersona}
@@ -189,8 +170,8 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
           </div>
 
           {/* Form fields */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-1">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="space-y-1 sm:col-span-2">
               <label className="text-sm font-bold text-slate-800">
                 Aktivitetens navn *
               </label>
@@ -200,44 +181,31 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="F.eks. Spisetid, Morgenmad, Medicin"
-                className="w-full px-3.5 py-2.5 rounded-xl border-2 border-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-400 font-medium text-slate-900"
+                className="w-full px-3.5 py-2.5 rounded-xl border-2 border-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-400 font-bold text-slate-900 font-rounded"
               />
             </div>
 
             <div className="space-y-1">
               <label className="text-sm font-bold text-slate-800">
-                Undertitel / detaljer (valgfrit)
-              </label>
-              <input
-                type="text"
-                value={subtitle}
-                onChange={(e) => setSubtitle(e.target.value)}
-                placeholder="F.eks. Husk et glas vand"
-                className="w-full px-3.5 py-2.5 rounded-xl border-2 border-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-400 font-medium text-slate-900"
-              />
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-sm font-bold text-slate-800">
-                Klokkeslæt / Tidspunkt (valgfrit)
+                Klokkeslæt (valgfrit)
               </label>
               <input
                 type="text"
                 value={time}
                 onChange={(e) => setTime(e.target.value)}
-                placeholder="F.eks. 08:00 eller Formiddag"
+                placeholder="F.eks. 08:00"
                 className="w-full px-3.5 py-2.5 rounded-xl border-2 border-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-400 font-medium text-slate-900"
               />
             </div>
 
-            <div className="space-y-1">
+            <div className="space-y-1 sm:col-span-3">
               <label className="text-sm font-bold text-slate-800">
                 Tekststørrelse
               </label>
               <select
                 value={fontSize}
                 onChange={(e) => setFontSize(e.target.value as CardFontSize)}
-                className="w-full px-3.5 py-2.5 rounded-xl border-2 border-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white font-medium text-slate-900"
+                className="w-full sm:w-64 px-3.5 py-2 rounded-xl border-2 border-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white font-medium text-slate-900"
               >
                 <option value="sm">Lille (kompakt)</option>
                 <option value="base">Normal (standard)</option>
@@ -283,17 +251,6 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
                 }`}
               >
                 Figur-scene ({activePersona.name.split(' (')[0]})
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab('icons')}
-                className={`py-2 px-4 font-bold text-sm border-b-2 -mb-[2px] transition-colors ${
-                  activeTab === 'icons'
-                    ? 'border-slate-900 text-slate-900'
-                    : 'border-transparent text-slate-500 hover:text-slate-800'
-                }`}
-              >
-                Piktogram-ikoner (Højre side)
               </button>
               <button
                 type="button"
@@ -346,87 +303,6 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
               </div>
             )}
 
-            {/* TAB 2: Categorized Pictogram Icons & Reference Icons */}
-            {activeTab === 'icons' && (
-              <div className="space-y-3">
-                {/* Reference Isolated Icons */}
-                <div className="space-y-1.5">
-                  <span className="text-xs font-bold text-slate-700">Reference piktogram-ikoner:</span>
-                  <div className="grid grid-cols-5 sm:grid-cols-10 gap-2 p-1">
-                    {Object.entries(REFERENCE_ICONS).map(([iconKey, iconPath]) => {
-                      const isSelected = rightIconUrl === iconPath;
-                      const name = REFERENCE_ICON_NAMES[iconKey] || iconKey;
-                      return (
-                        <button
-                          key={iconKey}
-                          type="button"
-                          onClick={() => setRightIconUrl(iconPath)}
-                          className={`flex flex-col items-center justify-center p-1.5 rounded-xl border-2 transition-all ${
-                            isSelected
-                              ? 'bg-amber-100 border-slate-900 ring-2 ring-amber-400'
-                              : 'bg-white border-slate-300 hover:border-slate-500'
-                          }`}
-                          title={name}
-                        >
-                          <img src={iconPath} alt={name} className="w-8 h-8 object-contain" />
-                          <span className="text-[9px] font-bold text-slate-700 mt-0.5 truncate w-full text-center">
-                            {name}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Vector Icons */}
-                <div className="space-y-2 pt-2 border-t border-slate-200">
-                  <span className="text-xs font-bold text-slate-700">Symbol-bibliotek:</span>
-                  <div className="flex flex-wrap gap-1">
-                    {iconCategories.map((cat) => (
-                      <button
-                        key={cat}
-                        type="button"
-                        onClick={() => setSelectedCategory(cat)}
-                        className={`text-xs px-2.5 py-1 rounded-full font-bold transition-colors ${
-                          selectedCategory === cat
-                            ? 'bg-slate-900 text-white'
-                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                        }`}
-                      >
-                        {cat}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="grid grid-cols-4 sm:grid-cols-7 gap-2 max-h-40 overflow-y-auto p-1">
-                    {filteredIcons.map((item) => {
-                      const ItemIcon = item.icon;
-                      const isSelected = !rightIconUrl && iconId === item.id;
-                      return (
-                        <button
-                          key={item.id}
-                          type="button"
-                          onClick={() => {
-                            setIconId(item.id);
-                            setRightIconUrl('');
-                          }}
-                          className={`flex flex-col items-center justify-center p-2 rounded-xl border-2 transition-all ${
-                            isSelected
-                              ? 'bg-amber-100 border-slate-900 ring-2 ring-amber-400'
-                              : 'bg-slate-50 border-slate-200 hover:border-slate-400'
-                          }`}
-                          title={item.name}
-                        >
-                          <ItemIcon size={22} className="text-slate-800" />
-                          <span className="text-[10px] font-semibold text-slate-700 mt-1 text-center line-clamp-1">
-                            {item.name.split(' (')[0]}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            )}
 
             {/* TAB 3: Upload Custom Image */}
             {activeTab === 'upload' && (

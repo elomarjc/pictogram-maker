@@ -7,8 +7,6 @@ import {
   Copy,
   RotateCcw,
   Trash2,
-  Edit2,
-  Check,
   LayoutList,
   Grid,
 } from 'lucide-react';
@@ -46,16 +44,9 @@ export const DailyBoard: React.FC<DailyBoardProps> = ({
   onCopyDay,
   onResetDay,
   onClearDay,
-  onUpdateHeaderSubtitle,
+  onUpdateHeaderSubtitle: _onUpdateHeaderSubtitle,
 }) => {
-  const [isEditingSubtitle, setIsEditingSubtitle] = useState(false);
-  const [subtitleInput, setSubtitleInput] = useState(schedule.headerSubtitle || '');
   const [draggedIdx, setDraggedIdx] = useState<number | null>(null);
-
-  const handleSaveSubtitle = () => {
-    onUpdateHeaderSubtitle(subtitleInput.trim());
-    setIsEditingSubtitle(false);
-  };
 
   const handleMoveUp = (index: number) => {
     if (index <= 0) return;
@@ -184,43 +175,11 @@ export const DailyBoard: React.FC<DailyBoardProps> = ({
             <img src={REFERENCE_ICONS.sun} alt="Sol" className="w-full h-full object-contain filter drop-shadow-xs" />
           </div>
 
-          {/* Central Title: e.g. "Mandag - K." */}
+          {/* Central Title: Clean day name with rounded font */}
           <div className="text-center px-2 flex-1">
-            {isEditingSubtitle ? (
-              <div className="flex items-center justify-center gap-2">
-                <span className="text-xl sm:text-2xl font-black text-slate-900">
-                  {schedule.dayName} –
-                </span>
-                <input
-                  type="text"
-                  value={subtitleInput}
-                  onChange={(e) => setSubtitleInput(e.target.value)}
-                  placeholder="Undertitel, f.eks. K. eller AV"
-                  className="px-2 py-1 text-base font-bold bg-white border-2 border-slate-900 rounded-lg max-w-[150px]"
-                  autoFocus
-                />
-                <button
-                  onClick={handleSaveSubtitle}
-                  className="p-1 rounded-lg bg-emerald-500 text-white hover:bg-emerald-600"
-                >
-                  <Check size={16} />
-                </button>
-              </div>
-            ) : (
-              <div className="flex items-center justify-center gap-2 group cursor-pointer" onClick={() => setIsEditingSubtitle(true)}>
-                <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-                  {schedule.dayName}
-                  {schedule.headerSubtitle ? ` – ${schedule.headerSubtitle}` : ` – ${persona.shortCode || 'K.'}`}
-                </h1>
-                <button
-                  type="button"
-                  title="Rediger overskrift / undertitel"
-                  className="text-slate-700 hover:text-slate-900 opacity-60 group-hover:opacity-100 transition-opacity"
-                >
-                  <Edit2 size={15} />
-                </button>
-              </div>
-            )}
+            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight font-rounded">
+              {schedule.dayName}
+            </h1>
             <p className="text-xs font-bold text-slate-800 mt-0.5">
               {schedule.pictograms.length} {schedule.pictograms.length === 1 ? 'aktivitet' : 'aktiviteter'} (læses fra top mod bund)
             </p>

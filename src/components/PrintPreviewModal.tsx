@@ -9,7 +9,10 @@ import {
   Sliders,
   Calendar,
   Loader2,
+  Eye,
 } from 'lucide-react';
+import { PictogramCard } from './PictogramCard';
+import { getPersona, REFERENCE_ICONS } from '../services/personas';
 
 interface PrintPreviewModalProps {
   plan: WeekPlan;
@@ -161,6 +164,75 @@ export const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
                 </select>
               </div>
             )}
+          </div>
+
+          {/* Exact Print Sheet Visual Preview */}
+          <div className="space-y-2">
+            <label className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+              <Eye size={16} className="text-amber-500" />
+              Forhåndsvisning af print (præcis som det vil se ud på papiret)
+            </label>
+            <div className="p-4 sm:p-6 bg-slate-200/90 rounded-2xl border-2 border-slate-900 flex justify-center items-center overflow-x-auto">
+              {/* Paper Representation (Centered narrow strip on A4 sheet) */}
+              <div className="bg-white rounded-xl shadow-lg border border-slate-400 p-4 w-full max-w-[460px] min-h-[300px] flex flex-col items-center">
+                {/* Print Sheet Header */}
+                {settings.showDayHeader && (
+                  <div className="w-full bg-[#7ECBFC] border-2 border-slate-900 rounded-xl p-2 mb-3 flex items-center justify-between shadow-2xs">
+                    {settings.showHeaderIcons ? (
+                      <div className="w-8 h-8 shrink-0 flex items-center justify-center">
+                        <img src={REFERENCE_ICONS.sun} alt="Sol" className="w-full h-full object-contain" />
+                      </div>
+                    ) : <div className="w-8" />}
+                    <h3 className="text-base font-black text-slate-900 font-rounded tracking-tight">
+                      {DAYS_OF_WEEK.find((d) => d.id === (settings.targetDayId || currentDayId))?.name || 'Mandag'}
+                    </h3>
+                    {settings.showHeaderIcons ? (
+                      <div className="w-8 h-8 shrink-0 flex items-center justify-center">
+                        <img src={REFERENCE_ICONS.cloud} alt="Sky" className="w-full h-full object-contain" />
+                      </div>
+                    ) : <div className="w-8" />}
+                  </div>
+                )}
+
+                {/* Pictograms List in Preview */}
+                <div className="w-full space-y-2">
+                  {(() => {
+                    const activeDay = plan.days[settings.targetDayId || currentDayId];
+                    const activePics = activeDay?.pictograms || [];
+                    const activePersona = getPersona(plan.personaId);
+
+                    if (activePics.length === 0) {
+                      return (
+                        <p className="text-xs text-slate-400 italic text-center py-6">
+                          Ingen piktogrammer tilføjet denne dag endnu.
+                        </p>
+                      );
+                    }
+
+                    return activePics.slice(0, 4).map((pic, idx) => (
+                      <div key={pic.id} className="w-full">
+                        <PictogramCard
+                          pictogram={pic}
+                          persona={activePersona}
+                          index={idx}
+                          totalCount={activePics.length}
+                          viewMode="strip"
+                          onEdit={() => {}}
+                          onDuplicate={() => {}}
+                          onDelete={() => {}}
+                          onMoveUp={() => {}}
+                          onMoveDown={() => {}}
+                          onMoveToDay={() => {}}
+                        />
+                      </div>
+                    ));
+                  })()}
+                </div>
+              </div>
+            </div>
+            <p className="text-[11px] text-slate-500 italic text-center">
+              Piktogramstriben er reduceret i bredden (~11,5 cm) så den ikke fylder hele A4-sidens bredde.
+            </p>
           </div>
 
           {/* 2. Layout Mode */}

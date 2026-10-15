@@ -2,7 +2,7 @@ import type React from 'react';
 import type { Pictogram, Persona } from '../types';
 import { ICONS } from '../data/icons';
 import { ILLUSTRATIONS } from '../data/illustrations';
-import { resolveSceneImage, resolveRightIcon, getPersona } from '../services/personas';
+import { resolveSceneImage, getPersona } from '../services/personas';
 import {
   Pencil,
   Copy,
@@ -51,7 +51,6 @@ export const PictogramCard: React.FC<PictogramCardProps> = ({
 }) => {
   const activePersona = persona || getPersona();
   const sceneImageUrl = resolveSceneImage(pictogram, activePersona);
-  const rightIconImageUrl = resolveRightIcon(pictogram);
   const IconComponent = ICONS[pictogram.iconId]?.icon;
   const IllustrationComponent = pictogram.illustrationId
     ? ILLUSTRATIONS[pictogram.illustrationId]?.svg
@@ -77,23 +76,20 @@ export const PictogramCard: React.FC<PictogramCardProps> = ({
         style={{ backgroundColor: pictogram.bgColor || '#FFFFFF' }}
         className="group relative flex flex-col justify-between w-full max-w-[240px] aspect-[6.5/10] rounded-2xl border-3 border-slate-900 shadow-md hover:shadow-xl transition-all p-3 select-none"
       >
-        {/* Top bar with drag handle and order badge */}
+        {/* Top bar with drag handle */}
         <div className="flex items-center justify-between pb-1">
-          <span className="w-5 h-5 rounded-full bg-slate-900 text-white text-[10px] font-bold flex items-center justify-center">
-            {index + 1}
-          </span>
-          {pictogram.time && (
+          {pictogram.time ? (
             <span className="inline-flex items-center gap-1 text-[11px] font-bold bg-white/90 border border-slate-900/30 px-2 py-0.5 rounded-full text-slate-800">
               <Clock size={11} />
               {pictogram.time}
             </span>
-          )}
+          ) : <div />}
           <div className="cursor-grab active:cursor-grabbing text-slate-400 group-hover:text-slate-800">
             <GripVertical size={16} />
           </div>
         </div>
 
-        {/* Top/Middle: Large illustration / image */}
+        {/* Top/Middle: Large illustration / image (takes up more space) */}
         <div className="flex-1 bg-white rounded-xl border-2 border-slate-900 overflow-hidden flex items-center justify-center my-1 shadow-inner relative">
           {sceneImageUrl ? (
             <img
@@ -103,36 +99,20 @@ export const PictogramCard: React.FC<PictogramCardProps> = ({
             />
           ) : IllustrationComponent ? (
             <div className="p-2 w-full h-full flex items-center justify-center">
-              <IllustrationComponent className="w-full h-full max-h-[110px]" />
+              <IllustrationComponent className="w-full h-full max-h-[140px]" />
             </div>
           ) : IconComponent ? (
-            <IconComponent size={48} className="text-slate-800 stroke-[2.2]" />
+            <IconComponent size={56} className="text-slate-800 stroke-[2.2]" />
           ) : (
-            <ImageIcon size={36} className="text-slate-300" />
+            <ImageIcon size={40} className="text-slate-300" />
           )}
         </div>
 
-        {/* Bottom: Text description & small pictogram icon */}
-        <div className="pt-1 flex items-end justify-between gap-1">
-          <div className="flex-1 min-w-0 pr-1">
-            <h3 className={`${titleSizeClass} text-slate-900 leading-tight break-words uppercase tracking-wide`}>
-              {pictogram.title}
-            </h3>
-            {pictogram.subtitle && (
-              <p className="text-xs font-medium text-slate-600 line-clamp-2 leading-tight mt-0.5">
-                {pictogram.subtitle}
-              </p>
-            )}
-          </div>
-          {rightIconImageUrl ? (
-            <div className="w-8 h-8 rounded-lg bg-white border border-slate-900 flex items-center justify-center shrink-0 shadow-sm overflow-hidden p-0.5">
-              <img src={rightIconImageUrl} alt="" className="w-full h-full object-contain" />
-            </div>
-          ) : IconComponent ? (
-            <div className="w-8 h-8 rounded-lg bg-white border border-slate-900 flex items-center justify-center shrink-0 shadow-sm">
-              <IconComponent size={18} className="text-slate-900" />
-            </div>
-          ) : null}
+        {/* Bottom: Only title (rounded font, no subtitle, no right icon) */}
+        <div className="pt-1.5 pb-0.5 text-center">
+          <h3 className={`${titleSizeClass} font-rounded text-slate-900 leading-tight break-words uppercase tracking-wide`}>
+            {pictogram.title}
+          </h3>
         </div>
 
         {/* Hover action menu buttons */}
@@ -180,8 +160,8 @@ export const PictogramCard: React.FC<PictogramCardProps> = ({
       style={{ backgroundColor: pictogram.bgColor || '#FFFFFF' }}
       className="group relative flex items-center justify-between w-full min-h-[72px] sm:min-h-[82px] rounded-xl border-3 border-slate-900 shadow-sm hover:shadow-md transition-all select-none overflow-hidden my-1.5"
     >
-      {/* Left section: Graphic illustration / Photo */}
-      <div className="w-32 sm:w-44 md:w-52 h-full min-h-[76px] sm:min-h-[88px] bg-white border-r-3 border-slate-900 flex items-center justify-center shrink-0 overflow-hidden relative">
+      {/* Left section: Graphic illustration / Photo (figure fills more space) */}
+      <div className="w-40 sm:w-56 md:w-64 h-full min-h-[84px] sm:min-h-[96px] bg-white border-r-3 border-slate-900 flex items-center justify-center shrink-0 overflow-hidden relative">
         {sceneImageUrl ? (
           <img
             src={sceneImageUrl}
@@ -189,57 +169,30 @@ export const PictogramCard: React.FC<PictogramCardProps> = ({
             className="w-full h-full object-cover object-center"
           />
         ) : IllustrationComponent ? (
-          <div className="p-1.5 w-full h-full flex items-center justify-center">
-            <IllustrationComponent className="w-full h-full max-h-[72px]" />
+          <div className="p-2 w-full h-full flex items-center justify-center">
+            <IllustrationComponent className="w-full h-full max-h-[82px]" />
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center text-slate-400">
             {IconComponent ? (
-              <IconComponent size={28} className="text-slate-700" />
+              <IconComponent size={36} className="text-slate-700" />
             ) : (
-              <ImageIcon size={24} />
+              <ImageIcon size={28} />
             )}
           </div>
         )}
       </div>
 
-      {/* Middle section: Activity Title, Subtitle, Time */}
-      <div className="flex-1 px-3 sm:px-5 py-2 min-w-0">
-        <div className="flex items-center gap-2">
-          <span className="w-5 h-5 rounded-full bg-slate-900 text-white text-[11px] font-bold flex items-center justify-center shrink-0">
-            {index + 1}
+      {/* Middle/Main section: Activity Title & optional Time (centered title, round font) */}
+      <div className="flex-1 px-4 sm:px-6 py-3 min-w-0 flex items-center justify-center relative">
+        <h3 className={`${titleSizeClass} font-rounded text-slate-900 font-extrabold leading-tight uppercase tracking-wide text-center truncate`}>
+          {pictogram.title}
+        </h3>
+        {pictogram.time && (
+          <span className="absolute right-3 sm:right-5 top-1/2 -translate-y-1/2 inline-flex items-center gap-1 text-xs font-bold bg-white/90 border border-slate-900/30 px-2 py-0.5 rounded-full text-slate-700 shrink-0">
+            <Clock size={11} />
+            {pictogram.time}
           </span>
-          <h3 className={`${titleSizeClass} text-slate-900 font-black leading-tight uppercase tracking-wider truncate`}>
-            {pictogram.title}
-          </h3>
-          {pictogram.time && (
-            <span className="inline-flex items-center gap-1 text-xs font-bold bg-white/90 border border-slate-900/30 px-2 py-0.5 rounded-full text-slate-700 shrink-0">
-              <Clock size={12} />
-              {pictogram.time}
-            </span>
-          )}
-        </div>
-        {pictogram.subtitle && (
-          <p className="text-xs sm:text-sm font-semibold text-slate-700 pl-7 line-clamp-1 mt-0.5">
-            {pictogram.subtitle}
-          </p>
-        )}
-      </div>
-
-      {/* Right section: Distinct pictogram symbol */}
-      <div className="w-20 sm:w-28 h-full min-h-[76px] sm:min-h-[88px] border-l-3 border-slate-900 bg-white/40 flex items-center justify-center shrink-0 p-2">
-        {rightIconImageUrl ? (
-          <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-white border-2 border-slate-900 flex items-center justify-center shadow-sm overflow-hidden p-1">
-            <img src={rightIconImageUrl} alt="" className="w-full h-full object-contain" />
-          </div>
-        ) : IconComponent ? (
-          <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-white border-2 border-slate-900 flex items-center justify-center shadow-sm">
-            <IconComponent size={24} className="text-slate-900 stroke-[2.3]" />
-          </div>
-        ) : (
-          <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400 text-xs font-bold">
-            ?
-          </div>
         )}
       </div>
 

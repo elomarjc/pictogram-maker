@@ -27,7 +27,7 @@ function toGrayscale(r: number, g: number, b: number): [number, number, number] 
 function drawDayHeader(
   doc: jsPDF,
   title: string,
-  subtitle: string,
+  _subtitle: string,
   x: number,
   y: number,
   width: number,
@@ -91,13 +91,12 @@ function drawDayHeader(
     doc.rect(cloudX - 4, cloudY + 1, 8, 3.5, 'FD');
   }
 
-  // Header Title: e.g. "Mandag - AV"
+  // Header Title: e.g. "Mandag"
   doc.setTextColor(15, 23, 42);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(16);
 
-  const fullTitle = subtitle ? `${title} – ${subtitle}` : title;
-  doc.text(fullTitle, x + width / 2, y + height / 2 + 2, { align: 'center' });
+  doc.text(title, x + width / 2, y + height / 2 + 2, { align: 'center' });
 }
 
 /**
@@ -124,16 +123,16 @@ function drawBoardStrip(
   doc.setLineWidth(0.7);
   doc.roundedRect(x, y, width, height, 3, 3, 'FD');
 
-  // Left side: Illustration indicator box
-  const leftBoxW = 48;
+  // Left side: Illustration indicator box (fills more of the strip)
+  const leftBoxW = Math.round(width * 0.48);
   doc.setDrawColor(30, 41, 59);
-  doc.setLineWidth(0.4);
+  doc.setLineWidth(0.5);
   doc.line(x + leftBoxW, y, x + leftBoxW, y + height);
 
   const sceneUrl = resolveSceneImage(pic, persona);
   if (sceneUrl && sceneUrl.startsWith('data:image')) {
     try {
-      const imgPad = 1.5;
+      const imgPad = 1.2;
       const imgW = leftBoxW - imgPad * 2;
       const imgH = height - imgPad * 2;
       doc.addImage(sceneUrl, 'JPEG', x + imgPad, y + imgPad, imgW, imgH, undefined, 'FAST');
@@ -145,7 +144,7 @@ function drawBoardStrip(
     }
   } else {
     // Crisp graphic badge / symbol on left
-    const badgePad = 2.5;
+    const badgePad = 2;
     const badgeH = height - badgePad * 2;
     const badgeW = leftBoxW - badgePad * 2;
     doc.setFillColor(255, 255, 255);
@@ -154,31 +153,15 @@ function drawBoardStrip(
 
     // Small category/action label or illustration badge
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(8.5);
+    doc.setFontSize(9);
     doc.setTextColor(30, 41, 59);
-    const shortLabel = pic.illustrationId ? pic.illustrationId.toUpperCase().slice(0, 10) : 'FIGUR';
+    const shortLabel = pic.illustrationId ? pic.illustrationId.toUpperCase().slice(0, 12) : 'FIGUR';
     doc.text(shortLabel, x + leftBoxW / 2, y + height / 2 + 1, { align: 'center' });
   }
 
-  // Right side: Pictogram icon symbol box
-  const rightBoxW = 26;
-  const rightX = x + width - rightBoxW;
-  doc.setDrawColor(30, 41, 59);
-  doc.setLineWidth(0.4);
-  doc.line(rightX, y, rightX, y + height);
-
-  // Right symbol box contents
-  doc.setFillColor(255, 255, 255);
-  doc.roundedRect(rightX + 3, y + 3, rightBoxW - 6, height - 6, 2, 2, 'FD');
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8);
-  doc.setTextColor(15, 23, 42);
-  const iconShort = (pic.iconId || 'ikon').toUpperCase().slice(0, 6);
-  doc.text(iconShort, rightX + rightBoxW / 2, y + height / 2 + 1, { align: 'center' });
-
-  // Center: Activity Title & Subtitle (prominent bold uppercase)
-  const textX = x + leftBoxW + 6;
-  const maxTextW = width - leftBoxW - rightBoxW - 12;
+  // Right side: Only title (no right icon, no subtitle)
+  const textX = x + leftBoxW + (width - leftBoxW) / 2;
+  const maxTextW = width - leftBoxW - 8;
 
   doc.setTextColor(15, 23, 42);
   doc.setFont('helvetica', 'bold');
@@ -187,22 +170,15 @@ function drawBoardStrip(
   doc.setFontSize(titleFontSize);
 
   const displayTitle = pic.title.toUpperCase();
-  if (pic.subtitle) {
-    doc.text(displayTitle, textX, y + height / 2 - 1.5, { maxWidth: maxTextW });
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8.5);
-    doc.setTextColor(71, 85, 105);
-    doc.text(pic.subtitle, textX, y + height / 2 + 4, { maxWidth: maxTextW });
-  } else {
-    doc.text(displayTitle, textX, y + height / 2 + 2, { maxWidth: maxTextW });
-  }
+  const splitTitle = doc.splitTextToSize(displayTitle, maxTextW);
+  doc.text(splitTitle, textX, y + height / 2 + (splitTitle.length > 1 ? -1 : 1.5), { align: 'center', maxWidth: maxTextW });
 
-  // Optional Time badge in top right of center area
+  // Optional Time badge in top right of card
   if (pic.time) {
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(8);
+    doc.setFontSize(7.5);
     doc.setTextColor(100, 116, 139);
-    doc.text(pic.time, rightX - 3, y + 6, { align: 'right' });
+    doc.text(pic.time, x + width - 3, y + 4.5, { align: 'right' });
   }
 }
 
@@ -269,7 +245,7 @@ function drawVerticalCard(
     doc.text(label, x + width / 2, y + imgAreaH / 2, { align: 'center' });
   }
 
-  // Bottom area: Title & Subtitle
+  // Bottom area: Title
   const textAreaY = y + imgAreaH + 4;
   const maxTextW = width - 8;
 
@@ -281,15 +257,6 @@ function drawVerticalCard(
 
   const splitTitle = doc.splitTextToSize(pic.title, maxTextW);
   doc.text(splitTitle, x + width / 2, textAreaY + 4, { align: 'center' });
-
-  if (pic.subtitle) {
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
-    doc.setTextColor(71, 85, 105);
-    const titleLinesH = splitTitle.length * 4.5;
-    const splitSub = doc.splitTextToSize(pic.subtitle, maxTextW);
-    doc.text(splitSub, x + width / 2, textAreaY + 4 + titleLinesH, { align: 'center' });
-  }
 
   if (pic.time) {
     doc.setFont('helvetica', 'bold');

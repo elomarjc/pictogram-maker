@@ -49,11 +49,8 @@ export const WeekView: React.FC<WeekViewProps> = ({
             >
               {/* Day column header */}
               <div className="bg-[#BAE6FD] border-b-2 border-slate-900 p-2.5 text-center">
-                <span className="text-xs font-extrabold uppercase text-slate-600 block">
+                <span className="text-sm font-black text-slate-900 block truncate font-rounded">
                   {day.name}
-                </span>
-                <span className="text-sm font-black text-slate-900 block truncate">
-                  {schedule?.headerSubtitle || 'Ugeplan'}
                 </span>
                 <span className="inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-white text-slate-800 border border-slate-900/20">
                   {count} {count === 1 ? 'kort' : 'kort'}
@@ -77,7 +74,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
                     </button>
                   </div>
                 ) : (
-                  schedule.pictograms.map((pic, idx) => {
+                  schedule.pictograms.map((pic) => {
                     const IconComp = ICONS[pic.iconId]?.icon;
                     return (
                       <div
@@ -85,13 +82,10 @@ export const WeekView: React.FC<WeekViewProps> = ({
                         style={{ backgroundColor: pic.bgColor || '#FFFFFF' }}
                         className="flex items-center gap-1.5 p-1.5 rounded-lg border border-slate-900/60 shadow-2xs text-left"
                       >
-                        <span className="text-[10px] font-bold text-slate-500 w-3">
-                          {idx + 1}
-                        </span>
                         {IconComp && (
-                          <IconComp size={13} className="text-slate-800 shrink-0" />
+                          <IconComp size={14} className="text-slate-800 shrink-0" />
                         )}
-                        <span className="text-xs font-bold text-slate-900 truncate">
+                        <span className="text-xs font-bold text-slate-900 truncate font-rounded">
                           {pic.title}
                         </span>
                       </div>
