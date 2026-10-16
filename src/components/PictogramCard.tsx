@@ -56,14 +56,25 @@ export const PictogramCard: React.FC<PictogramCardProps> = ({
     ? ILLUSTRATIONS[pictogram.illustrationId]?.svg
     : null;
 
-  const titleSizeClass =
-    pictogram.fontSize === 'xl'
-      ? 'text-lg sm:text-xl font-black'
-      : pictogram.fontSize === 'lg'
-      ? 'text-base sm:text-lg font-extrabold'
-      : pictogram.fontSize === 'sm'
-      ? 'text-xs sm:text-sm font-bold'
-      : 'text-sm sm:text-base font-bold';
+  const isNumericSize =
+    typeof pictogram.fontSize === 'number' ||
+    (typeof pictogram.fontSize === 'string' && /^\d+$/.test(pictogram.fontSize));
+
+  const numericFontSize = isNumericSize ? Number(pictogram.fontSize) : null;
+
+  const titleSizeClass = numericFontSize
+    ? 'font-black'
+    : pictogram.fontSize === 'xl'
+    ? 'text-lg sm:text-xl font-black'
+    : pictogram.fontSize === 'lg'
+    ? 'text-base sm:text-lg font-extrabold'
+    : pictogram.fontSize === 'sm'
+    ? 'text-xs sm:text-sm font-bold'
+    : 'text-sm sm:text-base font-bold';
+
+  const customTitleStyle: React.CSSProperties = numericFontSize
+    ? { fontSize: `${numericFontSize}px` }
+    : {};
 
   if (viewMode === 'vertical') {
     // iPhone vertical aspect ratio card (6.5 x 10 cm proportions)
@@ -110,13 +121,16 @@ export const PictogramCard: React.FC<PictogramCardProps> = ({
 
         {/* Bottom: Only title (rounded font, no subtitle, no right icon) */}
         <div className="pt-1.5 pb-0.5 text-center">
-          <h3 className={`${titleSizeClass} font-rounded text-slate-900 leading-tight break-words uppercase tracking-wide`}>
+          <h3
+            style={customTitleStyle}
+            className={`${titleSizeClass} font-rounded text-slate-900 leading-tight break-words uppercase tracking-wide`}
+          >
             {pictogram.title}
           </h3>
         </div>
 
         {/* Hover action menu buttons */}
-        <div className="absolute top-2 right-2 flex items-center gap-1 bg-white/95 backdrop-blur-sm p-1 rounded-lg border border-slate-900 shadow-md opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity z-10">
+        <div data-html2canvas-ignore="true" className="print:hidden absolute top-2 right-2 flex items-center gap-1 bg-white/95 backdrop-blur-sm p-1 rounded-lg border border-slate-900 shadow-md opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity z-10">
           <button
             onClick={() => onEdit(pictogram)}
             title="Rediger piktogram"
@@ -184,8 +198,11 @@ export const PictogramCard: React.FC<PictogramCardProps> = ({
       </div>
 
       {/* Middle/Main section: Activity Title & optional Time (centered title, round font) */}
-      <div className="flex-1 px-4 sm:px-6 py-3 min-w-0 flex items-center justify-center relative">
-        <h3 className={`${titleSizeClass} font-rounded text-slate-900 font-extrabold leading-tight uppercase tracking-wide text-center truncate`}>
+      <div className="flex-1 px-4 sm:px-6 py-2 min-w-0 flex items-center justify-center relative">
+        <h3
+          style={customTitleStyle}
+          className={`${titleSizeClass} font-rounded text-slate-900 leading-tight uppercase tracking-wide text-center break-words max-w-full`}
+        >
           {pictogram.title}
         </h3>
         {pictogram.time && (
@@ -197,7 +214,7 @@ export const PictogramCard: React.FC<PictogramCardProps> = ({
       </div>
 
       {/* Floating Action Controls on the card */}
-      <div className="absolute right-24 sm:right-28 top-1/2 -translate-y-1/2 flex items-center gap-1 bg-white/95 backdrop-blur-sm p-1 rounded-xl border-2 border-slate-900 shadow-md opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity z-10">
+      <div data-html2canvas-ignore="true" className="print:hidden absolute right-24 sm:right-28 top-1/2 -translate-y-1/2 flex items-center gap-1 bg-white/95 backdrop-blur-sm p-1 rounded-xl border-2 border-slate-900 shadow-md opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity z-10">
         <button
           onClick={() => onMoveUp(index)}
           disabled={index === 0}

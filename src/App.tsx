@@ -20,6 +20,7 @@ import { CopyDayModal } from './components/CopyDayModal';
 import { PrivacyInfoModal } from './components/PrivacyInfoModal';
 import { ReferenceViewerModal } from './components/ReferenceViewerModal';
 import { PersonaSelectorModal } from './components/PersonaSelectorModal';
+import { SceneGeneratorGuideModal } from './components/SceneGeneratorGuideModal';
 import { getPersona } from './services/personas';
 
 export const App: React.FC = () => {
@@ -46,6 +47,7 @@ export const App: React.FC = () => {
   const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false);
   const [isReferenceModalOpen, setIsReferenceModalOpen] = useState(false);
   const [isPersonaModalOpen, setIsPersonaModalOpen] = useState(false);
+  const [isSceneGuideModalOpen, setIsSceneGuideModalOpen] = useState(false);
   const [movingPictogram, setMovingPictogram] = useState<Pictogram | null>(null);
   const [copyingSourceDayId, setCopyingSourceDayId] = useState<DayOfWeek | null>(null);
 
@@ -395,6 +397,7 @@ export const App: React.FC = () => {
         onOpenPrintModal={() => setIsPrintModalOpen(true)}
         onOpenPrivacyModal={() => setIsPrivacyModalOpen(true)}
         onOpenReferenceModal={() => setIsReferenceModalOpen(true)}
+        onOpenSceneGuideModal={() => setIsSceneGuideModalOpen(true)}
       />
 
       {/* Main Workspace Body */}
@@ -532,6 +535,12 @@ export const App: React.FC = () => {
         currentShortCode={currentPlan.shortCode || 'K.'}
         onClose={() => setIsPersonaModalOpen(false)}
         onSelectPersona={handleSelectPersona}
+      />
+
+      <SceneGeneratorGuideModal
+        isOpen={isSceneGuideModalOpen}
+        persona={activePersona}
+        onClose={() => setIsSceneGuideModalOpen(false)}
       />
     </div>
   );

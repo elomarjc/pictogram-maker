@@ -1,0 +1,144 @@
+# MASTER PROMPT SCENE LISTE (K-PIKTOGRAMMER)
+Indsæt den ønskede linje direkte under "## Scene to Generate" i 'Master Prompt Transparent.md'.
+
+================================================================================
+1. MORGEN, BAD & PERSONLIG HYGIEJNE
+================================================================================
+Morgenrutine / Vågne op:
+The character is stretching his arms happily next to his bed in the morning, with a fluffy pillow and neat duvet behind him.
+
+Rede seng:
+The character is making his bed neatly, smoothing out a clean duvet and plumping a soft white pillow.
+
+Badetid / Brusebad:
+The character is taking a shower, happily washing his hair with shampoo suds, with clean water drops spraying from the showerhead.
+
+Børste tænder:
+The character is standing at the bathroom sink brushing his teeth with a toothbrush, with toothpaste foam and a small cup on the shelf.
+
+Tage tøj på:
+The character is putting on his clean clothes and zipping up his grey hoodie with a cheerful smile.
+
+
+================================================================================
+2. MEDICIN & VELVÆRE
+================================================================================
+Medicin (Morgen / Aften):
+The character is taking medicine, with a glass of water, pill blister pack, and small medicine cup on the table.
+
+Drikke et glas vand:
+The character is drinking a fresh glass of water, holding the clear glass up with a satisfied smile.
+
+
+================================================================================
+3. MAD & DRIKKE (MÅLTIDER)
+================================================================================
+The & Kaffe:
+The character is sitting at a cozy table happily holding a warm steaming coffee mug, with a classic coffee pot on the table.
+
+Morgenmad:
+The character is sitting at the table eating breakfast, with a bowl of cereal, milk carton, and a spoon in hand.
+
+Frokost (Rugbrødsmadder):
+The character is sitting at the dining table eating open-faced sandwiches from a plate, with a knife and fork beside it.
+
+Aftensmad:
+The character is eating dinner, holding a fork and knife, with a warm plate of food and a glass on the dining table.
+
+Bolle / Eftermiddagshygge:
+The character is sitting at the table enjoying a freshly baked bread roll with butter, holding it happily with both hands.
+
+Snack / Frugt:
+The character is sitting at a table eating a fresh red apple and a peeled banana from a fruit bowl.
+
+
+================================================================================
+4. PLIGTER & HJEMLIGE OPGAVER
+================================================================================
+Hænge vasketøj op:
+The character is hanging clean laundry up on a drying rack with clothespins, with a laundry basket standing next to him.
+
+Lægge tøj sammen:
+The character is standing at a table neatly folding clean colorful t-shirts and placing them in a tidy stack.
+
+Vaske op i hånden:
+The character is washing dishes at the sink, with gentle soap bubbles, a dish brush, clean plates on a rack, and a soap bottle.
+
+Tømme / Fylde opvaskemaskine:
+The character is placing a clean plate into the open rack of a dishwasher, smiling as the kitchen stays tidy.
+
+Gå med skrald & flasker (Skraldespand / Pant):
+The character is carrying a tied green trash bag and a crate with empty soda bottles out to the recycling bin.
+
+Støvsuge / Rengøring:
+The character is vacuuming the floor with a modern vacuum cleaner, moving the nozzle smoothly across the floor.
+
+Tørre bord af:
+The character is wiping down a table with a damp cleaning cloth, leaving the surface clean and shiny.
+
+Rydde op på værelset:
+The character is putting books and hobby items into a storage box, keeping his room organized and neat.
+
+
+================================================================================
+5. FRITID, HOBBY & AKTIVITETER
+================================================================================
+Kreativ aktivitet (Tegne / Perler / Maling):
+The character is sitting at a craft table coloring with bright felt-tip markers on paper, with colored pencils and beads in jars.
+
+Lægge puslespil / Brætspil:
+The character is sitting at a table thoughtfully and happily fitting pieces into a colorful jigsaw puzzle.
+
+Høre musik / Hovedtelefoner:
+The character is wearing comfortable headphones around his head, tapping his foot and happily listening to his favorite music.
+
+Gåtur / Frisk luft:
+The character is walking happily outside along a park path, swinging his arms lightly with green trees in the background.
+
+Cykeltur:
+The character is riding a bicycle happily wearing a safety helmet, with hands firmly on the handlebars.
+
+Spille bold / Fodbold:
+The character is kicking a soccer ball on a green lawn with a joyful and energetic expression.
+
+Svømmehal / Svømmetur:
+The character is at the swimming pool wearing swim shorts and a towel over his shoulder, smiling near the clean blue pool water.
+
+
+================================================================================
+6. AFSLAPNING & PAUSE
+================================================================================
+Pause på sofaen / Se TV:
+The character is relaxing cozily on a soft sofa with comfortable cushions, holding a TV remote control with a peaceful smile.
+
+iPad / Tablet-tid:
+The character is sitting comfortably in an armchair holding a tablet computer, tapping the screen with an engaged smile.
+
+Læse i bog eller blad:
+The character is sitting cozily turning pages in an illustrated book or magazine, enjoying quiet reading time.
+
+
+================================================================================
+7. TURE UD AF HUSET & FAMILIE
+================================================================================
+Handle indkøb (Supermarked):
+The character is walking in a grocery aisle holding a shopping basket filled with milk, bread, and soda cans.
+
+Køre i bus / tog:
+The character is sitting by a bus window looking out at the road, holding his bus pass in hand.
+
+Hjem til far (Pakke taske):
+The character is packing a weekend travel bag on his bed, putting in folded clothes and zipping the bag closed.
+
+Besøg / Ankomst hos far:
+The character is standing outside a cozy house door with his weekend bag, waving hello happily with a warm smile.
+
+
+================================================================================
+8. AFTENRUTINE & SENGETID
+================================================================================
+Aftenrutine / Nattøj:
+The character is in his cozy pajamas, sitting on the edge of the bed getting ready for sleep.
+
+Sengetid / Sove:
+The character is lying peacefully in bed with his head resting on a soft pillow under a warm duvet, sleeping with subtle Zzz symbols.

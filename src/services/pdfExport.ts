@@ -1,4 +1,5 @@
 import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 import type { DaySchedule, Pictogram, PrintSettings, WeekPlan, Persona } from '../types';
 import { DAYS_OF_WEEK } from '../types';
 import { getPersona, resolveSceneImage } from './personas';
@@ -163,10 +164,15 @@ function drawBoardStrip(
   const textX = x + leftBoxW + (width - leftBoxW) / 2;
   const maxTextW = width - leftBoxW - 8;
 
-  doc.setTextColor(15, 23, 42);
-  doc.setFont('helvetica', 'bold');
+  const numSize = typeof pic.fontSize === 'number'
+    ? pic.fontSize
+    : typeof pic.fontSize === 'string' && /^\d+$/.test(pic.fontSize)
+    ? Number(pic.fontSize)
+    : null;
 
-  const titleFontSize = pic.fontSize === 'xl' ? 14 : pic.fontSize === 'lg' ? 13 : 11;
+  const titleFontSize = numSize
+    ? Math.max(6, Math.min(36, numSize * 0.75))
+    : pic.fontSize === 'xl' ? 14 : pic.fontSize === 'lg' ? 13 : 11;
   doc.setFontSize(titleFontSize);
 
   const displayTitle = pic.title.toUpperCase();
@@ -249,10 +255,15 @@ function drawVerticalCard(
   const textAreaY = y + imgAreaH + 4;
   const maxTextW = width - 8;
 
-  doc.setTextColor(15, 23, 42);
-  doc.setFont('helvetica', 'bold');
+  const numSize = typeof pic.fontSize === 'number'
+    ? pic.fontSize
+    : typeof pic.fontSize === 'string' && /^\d+$/.test(pic.fontSize)
+    ? Number(pic.fontSize)
+    : null;
 
-  const titleFontSize = pic.fontSize === 'xl' ? 13 : pic.fontSize === 'lg' ? 12 : 10.5;
+  const titleFontSize = numSize
+    ? Math.max(6, Math.min(36, numSize * 0.75))
+    : pic.fontSize === 'xl' ? 13 : pic.fontSize === 'lg' ? 12 : 10.5;
   doc.setFontSize(titleFontSize);
 
   const splitTitle = doc.splitTextToSize(pic.title, maxTextW);
@@ -432,3 +443,135 @@ export async function downloadWeekPlanPdf(plan: WeekPlan, settings: PrintSetting
   const filename = `${safeName}-piktogrammer.pdf`;
   doc.save(filename);
 }
+
+/**
+ * Converts an image element to a base64 data URL to prevent html2canvas CORS / tainted canvas errors
+ */
+async function inlineImagesAsDataUrls(container: HTMLElement): Promise<() => void> {
+  const images = Array.from(container.querySelectorAll('img'));
+  const originalSources = new Map<HTMLImageElement, string>();
+
+  await Promise.all(
+    images.map(async (img) => {
+      const src = img.getAttribute('src');
+      if (!src || src.startsWith('data:')) return;
+      originalSources.set(img, src);
+
+      try {
+        const response = await fetch(src, { mode: 'cors' });
+        const blob = await response.blob();
+        await new Promise<void>((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            if (reader.result && typeof reader.result === 'string') {
+              img.src = reader.result;
+            }
+            resolve();
+          };
+          reader.onerror = () => resolve();
+          reader.readAsDataURL(blob);
+        });
+      } catch {
+        // If fetch fails, keep original src
+      }
+    })
+  );
+
+  // Return restore function
+  return () => {
+    originalSources.forEach((origSrc, img) => {
+      img.src = origSrc;
+    });
+  };
+}
+
+/**
+ * Captures an HTML element to a high-resolution HTML Canvas with inlined images.
+ */
+export async function captureElementToCanvas(element: HTMLElement): Promise<HTMLCanvasElement> {
+  let restoreImages: (() => void) | null = null;
+  try {
+    restoreImages = await inlineImagesAsDataUrls(element);
+  } catch (err) {
+    console.warn('Image inlining warning:', err);
+  }
+
+  try {
+    const canvas = await html2canvas(element, {
+      scale: 2.5,
+      useCORS: true,
+      allowTaint: false,
+      backgroundColor: '#FFFFFF',
+      logging: false,
+      imageTimeout: 15000,
+      ignoreElements: (el) => el.getAttribute('data-html2canvas-ignore') === 'true',
+    });
+    return canvas;
+  } finally {
+    if (restoreImages) {
+      restoreImages();
+    }
+  }
+}
+
+/**
+ * Downloads the live rendered board DOM element directly as a high-resolution PNG image.
+ */
+export async function exportElementToImage(
+  element: HTMLElement,
+  filename: string
+): Promise<void> {
+  const canvas = await captureElementToCanvas(element);
+  const imgData = canvas.toDataURL('image/png');
+  const safeFilename = filename.endsWith('.png') ? filename : `${filename}.png`;
+
+  const link = document.createElement('a');
+  link.href = imgData;
+  link.download = safeFilename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+/**
+ * Exports the live rendered board DOM element by converting it to an exact image first,
+ * and then placing the 1:1 image onto an A4 PDF page.
+ */
+export async function exportElementToPdf(
+  element: HTMLElement,
+  filename: string
+): Promise<void> {
+  const canvas = await captureElementToCanvas(element);
+
+  const imgData = canvas.toDataURL('image/jpeg', 0.98);
+  const pdf = new jsPDF({
+    orientation: 'portrait',
+    unit: 'mm',
+    format: 'a4',
+  });
+
+  const pdfWidth = 210;
+  const pdfHeight = 297;
+  const margin = 10;
+  const maxContentW = pdfWidth - margin * 2; // 190 mm
+  const maxContentH = pdfHeight - margin * 2; // 277 mm
+
+  const imgWidth = canvas.width;
+  const imgHeight = canvas.height;
+  const ratio = imgWidth / imgHeight;
+
+  let renderW = maxContentW;
+  let renderH = renderW / ratio;
+
+  if (renderH > maxContentH) {
+    renderH = maxContentH;
+    renderW = renderH * ratio;
+  }
+
+  const posX = (pdfWidth - renderW) / 2;
+  const posY = margin + Math.max(0, (maxContentH - renderH) / 6);
+
+  pdf.addImage(imgData, 'JPEG', posX, posY, renderW, renderH, undefined, 'FAST');
+  pdf.save(filename.endsWith('.pdf') ? filename : `${filename}.pdf`);
+}
+

@@ -21,10 +21,10 @@ const BASE = import.meta.env.BASE_URL.endsWith('/')
 export const DEFAULT_PERSONAS: Persona[] = [
   {
     id: 'man_k',
-    name: 'Mand (K.)',
+    name: 'Mand',
     shortCode: 'K.',
     avatarUrl: `${BASE}reference/persona_man_avatar.webp`,
-    description: 'Mandlig figur med kort hår og grå hættetrøje – tro kopi af reference-skabelonen',
+    description: 'Mandlig figur med kort hår og grå hættetrøje',
     activityScenes: {
       vaesketoeg: `${BASE}reference/scenes/vaesketoeg.webp`,
       kaffe: `${BASE}reference/scenes/kaffe.webp`,
@@ -49,10 +49,10 @@ export const DEFAULT_PERSONAS: Persona[] = [
   },
   {
     id: 'woman_a',
-    name: 'Kvinde (A.)',
+    name: 'Kvinde',
     shortCode: 'A.',
     avatarUrl: `${BASE}reference/persona_woman_avatar.webp`,
-    description: 'Kvindelig figur med hestehale og turkis hættetrøje i samme visuelle stil',
+    description: 'Kvindelig figur med hestehale og turkis hættetrøje',
     activityScenes: {
       vaesketoeg: `${BASE}reference/scenes/woman_vasketoj.webp`,
       kaffe: `${BASE}reference/scenes/woman_kaffe.webp`,

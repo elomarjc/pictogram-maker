@@ -100,13 +100,13 @@ export const DailyBoard: React.FC<DailyBoardProps> = ({
           {/* Persona / Figure selector button */}
           <button
             onClick={onOpenPersonaModal}
-            title="Vælg figur og forkortelse for tavlen"
+            title="Vælg figur (Mand eller Kvinde)"
             className="inline-flex items-center gap-2 px-3 py-1.5 bg-white hover:bg-amber-50 text-slate-900 font-black rounded-xl border-2 border-slate-900 shadow-xs hover:shadow transition-all text-xs"
           >
             <div className="w-5 h-5 rounded-md border border-slate-900 overflow-hidden shrink-0 bg-amber-100">
               <img src={persona.avatarUrl} alt="" className="w-full h-full object-cover" />
             </div>
-            <span>Figur: <strong>{persona.shortCode || 'K.'}</strong></span>
+            <span>Figur: <strong>{persona.id === 'woman_a' ? 'Kvinde' : 'Mand'}</strong></span>
           </button>
 
           {/* View mode toggle */}
@@ -167,7 +167,7 @@ export const DailyBoard: React.FC<DailyBoardProps> = ({
       </div>
 
       {/* Main Board Container - Matching reference proportions */}
-      <div className="bg-white rounded-3xl border-4 border-slate-900 shadow-xl overflow-hidden p-3 sm:p-5 max-w-xl mx-auto">
+      <div id="daily-board-container" className="bg-white rounded-3xl border-4 border-slate-900 shadow-xl overflow-hidden p-3 sm:p-5 max-w-xl mx-auto">
         {/* Board Header: Sky-blue banner with Sun, Title, and Cloud */}
         <div className="bg-[#7ECBFC] border-3 border-slate-900 rounded-2xl p-2.5 sm:p-3 mb-3 flex items-center justify-between shadow-xs">
           {/* Sun icon on the left */}
@@ -268,7 +268,7 @@ export const DailyBoard: React.FC<DailyBoardProps> = ({
 
         {/* Quick add card button at the bottom of the list */}
         {schedule.pictograms.length > 0 && (
-          <div className="pt-3">
+          <div data-html2canvas-ignore="true" className="pt-3 print:hidden">
             <button
               onClick={onAddPictogram}
               className="w-full py-3 rounded-2xl border-2 border-dashed border-slate-300 hover:border-slate-900 hover:bg-amber-50 text-slate-700 hover:text-slate-900 font-bold text-sm flex items-center justify-center gap-2 transition-all"

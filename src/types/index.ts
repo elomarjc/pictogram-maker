@@ -23,7 +23,7 @@ export const DAYS_OF_WEEK: DayInfo[] = [
   { id: 'soendag', name: 'Søndag', shortName: 'Søn' },
 ];
 
-export type CardFontSize = 'sm' | 'base' | 'lg' | 'xl';
+export type CardFontSize = 'sm' | 'base' | 'lg' | 'xl' | number | string;
 
 export interface Persona {
   id: string; // 'man_k' | 'woman_a' | 'custom'
