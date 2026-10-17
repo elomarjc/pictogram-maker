@@ -161,7 +161,118 @@ export async function generateSceneImage(
 }
 
 /**
- * Converts a real person's photo into a 2D cartoon pictogram avatar.
+ * Removes solid background from an image client-side using flood-fill.
+ * Turns the solid border/background into 100% transparent alpha.
+ * Returns a transparent PNG Data URL.
+ */
+export async function removeImageBackground(imageDataUrl: string): Promise<string> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(imageDataUrl);
+          return;
+        }
+
+        ctx.drawImage(img, 0, 0);
+        const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imgData.data;
+        const w = canvas.width;
+        const h = canvas.height;
+
+        // Sample background reference from corners
+        const samplePoints = [
+          [0, 0],
+          [w - 1, 0],
+          [0, h - 1],
+          [w - 1, h - 1],
+          [Math.floor(w / 2), 0],
+        ];
+
+        let bgR = 0, bgG = 0, bgB = 0;
+        for (const [cx, cy] of samplePoints) {
+          const idx = (cy * w + cx) * 4;
+          bgR += data[idx];
+          bgG += data[idx + 1];
+          bgB += data[idx + 2];
+        }
+        bgR = Math.round(bgR / samplePoints.length);
+        bgG = Math.round(bgG / samplePoints.length);
+        bgB = Math.round(bgB / samplePoints.length);
+
+        // Flood fill from outer boundaries
+        const threshold = 48;
+        const visited = new Uint8Array(w * h);
+        const queue: number[] = [];
+
+        for (let x = 0; x < w; x++) {
+          queue.push(0 * w + x);
+          queue.push((h - 1) * w + x);
+          visited[0 * w + x] = 1;
+          visited[(h - 1) * w + x] = 1;
+        }
+        for (let y = 0; y < h; y++) {
+          queue.push(y * w + 0);
+          queue.push(y * w + (w - 1));
+          visited[y * w + 0] = 1;
+          visited[y * w + (w - 1)] = 1;
+        }
+
+        let head = 0;
+        while (head < queue.length) {
+          const pos = queue[head++];
+          const px = pos % w;
+          const py = Math.floor(pos / w);
+          const idx = (py * w + px) * 4;
+
+          const r = data[idx];
+          const g = data[idx + 1];
+          const b = data[idx + 2];
+
+          const dist = Math.sqrt((r - bgR) ** 2 + (g - bgG) ** 2 + (b - bgB) ** 2);
+          if (dist <= threshold) {
+            data[idx + 3] = 0; // Transparent
+
+            const neighbors = [
+              [px - 1, py],
+              [px + 1, py],
+              [px, py - 1],
+              [px, py + 1],
+            ];
+
+            for (const [nx, ny] of neighbors) {
+              if (nx >= 0 && nx < w && ny >= 0 && ny < h) {
+                const nPos = ny * w + nx;
+                if (!visited[nPos]) {
+                  visited[nPos] = 1;
+                  queue.push(nPos);
+                }
+              }
+            }
+          }
+        }
+
+        ctx.putImageData(imgData, 0, 0);
+        resolve(canvas.toDataURL('image/png'));
+      } catch {
+        resolve(imageDataUrl);
+      }
+    };
+    img.onerror = () => resolve(imageDataUrl);
+    img.src = imageDataUrl;
+  });
+}
+
+/**
+ * Converts a real person's photo into a 2D cartoon pictogram avatar sticker.
+ * Captures facial traits (glasses, hair, beard, expression) in the style of persona_man_avatar.webp.
+ * Automatically removes background to return a transparent PNG.
  * The original photo is used strictly in-memory during inference and is NEVER saved or sent to GitHub.
  */
 export async function createAvatarFromPhoto(
@@ -169,12 +280,15 @@ export async function createAvatarFromPhoto(
   personaName: string,
   options?: { workerUrl?: string }
 ): Promise<string> {
-  const prompt = `A 2D cartoon pictogram avatar of ${personaName || 'a person'}, cute friendly character, bold clean black outlines, smooth cel-shading, friendly smile, solid color hoodie, transparent background, isolated sticker, vector art style, clean silhouette, no background, 100% transparent PNG`;
+  const prompt = `A cute 2D cartoon pictogram avatar sticker of ${personaName || 'a person'}, friendly round head, big happy open smile, simple black cartoon eyes, bold thick black vector outline, flat vibrant colors, clean cel-shading, modern pictogram sticker illustration style, isolated on solid white background`;
 
-  return generateSceneImage(prompt, {
+  const rawGeneratedUrl = await generateSceneImage(prompt, {
     workerUrl: options?.workerUrl,
     referenceImage: photoDataUrl,
-    strength: 0.65, // Balances facial likeness with complete 2D cartoon transformation
+    strength: 0.7,
     model: '@cf/bytedance/stable-diffusion-xl-lightning',
+    numSteps: 8,
   });
+
+  return removeImageBackground(rawGeneratedUrl);
 }
