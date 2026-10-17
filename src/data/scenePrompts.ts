@@ -300,3 +300,23 @@ export const PRESET_SCENE_PROMPTS: ScenePromptItem[] = [
     prompt: 'Figuren ligger trygt i sengen med hovedet på en blød pude under en varm dyne og sover fredeligt.',
   },
 ];
+
+/**
+ * Generates an optimized prompt for Cloudflare Workers AI text-to-image models
+ * (Flux-1-Schnell or SD-XL Lightning). Maintains exact persona characteristics,
+ * clean 2D vector pictogram style, thick outlines and clean isolated background.
+ */
+export function buildCloudflareAiPrompt(options: {
+  sceneDescription: string;
+  personaName?: string;
+  isWoman?: boolean;
+}): string {
+  const character = options.isWoman
+    ? 'friendly young woman with dark hair in a ponytail wearing a teal hoodie'
+    : 'friendly young man with short dark hair wearing a grey hoodie';
+
+  const activity = options.sceneDescription.trim() || 'performing daily task happily';
+
+  return `Clean 2D cartoon pictogram vector illustration of a ${character}, ${activity}. Cute flat cel-shaded vector art style, thick soft black outlines, bright clean solid colors, isolated on pure white background, friendly autism visual schedule icon, no text, no frame, high quality.`;
+}
+

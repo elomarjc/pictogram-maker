@@ -445,7 +445,51 @@ export async function downloadWeekPlanPdf(plan: WeekPlan, settings: PrintSetting
 }
 
 /**
- * Converts an image element to a base64 data URL to prevent html2canvas CORS / tainted canvas errors
+ * Safely converts an image to a base64 Data URL so html2canvas never suffers from CORS or canvas tainting.
+ */
+async function convertImageToDataUrl(img: HTMLImageElement): Promise<string | null> {
+  if (img.src && img.src.startsWith('data:')) return img.src;
+
+  // 1. Try canvas drawing if image is already loaded and same-origin
+  if (img.complete && img.naturalWidth > 0) {
+    try {
+      const c = document.createElement('canvas');
+      c.width = img.naturalWidth;
+      c.height = img.naturalHeight;
+      const ctx = c.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(img, 0, 0);
+        return c.toDataURL('image/png');
+      }
+    } catch {
+      // If drawing throws tainted canvas, proceed to fetch
+    }
+  }
+
+  // 2. Fetch as blob using img.currentSrc or img.src
+  try {
+    const targetUrl = img.currentSrc || img.src;
+    const res = await fetch(targetUrl);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const blob = await res.blob();
+    return await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (typeof reader.result === 'string') resolve(reader.result);
+        else reject(new Error('Failed to read blob'));
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  } catch (err) {
+    console.warn('inlineImagesAsDataUrls: could not convert', img.src, err);
+    return null;
+  }
+}
+
+/**
+ * Inlines all images inside a container as base64 data URLs, awaits decoding,
+ * and returns a cleanup function to restore the original sources.
  */
 async function inlineImagesAsDataUrls(container: HTMLElement): Promise<() => void> {
   const images = Array.from(container.querySelectorAll('img'));
@@ -453,31 +497,24 @@ async function inlineImagesAsDataUrls(container: HTMLElement): Promise<() => voi
 
   await Promise.all(
     images.map(async (img) => {
-      const src = img.getAttribute('src');
-      if (!src || src.startsWith('data:')) return;
-      originalSources.set(img, src);
+      const originalSrc = img.src;
+      if (!originalSrc || originalSrc.startsWith('data:')) return;
+      originalSources.set(img, originalSrc);
 
-      try {
-        const response = await fetch(src, { mode: 'cors' });
-        const blob = await response.blob();
-        await new Promise<void>((resolve) => {
-          const reader = new FileReader();
-          reader.onloadend = () => {
-            if (reader.result && typeof reader.result === 'string') {
-              img.src = reader.result;
-            }
-            resolve();
-          };
-          reader.onerror = () => resolve();
-          reader.readAsDataURL(blob);
-        });
-      } catch {
-        // If fetch fails, keep original src
+      const dataUrl = await convertImageToDataUrl(img);
+      if (dataUrl) {
+        img.src = dataUrl;
+        if (img.decode) {
+          try {
+            await img.decode();
+          } catch {
+            // Ignore decode errors on non-essential frames
+          }
+        }
       }
     })
   );
 
-  // Return restore function
   return () => {
     originalSources.forEach((origSrc, img) => {
       img.src = origSrc;
@@ -498,7 +535,7 @@ export async function captureElementToCanvas(element: HTMLElement): Promise<HTML
 
   try {
     const canvas = await html2canvas(element, {
-      scale: 2.5,
+      scale: 2,
       useCORS: true,
       allowTaint: false,
       backgroundColor: '#FFFFFF',

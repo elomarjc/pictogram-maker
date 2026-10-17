@@ -2,9 +2,16 @@ import React, { useState } from 'react';
 import type { Pictogram, Persona } from '../types';
 import { getPersona } from '../services/personas';
 import { PictogramCard } from './PictogramCard';
-import { X, Upload, Trash2, Check, Sparkles, Copy, Download, ChevronDown, ChevronUp, Type } from 'lucide-react';
-import { PRESET_SCENE_PROMPTS, buildDanishMasterPrompt } from '../data/scenePrompts';
+import { X, Upload, Trash2, Check, Sparkles, Copy, Download, ChevronDown, ChevronUp, Type, Loader2, Bot } from 'lucide-react';
+import { PRESET_SCENE_PROMPTS, buildDanishMasterPrompt, buildCloudflareAiPrompt } from '../data/scenePrompts';
 import { SceneGeneratorGuideModal } from './SceneGeneratorGuideModal';
+import {
+  generateSceneImage,
+  getStoredWorkerUrl,
+  setStoredWorkerUrl,
+  getStoredApiKey,
+  setStoredApiKey,
+} from '../services/imageGenerationApi';
 
 interface PictogramEditorModalProps {
   pictogram: Pictogram | null;
@@ -81,6 +88,49 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
   const [selectedScenePromptId, setSelectedScenePromptId] = useState<string>(PRESET_SCENE_PROMPTS[0].id);
   const [inlineSceneText, setInlineSceneText] = useState<string>(PRESET_SCENE_PROMPTS[0].prompt);
   const [copiedMasterPrompt, setCopiedMasterPrompt] = useState(false);
+
+  // Cloudflare Workers AI integration state
+  const [isGeneratingAi, setIsGeneratingAi] = useState(false);
+  const [workerUrl, setWorkerUrl] = useState(getStoredWorkerUrl());
+  const [workerApiKey, setWorkerApiKey] = useState(getStoredApiKey());
+  const [showWorkerConfig, setShowWorkerConfig] = useState(!getStoredWorkerUrl());
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [aiSuccessMessage, setAiSuccessMessage] = useState<string | null>(null);
+
+  const handleGenerateWithAi = async () => {
+    if (!workerUrl.trim()) {
+      setShowWorkerConfig(true);
+      setAiError('Indtast venligst din Cloudflare Worker URL ovenfor først.');
+      return;
+    }
+
+    setAiError(null);
+    setAiSuccessMessage(null);
+    setIsGeneratingAi(true);
+
+    try {
+      setStoredWorkerUrl(workerUrl);
+      setStoredApiKey(workerApiKey);
+
+      const promptToUse = buildCloudflareAiPrompt({
+        sceneDescription: inlineSceneText,
+        personaName: activePersona.name,
+        isWoman: activePersona.id === 'woman_a',
+      });
+
+      const generatedDataUrl = await generateSceneImage(promptToUse, {
+        workerUrl,
+        apiKey: workerApiKey,
+      });
+
+      setCustomImageUrl(generatedDataUrl);
+      setAiSuccessMessage('Billedet er genereret og indsat på dit piktogram!');
+    } catch (err) {
+      setAiError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setIsGeneratingAi(false);
+    }
+  };
 
   const handleCopyMasterPrompt = async (text: string) => {
     try {
@@ -410,19 +460,150 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
             {/* TAB 2: Upload Custom Image & Inline Idiot-Proof Scene Guide */}
             {activeTab === 'upload' && (
               <div className="space-y-4 p-2">
-                {/* 1. Direkt Trin-for-trin guide direkte her i fanen */}
-                <div className="bg-amber-50/90 border-2 border-amber-300 rounded-2xl p-4 space-y-4">
-                  <div className="flex items-center justify-between border-b border-amber-200 pb-2.5">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-xl bg-amber-400 border border-slate-900 flex items-center justify-center shrink-0 shadow-2xs">
-                        <Sparkles size={18} className="text-slate-900" />
+                {/* 0. Direkte 1-Klik AI Billedgenerator via Cloudflare Workers AI */}
+                <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-3 border-amber-400 rounded-2xl p-4 sm:p-5 space-y-3.5 shadow-xs">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-9 h-9 rounded-xl bg-amber-400 border-2 border-slate-900 flex items-center justify-center shrink-0 shadow-xs">
+                        <Sparkles size={20} className="text-slate-900" />
                       </div>
                       <div>
                         <h4 className="text-sm font-black text-slate-900">
-                          Sådan laver du nye scener & figurer (Idiot-sikker guide)
+                          ✨ 1-Klik AI Billedgenerator (Direkte i appen)
+                        </h4>
+                        <p className="text-[11.5px] font-bold text-slate-700">
+                          Generér automatisk scenen for {activePersona.name} uden at skulle kopiere frem og tilbage til ChatGPT!
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowWorkerConfig(!showWorkerConfig)}
+                      className="text-[11px] font-bold text-slate-700 hover:text-slate-950 underline bg-white/70 hover:bg-white px-2 py-1 rounded-lg border border-amber-300 transition-colors"
+                    >
+                      {showWorkerConfig ? 'Skjul API-indstillinger' : '⚙️ API URL'}
+                    </button>
+                  </div>
+
+                  {showWorkerConfig && (
+                    <div className="bg-white border-2 border-slate-300 rounded-xl p-3 space-y-2.5 text-xs animate-in fade-in duration-100">
+                      <div className="space-y-1">
+                        <label className="font-bold text-slate-800 flex items-center justify-between">
+                          <span>Cloudflare Worker URL:</span>
+                          <span className="text-[10px] text-slate-500 font-normal">Gemmes lokalt i din browser</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={workerUrl}
+                          onChange={(e) => setWorkerUrl(e.target.value)}
+                          placeholder="fx https://free-image-generation-api.<dit-subdomæne>.workers.dev"
+                          className="w-full px-3 py-1.5 rounded-lg border-2 border-slate-300 focus:border-slate-900 font-mono text-[11px]"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="font-bold text-slate-800 flex items-center justify-between">
+                          <span>API Nøgle (valgfri):</span>
+                          <span className="text-[10px] text-slate-500 font-normal">Kun hvis du har sat API_KEY på din worker</span>
+                        </label>
+                        <input
+                          type="password"
+                          value={workerApiKey}
+                          onChange={(e) => setWorkerApiKey(e.target.value)}
+                          placeholder="Bearer API nøgle (valgfri)"
+                          className="w-full px-3 py-1.5 rounded-lg border-2 border-slate-300 focus:border-slate-900 font-mono text-[11px]"
+                        />
+                      </div>
+                      <p className="text-[10.5px] text-slate-500">
+                        💡 Bruger Cloudflare Workers AI gratis kvote (10,000 Neurons/dag med Flux-1-Schnell).
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-black text-slate-800">
+                        Vælg hurtig scene eller skriv hvad {activePersona.name} skal lave:
+                      </span>
+                      <span className="text-[11px] font-bold text-amber-900 bg-amber-200/80 px-2 py-0.5 rounded-full border border-amber-300">
+                        Figur: {activePersona.name}
+                      </span>
+                    </div>
+
+                    <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto p-1 bg-white/70 rounded-xl border border-amber-200">
+                      {PRESET_SCENE_PROMPTS.slice(0, 10).map((preset) => (
+                        <button
+                          key={preset.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedScenePromptId(preset.id);
+                            setInlineSceneText(preset.prompt);
+                          }}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-bold border transition-colors ${
+                            selectedScenePromptId === preset.id
+                              ? 'bg-amber-400 border-slate-900 text-slate-900 shadow-2xs'
+                              : 'bg-white border-slate-300 hover:border-slate-500 text-slate-700'
+                          }`}
+                        >
+                          {preset.title}
+                        </button>
+                      ))}
+                    </div>
+
+                    <textarea
+                      value={inlineSceneText}
+                      onChange={(e) => setInlineSceneText(e.target.value)}
+                      rows={2}
+                      placeholder="Beskriv scenen her, f.eks.: vasker tøj, drikker en kop kaffe, støvsuger stuen..."
+                      className="w-full px-3 py-2 text-xs font-bold rounded-xl border-2 border-slate-300 focus:border-slate-900 bg-white resize-none shadow-inner"
+                    />
+                  </div>
+
+                  {aiError && (
+                    <div className="p-2.5 rounded-xl bg-rose-50 border-2 border-rose-300 text-xs font-bold text-rose-800">
+                      ⚠️ {aiError}
+                    </div>
+                  )}
+
+                  {aiSuccessMessage && (
+                    <div className="p-2.5 rounded-xl bg-emerald-50 border-2 border-emerald-300 text-xs font-bold text-emerald-800 flex items-center gap-1.5">
+                      <Check size={16} className="text-emerald-700 stroke-[3]" />
+                      {aiSuccessMessage}
+                    </div>
+                  )}
+
+                  <button
+                    type="button"
+                    disabled={isGeneratingAi}
+                    onClick={handleGenerateWithAi}
+                    className="w-full py-3 bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white font-black text-sm rounded-xl border-2 border-slate-900 flex items-center justify-center gap-2 shadow-sm transition-all"
+                  >
+                    {isGeneratingAi ? (
+                      <>
+                        <Loader2 size={16} className="animate-spin text-amber-400" />
+                        Genererer AI piktogram-billede...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles size={16} className="text-amber-400" />
+                        ✨ Generér nyt piktogram-billede direkte (1-klik)
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {/* 1. Manuel ChatGPT guide (Alternativ) */}
+                <div className="bg-amber-50/90 border-2 border-amber-300 rounded-2xl p-4 space-y-4">
+                  <div className="flex items-center justify-between border-b border-amber-200 pb-2.5">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-xl bg-white border border-slate-900 flex items-center justify-center shrink-0 shadow-2xs">
+                        <Bot size={18} className="text-slate-900" />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-black text-slate-900">
+                          Manuel ChatGPT / DALL-E metode (Alternativ)
                         </h4>
                         <p className="text-[11px] text-slate-600">
-                          Følg de 4 trin herunder for at lave et nyt piktogram med ChatGPT / DALL-E:
+                          Hvis du foretrækker at generere i ChatGPT via referencebilleder:
                         </p>
                       </div>
                     </div>

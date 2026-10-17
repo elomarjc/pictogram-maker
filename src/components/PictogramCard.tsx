@@ -105,6 +105,7 @@ export const PictogramCard: React.FC<PictogramCardProps> = ({
           {sceneImageUrl ? (
             <img
               src={sceneImageUrl}
+              crossOrigin="anonymous"
               alt={pictogram.title}
               className="w-full h-full object-cover object-center"
             />
@@ -179,6 +180,7 @@ export const PictogramCard: React.FC<PictogramCardProps> = ({
         {sceneImageUrl ? (
           <img
             src={sceneImageUrl}
+            crossOrigin="anonymous"
             alt={pictogram.title}
             className="w-full h-full object-cover object-center"
           />

@@ -9,6 +9,9 @@ export default defineConfig({
     tailwindcss(),
   ],
   base: './', // Ensures relative assets work on GitHub Pages regardless of repo or subdomain path
+  server: {
+    cors: true,
+  },
   build: {
     chunkSizeWarningLimit: 1000,
     rollupOptions: {

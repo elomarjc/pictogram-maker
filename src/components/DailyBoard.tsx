@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { DaySchedule, Pictogram, PrintLayoutMode, Persona } from '../types';
 import { PictogramCard } from './PictogramCard';
 import { REFERENCE_ICONS } from '../services/personas';
@@ -9,6 +9,7 @@ import {
   Trash2,
   LayoutList,
   Grid,
+  Pencil,
 } from 'lucide-react';
 
 interface DailyBoardProps {
@@ -27,6 +28,7 @@ interface DailyBoardProps {
   onResetDay: () => void;
   onClearDay: () => void;
   onUpdateHeaderSubtitle: (newSubtitle: string) => void;
+  onUpdateDayName?: (newName: string) => void;
 }
 
 export const DailyBoard: React.FC<DailyBoardProps> = ({
@@ -45,8 +47,15 @@ export const DailyBoard: React.FC<DailyBoardProps> = ({
   onResetDay,
   onClearDay,
   onUpdateHeaderSubtitle: _onUpdateHeaderSubtitle,
+  onUpdateDayName,
 }) => {
   const [draggedIdx, setDraggedIdx] = useState<number | null>(null);
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [tempTitle, setTempTitle] = useState(schedule.dayName);
+
+  useEffect(() => {
+    setTempTitle(schedule.dayName);
+  }, [schedule.dayName]);
 
   const handleMoveUp = (index: number) => {
     if (index <= 0) return;
@@ -172,22 +181,56 @@ export const DailyBoard: React.FC<DailyBoardProps> = ({
         <div className="bg-[#7ECBFC] border-3 border-slate-900 rounded-2xl p-2.5 sm:p-3 mb-3 flex items-center justify-between shadow-xs">
           {/* Sun icon on the left */}
           <div className="flex items-center justify-center w-11 h-11 sm:w-14 sm:h-14 shrink-0">
-            <img src={REFERENCE_ICONS.sun} alt="Sol" className="w-full h-full object-contain filter drop-shadow-xs" />
+            <img src={REFERENCE_ICONS.sun} crossOrigin="anonymous" alt="Sol" className="w-full h-full object-contain filter drop-shadow-xs" />
           </div>
 
-          {/* Central Title: Clean day name with rounded font */}
+          {/* Central Title: Clean day name with rounded font, directly editable when clicked */}
           <div className="text-center px-2 flex-1">
-            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight font-rounded">
-              {schedule.dayName}
-            </h1>
-            <p className="text-xs font-bold text-slate-800 mt-0.5">
-              {schedule.pictograms.length} {schedule.pictograms.length === 1 ? 'aktivitet' : 'aktiviteter'} (læses fra top mod bund)
-            </p>
+            {isEditingTitle ? (
+              <input
+                type="text"
+                value={tempTitle}
+                autoFocus
+                onChange={(e) => setTempTitle(e.target.value)}
+                onBlur={() => {
+                  setIsEditingTitle(false);
+                  if (tempTitle.trim() && onUpdateDayName) {
+                    onUpdateDayName(tempTitle.trim());
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    setIsEditingTitle(false);
+                    if (tempTitle.trim() && onUpdateDayName) {
+                      onUpdateDayName(tempTitle.trim());
+                    }
+                  } else if (e.key === 'Escape') {
+                    setIsEditingTitle(false);
+                    setTempTitle(schedule.dayName);
+                  }
+                }}
+                className="w-full max-w-xs text-center text-2xl sm:text-3xl font-black text-slate-900 tracking-tight font-rounded bg-white/95 border-2 border-slate-900 rounded-xl px-2 py-0.5 outline-none shadow-sm"
+              />
+            ) : (
+              <div
+                onClick={() => {
+                  setTempTitle(schedule.dayName);
+                  setIsEditingTitle(true);
+                }}
+                title="Klik for at redigere overskriften direkte"
+                className="group/title inline-flex items-center justify-center gap-1.5 cursor-pointer py-1 px-3 rounded-xl hover:bg-black/10 transition-colors"
+              >
+                <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight font-rounded">
+                  {schedule.dayName}
+                </h1>
+                <Pencil size={16} className="text-slate-800 opacity-40 group-hover/title:opacity-100 transition-opacity shrink-0 print:hidden" data-html2canvas-ignore="true" />
+              </div>
+            )}
           </div>
 
           {/* Cloud icon on the right */}
           <div className="flex items-center justify-center w-11 h-11 sm:w-14 sm:h-14 shrink-0">
-            <img src={REFERENCE_ICONS.cloud} alt="Sky" className="w-full h-full object-contain filter drop-shadow-xs" />
+            <img src={REFERENCE_ICONS.cloud} crossOrigin="anonymous" alt="Sky" className="w-full h-full object-contain filter drop-shadow-xs" />
           </div>
         </div>
 

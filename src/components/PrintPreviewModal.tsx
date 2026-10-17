@@ -78,23 +78,7 @@ export const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
         const previewEl = document.getElementById('print-sheet-exact-preview');
         const dayName = activeDaySchedule?.dayName || 'piktogram-dagsplan';
         if (previewEl) {
-          try {
-            await exportElementToPdf(previewEl, `${dayName}-piktogrammer.pdf`);
-          } catch (canvasErr) {
-            console.warn('Billede-til-PDF fejlede, bruger backup vektor-PDF:', canvasErr);
-            const printSettings: PrintSettings = {
-              layoutMode: 'board',
-              cardWidthCm: 6.5,
-              cardHeightCm: 10.0,
-              showDayHeader: true,
-              showHeaderIcons: true,
-              showCutLines: false,
-              colorMode: 'color',
-              scope: scope === 'selected' ? 'selected' : 'current',
-              targetDayId,
-            };
-            await downloadWeekPlanPdf(plan, printSettings);
-          }
+          await exportElementToPdf(previewEl, `${dayName}-piktogrammer.pdf`);
         } else {
           // Fallback if DOM element not found
           const printSettings: PrintSettings = {
@@ -261,20 +245,17 @@ export const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
                 {/* Board Header: Exact match to DailyBoard header */}
                 <div className="bg-[#7ECBFC] border-3 border-slate-900 rounded-2xl p-2.5 sm:p-3 mb-3 flex items-center justify-between shadow-xs">
                   <div className="flex items-center justify-center w-11 h-11 sm:w-14 sm:h-14 shrink-0">
-                    <img src={REFERENCE_ICONS.sun} alt="Sol" className="w-full h-full object-contain filter drop-shadow-xs" />
+                    <img src={REFERENCE_ICONS.sun} crossOrigin="anonymous" alt="Sol" className="w-full h-full object-contain filter drop-shadow-xs" />
                   </div>
 
                   <div className="text-center px-2 flex-1">
                     <h3 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight font-rounded">
                       {activeDaySchedule?.dayName || 'Mandag'}
                     </h3>
-                    <p className="text-xs font-bold text-slate-800 mt-0.5">
-                      {activePics.length} {activePics.length === 1 ? 'aktivitet' : 'aktiviteter'} (læses fra top mod bund)
-                    </p>
                   </div>
 
                   <div className="flex items-center justify-center w-11 h-11 sm:w-14 sm:h-14 shrink-0">
-                    <img src={REFERENCE_ICONS.cloud} alt="Sky" className="w-full h-full object-contain filter drop-shadow-xs" />
+                    <img src={REFERENCE_ICONS.cloud} crossOrigin="anonymous" alt="Sky" className="w-full h-full object-contain filter drop-shadow-xs" />
                   </div>
                 </div>
 
