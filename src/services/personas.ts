@@ -105,8 +105,37 @@ export const ACTIVITY_DEFAULT_ICONS: Record<string, string> = {
   sengetid: `${BASE}reference/icons/seng_ikon.webp`,
 };
 
+const STORAGE_KEY_CUSTOM_PERSONAS = 'pictogram_custom_personas';
+
+export function getCustomPersonas(): Persona[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_CUSTOM_PERSONAS);
+    if (!raw) return [];
+    return JSON.parse(raw);
+  } catch {
+    return [];
+  }
+}
+
+export function saveCustomPersona(newPersona: Persona): void {
+  const current = getCustomPersonas();
+  const existingIndex = current.findIndex((p) => p.id === newPersona.id);
+  if (existingIndex >= 0) {
+    current[existingIndex] = newPersona;
+  } else {
+    current.push(newPersona);
+  }
+  localStorage.setItem(STORAGE_KEY_CUSTOM_PERSONAS, JSON.stringify(current));
+}
+
+export function getAllPersonas(): Persona[] {
+  const custom = getCustomPersonas();
+  return [...DEFAULT_PERSONAS, ...custom];
+}
+
 export function getPersona(id?: string): Persona {
-  const found = DEFAULT_PERSONAS.find((p) => p.id === id);
+  const all = getAllPersonas();
+  const found = all.find((p) => p.id === id);
   return found || DEFAULT_PERSONAS[0];
 }
 

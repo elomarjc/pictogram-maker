@@ -447,18 +447,20 @@ export async function downloadWeekPlanPdf(plan: WeekPlan, settings: PrintSetting
 /**
  * Safely converts an image to a base64 Data URL so html2canvas never suffers from CORS or canvas tainting.
  */
-async function convertImageToDataUrl(img: HTMLImageElement): Promise<string | null> {
-  if (img.src && img.src.startsWith('data:')) return img.src;
+export async function convertImageToDataUrl(target: HTMLImageElement | string): Promise<string | null> {
+  const src = typeof target === 'string' ? target : (target.currentSrc || target.src);
+  if (!src) return null;
+  if (src.startsWith('data:')) return src;
 
-  // 1. Try canvas drawing if image is already loaded and same-origin
-  if (img.complete && img.naturalWidth > 0) {
+  // 1. Try canvas drawing if element is complete and same-origin
+  if (typeof target !== 'string' && target.complete && target.naturalWidth > 0) {
     try {
       const c = document.createElement('canvas');
-      c.width = img.naturalWidth;
-      c.height = img.naturalHeight;
+      c.width = target.naturalWidth;
+      c.height = target.naturalHeight;
       const ctx = c.getContext('2d');
       if (ctx) {
-        ctx.drawImage(img, 0, 0);
+        ctx.drawImage(target, 0, 0);
         return c.toDataURL('image/png');
       }
     } catch {
@@ -466,10 +468,9 @@ async function convertImageToDataUrl(img: HTMLImageElement): Promise<string | nu
     }
   }
 
-  // 2. Fetch as blob using img.currentSrc or img.src
+  // 2. Fetch as blob
   try {
-    const targetUrl = img.currentSrc || img.src;
-    const res = await fetch(targetUrl);
+    const res = await fetch(src);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const blob = await res.blob();
     return await new Promise<string>((resolve, reject) => {
@@ -482,7 +483,7 @@ async function convertImageToDataUrl(img: HTMLImageElement): Promise<string | nu
       reader.readAsDataURL(blob);
     });
   } catch (err) {
-    console.warn('inlineImagesAsDataUrls: could not convert', img.src, err);
+    console.warn('convertImageToDataUrl: could not convert', src, err);
     return null;
   }
 }

@@ -72,11 +72,15 @@ export interface GenerateSceneOptions {
   apiKey?: string;
   model?: string;
   numSteps?: number;
+  referenceImage?: string;
+  strength?: number;
+  provider?: 'auto' | 'cloudflare' | 'openai';
 }
 
 /**
- * Generates an image using the Cloudflare Workers AI API.
- * Returns a Base64 data URL string ready to be set directly on a pictogram.
+ * Generates an image using the Cloudflare Workers AI API (with optional OpenAI rotation).
+ * Supports text-to-image and image-to-image (with reference images).
+ * Returns a Base64 data URL string ready to be set directly on a pictogram or avatar.
  */
 export async function generateSceneImage(
   prompt: string,
@@ -104,12 +108,20 @@ export async function generateSceneImage(
     headers['Authorization'] = `Bearer ${apiKey}`;
   }
 
-  const bodyPayload = {
+  const bodyPayload: Record<string, unknown> = {
     prompt: prompt.trim(),
-    model: options?.model || '@cf/blackforestlabs/flux-1-schnell',
-    num_steps: options?.numSteps || 4,
+    model: options?.model || '@cf/bytedance/stable-diffusion-xl-lightning',
+    num_steps: options?.numSteps || 6,
     format: 'base64',
+    provider: options?.provider || 'auto',
   };
+
+  if (options?.referenceImage) {
+    bodyPayload.image_b64 = options.referenceImage;
+    if (typeof options.strength === 'number') {
+      bodyPayload.strength = options.strength;
+    }
+  }
 
   let response: Response;
   try {
@@ -146,4 +158,23 @@ export async function generateSceneImage(
   }
 
   return data.imageUrl as string;
+}
+
+/**
+ * Converts a real person's photo into a 2D cartoon pictogram avatar.
+ * The original photo is used strictly in-memory during inference and is NEVER saved or sent to GitHub.
+ */
+export async function createAvatarFromPhoto(
+  photoDataUrl: string,
+  personaName: string,
+  options?: { workerUrl?: string }
+): Promise<string> {
+  const prompt = `A 2D cartoon pictogram avatar of ${personaName || 'a person'}, cute friendly character, bold clean black outlines, smooth cel-shading, friendly smile, solid color hoodie, transparent background, isolated sticker, vector art style, clean silhouette, no background, 100% transparent PNG`;
+
+  return generateSceneImage(prompt, {
+    workerUrl: options?.workerUrl,
+    referenceImage: photoDataUrl,
+    strength: 0.65, // Balances facial likeness with complete 2D cartoon transformation
+    model: '@cf/bytedance/stable-diffusion-xl-lightning',
+  });
 }

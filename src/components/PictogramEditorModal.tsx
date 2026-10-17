@@ -12,6 +12,7 @@ import {
   getStoredApiKey,
   setStoredApiKey,
 } from '../services/imageGenerationApi';
+import { convertImageToDataUrl } from '../services/pdfExport';
 
 interface PictogramEditorModalProps {
   pictogram: Pictogram | null;
@@ -116,9 +117,21 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
         isWoman: activePersona.id === 'woman_a',
       });
 
+      let avatarRefBase64: string | undefined = undefined;
+      if (activePersona.avatarUrl) {
+        try {
+          const converted = await convertImageToDataUrl(activePersona.avatarUrl);
+          if (converted) avatarRefBase64 = converted;
+        } catch {
+          // If avatar conversion fails, proceed with prompt
+        }
+      }
+
       const generatedDataUrl = await generateSceneImage(promptToUse, {
         workerUrl,
         apiKey: workerApiKey,
+        referenceImage: avatarRefBase64,
+        strength: 0.7,
       });
 
       setCustomImageUrl(generatedDataUrl);

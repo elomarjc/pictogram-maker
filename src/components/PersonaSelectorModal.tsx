@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import type { Persona } from '../types';
-import { DEFAULT_PERSONAS } from '../services/personas';
-import { X, Check, User, Sparkles, Upload, ArrowRight, Download, Copy } from 'lucide-react';
+import { getAllPersonas } from '../services/personas';
+import { X, Check, User, Sparkles, Upload, ArrowRight, Download, Copy, Camera } from 'lucide-react';
 import { buildDanishMasterPrompt } from '../data/scenePrompts';
+import { CreateAvatarModal } from './CreateAvatarModal';
 
 interface PersonaSelectorModalProps {
   isOpen: boolean;
@@ -25,8 +26,12 @@ export const PersonaSelectorModal: React.FC<PersonaSelectorModalProps> = ({
   const [avatarPromptCopied, setAvatarPromptCopied] = useState(false);
   const [newSceneDescription, setNewSceneDescription] = useState('Figuren sidder hyggeligt ved bordet og spiser en bolle med smør');
   const [scenePromptCopied, setScenePromptCopied] = useState(false);
+  const [isCreatePhotoModalOpen, setIsCreatePhotoModalOpen] = useState(false);
 
   if (!isOpen) return null;
+
+  const allPersonas = getAllPersonas();
+  const selectedPersonaObj = allPersonas.find((p) => p.id === selectedId) || allPersonas[0];
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -49,8 +54,6 @@ export const PersonaSelectorModal: React.FC<PersonaSelectorModalProps> = ({
     onSelectPersona(selectedId, currentShortCode || 'K.', customAvatar);
     onClose();
   };
-
-  const selectedPersonaObj = DEFAULT_PERSONAS.find((p) => p.id === selectedId) || DEFAULT_PERSONAS[0];
 
   const danishAvatarMasterPrompt = `# Master Prompt — Opret Ny Figur / Avatar (Dansk)
 
@@ -160,11 +163,20 @@ Skab **én ny original tegneserie-figur (Avatar)** set forfra eller i 3/4 profil
             </button>
           </div>
 
-          {/* TAB 1: Select between Man and Woman */}
+          {/* TAB 1: Select between Man, Woman, and Custom Avatars */}
           {activeStep === 'select' && (
             <div className="space-y-4">
+              <button
+                type="button"
+                onClick={() => setIsCreatePhotoModalOpen(true)}
+                className="w-full py-3.5 px-4 rounded-2xl border-3 border-slate-900 bg-amber-400 hover:bg-amber-500 font-black text-slate-900 text-sm shadow-sm hover:shadow-md transition-all flex items-center justify-center gap-2.5 cursor-pointer"
+              >
+                <Camera size={20} className="stroke-[2.5]" />
+                <span>📸 Opret ny figur ud fra et foto (1-klik)</span>
+              </button>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                {DEFAULT_PERSONAS.map((p) => {
+                {allPersonas.map((p) => {
                   const isSelected = selectedId === p.id;
                   return (
                     <div
@@ -425,6 +437,16 @@ Skab **én ny original tegneserie-figur (Avatar)** set forfra eller i 3/4 profil
           </button>
         </div>
       </div>
+
+      <CreateAvatarModal
+        isOpen={isCreatePhotoModalOpen}
+        onClose={() => setIsCreatePhotoModalOpen(false)}
+        onAvatarCreated={(newPersona) => {
+          setSelectedId(newPersona.id);
+          onSelectPersona(newPersona.id, newPersona.shortCode, newPersona.avatarUrl);
+          onClose();
+        }}
+      />
     </div>
   );
 };
