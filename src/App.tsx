@@ -18,9 +18,7 @@ import { TemplatePickerModal } from './components/TemplatePickerModal';
 import { MoveToDayModal } from './components/MoveToDayModal';
 import { CopyDayModal } from './components/CopyDayModal';
 import { PrivacyInfoModal } from './components/PrivacyInfoModal';
-import { ReferenceViewerModal } from './components/ReferenceViewerModal';
 import { PersonaSelectorModal } from './components/PersonaSelectorModal';
-import { SceneGeneratorGuideModal } from './components/SceneGeneratorGuideModal';
 import { getPersona } from './services/personas';
 
 export const App: React.FC = () => {
@@ -45,9 +43,7 @@ export const App: React.FC = () => {
   const [isPlanManagerOpen, setIsPlanManagerOpen] = useState(false);
   const [isTemplatePickerOpen, setIsTemplatePickerOpen] = useState(false);
   const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false);
-  const [isReferenceModalOpen, setIsReferenceModalOpen] = useState(false);
   const [isPersonaModalOpen, setIsPersonaModalOpen] = useState(false);
-  const [isSceneGuideModalOpen, setIsSceneGuideModalOpen] = useState(false);
   const [movingPictogram, setMovingPictogram] = useState<Pictogram | null>(null);
   const [copyingSourceDayId, setCopyingSourceDayId] = useState<DayOfWeek | null>(null);
 
@@ -410,8 +406,6 @@ export const App: React.FC = () => {
         onOpenTemplatePicker={() => setIsTemplatePickerOpen(true)}
         onOpenPrintModal={() => setIsPrintModalOpen(true)}
         onOpenPrivacyModal={() => setIsPrivacyModalOpen(true)}
-        onOpenReferenceModal={() => setIsReferenceModalOpen(true)}
-        onOpenSceneGuideModal={() => setIsSceneGuideModalOpen(true)}
       />
 
       {/* Main Workspace Body */}
@@ -457,13 +451,6 @@ export const App: React.FC = () => {
               className="hover:text-slate-800 transition-colors"
             >
               Privatlivspolitik
-            </button>
-            <span>•</span>
-            <button
-              onClick={() => setIsReferenceModalOpen(true)}
-              className="hover:text-slate-800 transition-colors"
-            >
-              Se referencebillede
             </button>
             <span>•</span>
             <button
@@ -539,23 +526,12 @@ export const App: React.FC = () => {
         onClearAllData={handleClearAllData}
       />
 
-      <ReferenceViewerModal
-        isOpen={isReferenceModalOpen}
-        onClose={() => setIsReferenceModalOpen(false)}
-      />
-
       <PersonaSelectorModal
         isOpen={isPersonaModalOpen}
         currentPersona={activePersona}
         currentShortCode={currentPlan.shortCode || 'K.'}
         onClose={() => setIsPersonaModalOpen(false)}
         onSelectPersona={handleSelectPersona}
-      />
-
-      <SceneGeneratorGuideModal
-        isOpen={isSceneGuideModalOpen}
-        persona={activePersona}
-        onClose={() => setIsSceneGuideModalOpen(false)}
       />
     </div>
   );

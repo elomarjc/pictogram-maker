@@ -2,9 +2,8 @@ import React, { useState } from 'react';
 import type { Pictogram, Persona } from '../types';
 import { getPersona } from '../services/personas';
 import { PictogramCard } from './PictogramCard';
-import { X, Upload, Trash2, Check, Sparkles, Copy, Download, ChevronDown, ChevronUp, Type, Loader2, Bot } from 'lucide-react';
-import { PRESET_SCENE_PROMPTS, buildDanishMasterPrompt, buildCloudflareAiPrompt } from '../data/scenePrompts';
-import { SceneGeneratorGuideModal } from './SceneGeneratorGuideModal';
+import { X, Upload, Trash2, Check, Sparkles, Type, Loader2, AlertCircle, Settings } from 'lucide-react';
+import { PRESET_SCENE_PROMPTS, buildCloudflareAiPrompt } from '../data/scenePrompts';
 import {
   generateSceneImage,
   getStoredWorkerUrl,
@@ -84,11 +83,8 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
 
   const [fontSizeNum, setFontSizeNum] = useState<number>(initialPixelSize);
   const [activeTab, setActiveTab] = useState<'illustrations' | 'upload'>('illustrations');
-  const [isGuideOpen, setIsGuideOpen] = useState(false);
-  const [showPromptDetails, setShowPromptDetails] = useState(true);
   const [selectedScenePromptId, setSelectedScenePromptId] = useState<string>(PRESET_SCENE_PROMPTS[0].id);
   const [inlineSceneText, setInlineSceneText] = useState<string>(PRESET_SCENE_PROMPTS[0].prompt);
-  const [copiedMasterPrompt, setCopiedMasterPrompt] = useState(false);
 
   // Cloudflare Workers AI integration state
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
@@ -140,23 +136,6 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
       setAiError(err instanceof Error ? err.message : String(err));
     } finally {
       setIsGeneratingAi(false);
-    }
-  };
-
-  const handleCopyMasterPrompt = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopiedMasterPrompt(true);
-      setTimeout(() => setCopiedMasterPrompt(false), 2200);
-    } catch {
-      const ta = document.createElement('textarea');
-      ta.value = text;
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand('copy');
-      document.body.removeChild(ta);
-      setCopiedMasterPrompt(true);
-      setTimeout(() => setCopiedMasterPrompt(false), 2200);
     }
   };
 
@@ -479,10 +458,10 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
                     </div>
                     <div>
                       <h4 className="text-sm font-black text-slate-900">
-                        ✨ Skab nyt billede med 1 klik
+                        Skab nyt billede med 1 klik
                       </h4>
                       <p className="text-xs font-semibold text-slate-700">
-                        Vælg en aktivitet nedenfor og tryk på den grønne knap. Så tegnes {activePersona.name} automatisk i scenen!
+                        Vælg en aktivitet nedenfor og tryk på knappen. Så tegnes {activePersona.name} automatisk i scenen.
                       </p>
                     </div>
                   </div>
@@ -527,8 +506,9 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
                   </div>
 
                   {aiError && (
-                    <div className="p-2.5 rounded-xl bg-rose-50 border-2 border-rose-300 text-xs font-bold text-rose-800">
-                      ⚠️ {aiError}
+                    <div className="p-2.5 rounded-xl bg-rose-50 border-2 border-rose-300 text-xs font-bold text-rose-800 flex items-center gap-2">
+                      <AlertCircle size={16} className="text-rose-700 shrink-0" />
+                      <span>{aiError}</span>
                     </div>
                   )}
 
@@ -553,161 +533,10 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
                     ) : (
                       <>
                         <Sparkles size={16} className="text-amber-400" />
-                        ✨ Generér nyt piktogram-billede direkte (1-klik)
+                        Generér nyt piktogram-billede direkte (1-klik)
                       </>
                     )}
                   </button>
-                </div>
-
-                {/* 1. Manuel ChatGPT guide (Alternativ) */}
-                <div className="bg-amber-50/90 border-2 border-amber-300 rounded-2xl p-4 space-y-4">
-                  <div className="flex items-center justify-between border-b border-amber-200 pb-2.5">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-xl bg-white border border-slate-900 flex items-center justify-center shrink-0 shadow-2xs">
-                        <Bot size={18} className="text-slate-900" />
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-black text-slate-900">
-                          Manuel ChatGPT / DALL-E metode (Alternativ)
-                        </h4>
-                        <p className="text-[11px] text-slate-600">
-                          Hvis du foretrækker at generere i ChatGPT via referencebilleder:
-                        </p>
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => setShowPromptDetails(!showPromptDetails)}
-                      className="inline-flex items-center gap-1 text-xs font-bold text-slate-700 hover:text-slate-900 bg-white/80 hover:bg-white px-2.5 py-1 rounded-lg border border-amber-300 transition-colors"
-                    >
-                      {showPromptDetails ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                      {showPromptDetails ? 'Skjul detaljer' : 'Vis guide'}
-                    </button>
-                  </div>
-
-                  {showPromptDetails && (
-                    <div className="space-y-3.5 pt-1 text-xs text-slate-800">
-                      {/* TRIN 1: Referencer */}
-                      <div className="bg-white border-2 border-amber-200 rounded-xl p-3 space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="font-black text-slate-900 flex items-center gap-1.5">
-                            <span className="w-5 h-5 rounded-full bg-amber-400 text-slate-900 font-black text-[11px] flex items-center justify-center">1</span>
-                            Download de 2 referencebilleder
-                          </span>
-                          <span className="text-[11px] text-slate-500">Gemmes på din computer</span>
-                        </div>
-                        <p className="text-[11.5px] text-slate-600">
-                          Du skal uploade to billeder i ChatGPT som referencer (Ref 1 tilpasser sig automatisk din valgte figur):
-                        </p>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-                          <a
-                            href={activePersona.avatarUrl}
-                            download={`ref1-${activePersona.id === 'woman_a' ? 'kvinde' : 'mand'}-avatar.webp`}
-                            className="flex items-center justify-between p-2 rounded-lg bg-sky-50 border border-sky-300 hover:bg-sky-100 font-bold text-xs text-sky-900 transition-colors"
-                          >
-                            <span className="truncate">Ref 1: {activePersona.name} (Valgt figur)</span>
-                            <Download size={14} className="shrink-0 ml-1 text-sky-700" />
-                          </a>
-                          <a
-                            href={`${import.meta.env.BASE_URL.endsWith('/') ? import.meta.env.BASE_URL : import.meta.env.BASE_URL + '/'}reference/ref2_example.jpg`}
-                            download="ref2-piktogram-stilart.jpg"
-                            className="flex items-center justify-between p-2 rounded-lg bg-amber-50 border border-amber-300 hover:bg-amber-100 font-bold text-xs text-amber-950 transition-colors"
-                          >
-                            <span className="truncate">Ref 2: Piktogram-stilart (Reference)</span>
-                            <Download size={14} className="shrink-0 ml-1 text-amber-700" />
-                          </a>
-                        </div>
-                        <p className="text-[10.5px] text-slate-500 italic pt-0.5">
-                          💡 <em>Vil du have en helt ny person?</em> Så uploader du bare dit eget billede som <strong>Ref 1</strong>, mens Ref 2 altid sikrer samme tegneseriestil.
-                        </p>
-                      </div>
-
-                      {/* TRIN 2: Vælg Scene */}
-                      <div className="bg-white border-2 border-amber-200 rounded-xl p-3 space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="font-black text-slate-900 flex items-center gap-1.5">
-                            <span className="w-5 h-5 rounded-full bg-amber-400 text-slate-900 font-black text-[11px] flex items-center justify-center">2</span>
-                            Vælg aktivitet eller skriv den scene du mangler:
-                          </span>
-                        </div>
-                        
-                        <div className="space-y-1.5">
-                          <select
-                            value={selectedScenePromptId}
-                            onChange={(e) => {
-                              setSelectedScenePromptId(e.target.value);
-                              const found = PRESET_SCENE_PROMPTS.find((p) => p.id === e.target.value);
-                              if (found) setInlineSceneText(found.prompt);
-                            }}
-                            className="w-full px-3 py-1.5 bg-slate-50 border-2 border-slate-300 rounded-xl font-bold text-xs text-slate-800 focus:outline-none focus:border-slate-900"
-                          >
-                            {PRESET_SCENE_PROMPTS.map((item) => (
-                              <option key={item.id} value={item.id}>
-                                [{item.category}] {item.title}
-                              </option>
-                            ))}
-                          </select>
-
-                          <textarea
-                            rows={2}
-                            value={inlineSceneText}
-                            onChange={(e) => setInlineSceneText(e.target.value)}
-                            placeholder="Skriv den scene du mangler (på dansk, f.eks.: Figuren sidder og spiller iPad...)"
-                            className="w-full p-2 bg-slate-50 border border-slate-300 rounded-lg font-medium text-xs text-slate-800 focus:outline-none focus:border-slate-900"
-                          />
-                        </div>
-                      </div>
-
-                      {/* TRIN 3: Kopiér Master Prompt med ét klik */}
-                      <div className="bg-slate-900 text-white rounded-xl p-3 space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="font-black text-amber-400 flex items-center gap-1.5">
-                            <span className="w-5 h-5 rounded-full bg-amber-400 text-slate-900 font-black text-[11px] flex items-center justify-center">3</span>
-                            Kopiér Master Prompt (Dansk) til ChatGPT
-                          </span>
-                          
-                          <button
-                            type="button"
-                            onClick={() =>
-                              handleCopyMasterPrompt(
-                                buildDanishMasterPrompt({
-                                  sceneDescription: inlineSceneText,
-                                  personaName: activePersona.name,
-                                  isWoman: activePersona.id === 'woman_a',
-                                })
-                              )
-                            }
-                            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-black text-xs transition-colors shadow-xs ${
-                              copiedMasterPrompt
-                                ? 'bg-emerald-500 text-white'
-                                : 'bg-amber-400 hover:bg-amber-300 text-slate-900'
-                            }`}
-                          >
-                            {copiedMasterPrompt ? <Check size={14} /> : <Copy size={14} />}
-                            {copiedMasterPrompt ? 'Kopieret!' : 'Kopiér Master Prompt'}
-                          </button>
-                        </div>
-                        <p className="text-[11px] text-slate-300 leading-snug">
-                          Prompten er 100% på dansk og tilpasset din valgte figur (<strong>{activePersona.name}</strong>) med krav om gennemsigtig baggrund (PNG).
-                        </p>
-                      </div>
-
-                      {/* TRIN 4: Sådan gør du i ChatGPT */}
-                      <div className="bg-amber-100/60 border border-amber-300 rounded-xl p-3 space-y-1">
-                        <span className="font-black text-slate-900 flex items-center gap-1.5 text-xs">
-                          <span className="w-5 h-5 rounded-full bg-amber-400 text-slate-900 font-black text-[11px] flex items-center justify-center">4</span>
-                          I ChatGPT:
-                        </span>
-                        <p className="text-[11.5px] text-slate-700 leading-snug">
-                          1. Åbn <strong>ChatGPT</strong>.<br />
-                          2. Klik på <strong>+</strong> og vedhæft <strong>Ref 1</strong> og <strong>Ref 2</strong>.<br />
-                          3. Indsæt den kopierede Master Prompt i tekstfeltet og send.<br />
-                          4. Gem det genererede billede som PNG og upload det lige herunder!
-                        </p>
-                      </div>
-                    </div>
-                  )}
                 </div>
 
                 {/* Upload action card */}
@@ -715,7 +544,7 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
                   <div className="flex items-center justify-between">
                     <div>
                       <h5 className="text-xs font-black text-slate-800 uppercase tracking-wider">
-                        Trin 5: Upload det genererede billede
+                        Upload eget billede / foto
                       </h5>
                       <p className="text-xs text-slate-600 mt-0.5">
                         Billedet gemmes lokalt og vises med det samme på dit piktogram.
@@ -784,7 +613,8 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
           {/* Discreet collapsible advanced settings for technical admins only */}
           <details className="text-[11px] text-slate-400 group px-1">
             <summary className="cursor-pointer hover:text-slate-600 font-medium select-none list-none flex items-center gap-1.5 opacity-60 hover:opacity-100 transition-opacity">
-              <span>⚙️ Avanceret (forbindelse)</span>
+              <Settings size={13} />
+              <span>Avanceret forbindelse</span>
             </summary>
             <div className="mt-2 p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2 text-slate-700">
               <div>
@@ -835,13 +665,6 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
           </div>
         </form>
       </div>
-
-      {/* Guide modal for generating scene prompts and avatars */}
-      <SceneGeneratorGuideModal
-        isOpen={isGuideOpen}
-        persona={activePersona}
-        onClose={() => setIsGuideOpen(false)}
-      />
     </div>
   );
 };

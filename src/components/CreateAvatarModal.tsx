@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { X, Sparkles, Loader2, Check, ShieldCheck, Upload, Trash2 } from 'lucide-react';
+import { X, Sparkles, Loader2, Check, ShieldCheck, Upload, Trash2, AlertCircle } from 'lucide-react';
 import { createAvatarFromPhoto } from '../services/imageGenerationApi';
 import { saveCustomPersona } from '../services/personas';
 import type { Persona } from '../types';
@@ -160,8 +160,9 @@ export const CreateAvatarModal: React.FC<CreateAvatarModalProps> = ({
           </div>
 
           {error && (
-            <div className="p-3 rounded-xl bg-rose-50 border-2 border-rose-300 text-rose-800 text-xs font-bold animate-in fade-in">
-              ⚠️ {error}
+            <div className="p-3 rounded-xl bg-rose-50 border-2 border-rose-300 text-rose-800 text-xs font-bold animate-in fade-in flex items-center gap-2">
+              <AlertCircle size={16} className="text-rose-700 shrink-0" />
+              <span>{error}</span>
             </div>
           )}
 
@@ -245,7 +246,7 @@ export const CreateAvatarModal: React.FC<CreateAvatarModalProps> = ({
                 ) : (
                   <>
                     <Sparkles size={18} className="text-slate-900" />
-                    <span>🎨 Omdan foto til tegneserie-figur</span>
+                    <span>Omdan foto til tegneserie-figur (1-klik)</span>
                   </>
                 )}
               </button>
@@ -254,7 +255,7 @@ export const CreateAvatarModal: React.FC<CreateAvatarModalProps> = ({
             /* Result preview */
             <div className="space-y-3 p-4 bg-amber-50 border-3 border-amber-400 rounded-2xl text-center animate-in zoom-in-95 duration-150">
               <span className="text-xs font-black uppercase tracking-wider text-amber-900 block">
-                🎉 Din nye figur er klar!
+                Din nye figur er klar!
               </span>
               <div className="flex justify-center">
                 <div className="w-28 h-28 rounded-2xl bg-white border-3 border-slate-900 p-1 shadow-md overflow-hidden flex items-center justify-center">

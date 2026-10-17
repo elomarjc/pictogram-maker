@@ -6,7 +6,6 @@ import {
   LayoutTemplate,
   FolderKanban,
   ShieldCheck,
-  Eye,
   ChevronDown,
   Sparkles,
   Layers,
@@ -21,8 +20,6 @@ interface HeaderProps {
   onOpenTemplatePicker: () => void;
   onOpenPrintModal: () => void;
   onOpenPrivacyModal: () => void;
-  onOpenReferenceModal: () => void;
-  onOpenSceneGuideModal: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -34,8 +31,6 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenTemplatePicker,
   onOpenPrintModal,
   onOpenPrivacyModal,
-  onOpenReferenceModal,
-  onOpenSceneGuideModal,
 }) => {
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b-3 border-slate-900 shadow-sm print:hidden">
@@ -70,23 +65,6 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Action CTAs */}
         <div className="flex items-center gap-1.5 sm:gap-2">
-          <button
-            onClick={onOpenSceneGuideModal}
-            title="Guide: Generer nye scener og figurer med ChatGPT prompts"
-            className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-xl border-2 border-slate-900 bg-amber-100 hover:bg-amber-200 text-xs font-black text-slate-900 transition-colors shadow-2xs"
-          >
-            <Sparkles size={15} className="text-amber-600" />
-            <span className="hidden sm:inline">AI Scene-Guide</span>
-          </button>
-
-          <button
-            onClick={onOpenReferenceModal}
-            title="Se referencebilledet af ugeplanen"
-            className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-xl border border-slate-300 hover:bg-slate-100 text-xs font-bold text-slate-700 transition-colors"
-          >
-            <Eye size={15} />
-            <span className="hidden sm:inline">Reference</span>
-          </button>
 
           <button
             onClick={onOpenTemplatePicker}
