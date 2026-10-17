@@ -93,14 +93,12 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
   const [workerUrl, setWorkerUrl] = useState(getStoredWorkerUrl());
   const [workerApiKey, setWorkerApiKey] = useState(getStoredApiKey());
-  const [showWorkerConfig, setShowWorkerConfig] = useState(!getStoredWorkerUrl());
   const [aiError, setAiError] = useState<string | null>(null);
   const [aiSuccessMessage, setAiSuccessMessage] = useState<string | null>(null);
 
   const handleGenerateWithAi = async () => {
     if (!workerUrl.trim()) {
-      setShowWorkerConfig(true);
-      setAiError('Indtast venligst din Cloudflare Worker URL ovenfor først.');
+      setAiError('Ingen Cloudflare Worker adresse fundet.');
       return;
     }
 
@@ -460,64 +458,21 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
             {/* TAB 2: Upload Custom Image & Inline Idiot-Proof Scene Guide */}
             {activeTab === 'upload' && (
               <div className="space-y-4 p-2">
-                {/* 0. Direkte 1-Klik AI Billedgenerator via Cloudflare Workers AI */}
+                {/* 0. Direkte 1-Klik AI Billedgenerator */}
                 <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-3 border-amber-400 rounded-2xl p-4 sm:p-5 space-y-3.5 shadow-xs">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-9 h-9 rounded-xl bg-amber-400 border-2 border-slate-900 flex items-center justify-center shrink-0 shadow-xs">
-                        <Sparkles size={20} className="text-slate-900" />
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-black text-slate-900">
-                          ✨ 1-Klik AI Billedgenerator (Direkte i appen)
-                        </h4>
-                        <p className="text-[11.5px] font-bold text-slate-700">
-                          Generér automatisk scenen for {activePersona.name} uden at skulle kopiere frem og tilbage til ChatGPT!
-                        </p>
-                      </div>
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-10 h-10 rounded-xl bg-amber-400 border-2 border-slate-900 flex items-center justify-center shrink-0 shadow-xs">
+                      <Sparkles size={22} className="text-slate-900" />
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => setShowWorkerConfig(!showWorkerConfig)}
-                      className="text-[11px] font-bold text-slate-700 hover:text-slate-950 underline bg-white/70 hover:bg-white px-2 py-1 rounded-lg border border-amber-300 transition-colors"
-                    >
-                      {showWorkerConfig ? 'Skjul API-indstillinger' : '⚙️ API URL'}
-                    </button>
-                  </div>
-
-                  {showWorkerConfig && (
-                    <div className="bg-white border-2 border-slate-300 rounded-xl p-3 space-y-2.5 text-xs animate-in fade-in duration-100">
-                      <div className="space-y-1">
-                        <label className="font-bold text-slate-800 flex items-center justify-between">
-                          <span>Cloudflare Worker URL:</span>
-                          <span className="text-[10px] text-slate-500 font-normal">Gemmes lokalt i din browser</span>
-                        </label>
-                        <input
-                          type="text"
-                          value={workerUrl}
-                          onChange={(e) => setWorkerUrl(e.target.value)}
-                          placeholder="fx https://free-image-generation-api.<dit-subdomæne>.workers.dev"
-                          className="w-full px-3 py-1.5 rounded-lg border-2 border-slate-300 focus:border-slate-900 font-mono text-[11px]"
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <label className="font-bold text-slate-800 flex items-center justify-between">
-                          <span>API Nøgle (valgfri):</span>
-                          <span className="text-[10px] text-slate-500 font-normal">Kun hvis du har sat API_KEY på din worker</span>
-                        </label>
-                        <input
-                          type="password"
-                          value={workerApiKey}
-                          onChange={(e) => setWorkerApiKey(e.target.value)}
-                          placeholder="Bearer API nøgle (valgfri)"
-                          className="w-full px-3 py-1.5 rounded-lg border-2 border-slate-300 focus:border-slate-900 font-mono text-[11px]"
-                        />
-                      </div>
-                      <p className="text-[10.5px] text-slate-500">
-                        💡 Bruger Cloudflare Workers AI gratis kvote (10,000 Neurons/dag med Flux-1-Schnell).
+                    <div>
+                      <h4 className="text-sm font-black text-slate-900">
+                        ✨ Skab nyt billede med 1 klik
+                      </h4>
+                      <p className="text-xs font-semibold text-slate-700">
+                        Vælg en aktivitet nedenfor og tryk på den grønne knap. Så tegnes {activePersona.name} automatisk i scenen!
                       </p>
                     </div>
-                  )}
+                  </div>
 
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
@@ -812,6 +767,41 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
               </div>
             )}
           </div>
+
+          {/* Discreet collapsible advanced settings for technical admins only */}
+          <details className="text-[11px] text-slate-400 group px-1">
+            <summary className="cursor-pointer hover:text-slate-600 font-medium select-none list-none flex items-center gap-1.5 opacity-60 hover:opacity-100 transition-opacity">
+              <span>⚙️ Avanceret (forbindelse)</span>
+            </summary>
+            <div className="mt-2 p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2 text-slate-700">
+              <div>
+                <label className="font-semibold block mb-0.5 text-[10.5px]">Cloudflare Worker Adresse:</label>
+                <input
+                  type="text"
+                  value={workerUrl}
+                  onChange={(e) => {
+                    setWorkerUrl(e.target.value);
+                    setStoredWorkerUrl(e.target.value);
+                  }}
+                  placeholder="https://..."
+                  className="w-full px-2.5 py-1 rounded-lg border border-slate-300 text-xs font-mono bg-white"
+                />
+              </div>
+              <div>
+                <label className="font-semibold block mb-0.5 text-[10.5px]">API Nøgle (valgfri):</label>
+                <input
+                  type="password"
+                  value={workerApiKey}
+                  onChange={(e) => {
+                    setWorkerApiKey(e.target.value);
+                    setStoredApiKey(e.target.value);
+                  }}
+                  placeholder="Bearer nøgle"
+                  className="w-full px-2.5 py-1 rounded-lg border border-slate-300 text-xs font-mono bg-white"
+                />
+              </div>
+            </div>
+          </details>
 
           {/* Modal Actions */}
           <div className="flex items-center justify-end gap-3 pt-4 border-t-2 border-slate-200">
