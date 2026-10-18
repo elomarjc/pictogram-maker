@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import type { WeekPlan, DayOfWeek, Pictogram } from '../types';
 import { DAYS_OF_WEEK } from '../types';
 import { ICONS } from '../data/icons';
@@ -48,6 +48,9 @@ export const WeekView: React.FC<WeekViewProps> = ({
   // Quick add inputs per day
   const [quickAddTexts, setQuickAddTexts] = useState<Record<string, string>>({});
 
+  // Active clicked card that reveals the action buttons (Pencil, Copy, Trash)
+  const [activeCardId, setActiveCardId] = useState<string | null>(null);
+
   // Inline editing state for title
   const [editingCard, setEditingCard] = useState<{ dayId: DayOfWeek; cardId: string } | null>(null);
   const [editingText, setEditingText] = useState('');
@@ -65,9 +68,22 @@ export const WeekView: React.FC<WeekViewProps> = ({
 
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Close active card actions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('[data-week-card="true"]')) {
+        setActiveCardId(null);
+      }
+    };
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
+
   const handleStartEditing = (dayId: DayOfWeek, pic: Pictogram) => {
     setEditingCard({ dayId, cardId: pic.id });
     setEditingText(pic.title);
+    setActiveCardId(null);
   };
 
   const handleSaveTitle = (dayId: DayOfWeek, cardId: string) => {
@@ -76,10 +92,12 @@ export const WeekView: React.FC<WeekViewProps> = ({
       onQuickUpdateCardTitle(dayId, cardId, clean);
     }
     setEditingCard(null);
+    setActiveCardId(null);
   };
 
   const handleCancelEditing = () => {
     setEditingCard(null);
+    setActiveCardId(null);
   };
 
   const handleQuickAddSubmit = (dayId: DayOfWeek) => {
@@ -162,7 +180,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
               Ugeoversigt – {plan.name}
             </h2>
             <p className="text-xs font-semibold text-slate-500">
-              Hurtig redigering: Opret, omdøb, kopiér og slet kort direkte her på ugen.
+              Hurtig redigering: Klik på et kort for at redigere, kopiere eller slette.
             </p>
           </div>
         </div>
@@ -218,19 +236,31 @@ export const WeekView: React.FC<WeekViewProps> = ({
                       editingCard?.dayId === day.id && editingCard?.cardId === pic.id;
                     const isDragOver =
                       dragOverTarget?.dayId === day.id && dragOverTarget?.index === idx;
+                    const isActive = activeCardId === pic.id;
 
                     return (
                       <div
                         key={pic.id}
+                        data-week-card="true"
                         draggable={!isEditing}
                         onDragStart={(e) => handleCardDragStart(e, day.id, pic.id, idx)}
                         onDragOver={(e) => handleCardDragOver(e, day.id, idx)}
                         onDrop={(e) => handleCardDrop(e, day.id, idx)}
                         onDragEnd={handleDragEnd}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (!isEditing) {
+                            setActiveCardId((prev) => (prev === pic.id ? null : pic.id));
+                          }
+                        }}
                         style={{ backgroundColor: pic.bgColor || '#FFFFFF' }}
-                        className={`group relative flex items-center justify-between p-1.5 rounded-xl border text-left transition-all select-none ${
+                        className={`relative flex items-center justify-between p-1.5 rounded-xl border text-left transition-all select-none cursor-pointer ${
                           isDragOver ? 'border-t-4 border-t-amber-500' : ''
-                        } border-slate-900/60 hover:border-slate-900 shadow-2xs`}
+                        } ${
+                          isActive
+                            ? 'border-slate-900 ring-2 ring-amber-400 shadow-sm'
+                            : 'border-slate-900/60 hover:border-slate-900 shadow-2xs'
+                        }`}
                       >
                         {/* Title or inline edit mode */}
                         {isEditing ? (
@@ -272,27 +302,22 @@ export const WeekView: React.FC<WeekViewProps> = ({
                               <X size={12} />
                             </button>
                           </form>
-                        ) : (
-                          <>
-                            {/* Card content: Icon + Title */}
-                            <div
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleStartEditing(day.id, pic);
-                              }}
-                              className="flex items-center gap-1.5 min-w-0 flex-1 cursor-text"
-                              title="Klik for at redigere tekst"
-                            >
+                        ) : isActive ? (
+                          /* Active clicked state: shows title + the 3 action buttons */
+                          <div className="flex items-center justify-between gap-1 w-full min-w-0">
+                            <div className="flex items-center gap-1 min-w-0 flex-1">
                               {IconComp && (
                                 <IconComp size={14} className="text-slate-800 shrink-0" />
                               )}
-                              <span className="text-xs font-bold text-slate-900 truncate font-rounded flex-1">
+                              <span className="text-xs font-bold text-slate-900 truncate font-rounded">
                                 {pic.title}
                               </span>
                             </div>
 
-                            {/* 3 action buttons: Edit, Kopi, Delet */}
-                            <div className="flex items-center gap-0.5 shrink-0 opacity-80 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                            <div
+                              className="flex items-center gap-0.5 shrink-0 bg-white/95 rounded-lg border border-slate-900/30 p-0.5 shadow-2xs"
+                              onClick={(e) => e.stopPropagation()}
+                            >
                               <button
                                 type="button"
                                 onClick={(e) => {
@@ -301,7 +326,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
                                 }}
                                 title="Rediger tekst"
                                 aria-label="Rediger tekst"
-                                className="p-1 hover:bg-black/10 active:bg-black/20 rounded text-slate-700 hover:text-slate-900 cursor-pointer"
+                                className="p-1 hover:bg-amber-100 rounded text-slate-800 cursor-pointer"
                               >
                                 <Pencil size={12} />
                               </button>
@@ -313,7 +338,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
                                 }}
                                 title="Kopiér kort"
                                 aria-label="Kopiér kort"
-                                className="p-1 hover:bg-black/10 active:bg-black/20 rounded text-slate-700 hover:text-slate-900 cursor-pointer"
+                                className="p-1 hover:bg-amber-100 rounded text-slate-800 cursor-pointer"
                               >
                                 <Copy size={12} />
                               </button>
@@ -322,15 +347,26 @@ export const WeekView: React.FC<WeekViewProps> = ({
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   onQuickDeleteCard(day.id, pic.id);
+                                  setActiveCardId(null);
                                 }}
                                 title="Slet kort"
                                 aria-label="Slet kort"
-                                className="p-1 hover:bg-rose-500 hover:text-white rounded text-slate-700 cursor-pointer"
+                                className="p-1 hover:bg-rose-500 hover:text-white rounded text-slate-800 cursor-pointer"
                               >
                                 <Trash2 size={12} />
                               </button>
                             </div>
-                          </>
+                          </div>
+                        ) : (
+                          /* Default idle state: 100% width for icon and full readable title */
+                          <div className="flex items-center gap-1.5 min-w-0 w-full">
+                            {IconComp && (
+                              <IconComp size={14} className="text-slate-800 shrink-0" />
+                            )}
+                            <span className="text-xs font-bold text-slate-900 truncate font-rounded flex-1">
+                              {pic.title}
+                            </span>
+                          </div>
                         )}
                       </div>
                     );
