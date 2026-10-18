@@ -282,6 +282,9 @@ export async function generateAllMissingScenes(
         latestSceneUrl: finalUrl,
         done: completed === total,
       });
+
+      // Brief pause between requests to maintain smooth network flow
+      await new Promise((r) => setTimeout(r, 300));
     } catch (err) {
       onProgress({
         total,
@@ -292,6 +295,8 @@ export async function generateAllMissingScenes(
         error: `Fejl ved ${sceneDef.title}: ${err instanceof Error ? err.message : String(err)}`,
         done: false,
       });
+      // Brief pause before moving to next item after error
+      await new Promise((r) => setTimeout(r, 1000));
     }
   }
 

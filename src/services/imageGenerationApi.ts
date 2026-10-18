@@ -75,6 +75,7 @@ export interface GenerateSceneOptions {
   referenceImage?: string;
   strength?: number;
   provider?: 'auto' | 'cloudflare' | 'openai';
+  retries?: number;
 }
 
 /**
@@ -140,7 +141,12 @@ export async function generateSceneImage(
 
   if (!response.ok) {
     if (response.status === 429) {
-      const waitTime = data?.retryAfterSeconds || 15;
+      const waitTime = data?.retryAfterSeconds || data?.retryAfter || 2;
+      const remainingRetries = (options?.retries ?? 2) - 1;
+      if (remainingRetries >= 0) {
+        await new Promise((r) => setTimeout(r, (waitTime + 0.5) * 1000));
+        return generateSceneImage(prompt, { ...options, retries: remainingRetries });
+      }
       throw new Error(
         data?.message || `Hastighedsgrænse nået. Vent venligst ${waitTime} sekunder før næste forsøg.`
       );
