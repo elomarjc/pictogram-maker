@@ -204,7 +204,7 @@ export const PersonaSelectorModal: React.FC<PersonaSelectorModalProps> = ({
                         setSceneGenPersona(p);
                       }}
                       title="Klik for at se figurens scener"
-                      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black transition-all cursor-pointer shadow-2xs hover:scale-105 active:scale-95 ${
+                      className={`inline-flex items-center justify-center gap-1 px-2.5 h-6 rounded-full text-[10px] font-black whitespace-nowrap transition-all cursor-pointer shadow-2xs hover:scale-105 active:scale-95 ${
                         isAllReady
                           ? 'text-emerald-800 bg-emerald-100/90 hover:bg-emerald-200 border border-emerald-300'
                           : 'text-amber-900 bg-amber-100 hover:bg-amber-200 border border-amber-300'
@@ -212,12 +212,12 @@ export const PersonaSelectorModal: React.FC<PersonaSelectorModalProps> = ({
                     >
                       {isAllReady ? (
                         <>
-                          <CheckCircle2 size={11} className="text-emerald-700" />
+                          <CheckCircle2 size={11} className="text-emerald-700 shrink-0" />
                           <span>14/14 scener</span>
                         </>
                       ) : (
                         <>
-                          <Clock size={11} className="text-amber-700" />
+                          <Clock size={11} className="text-amber-700 shrink-0" />
                           <span>{ready}/{total} scener</span>
                         </>
                       )}

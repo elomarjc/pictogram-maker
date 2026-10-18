@@ -183,7 +183,12 @@ export function isDefaultPersona(id: string): boolean {
 
 export function getAllPersonas(): Persona[] {
   const custom = getCustomPersonas();
-  return [...DEFAULT_PERSONAS, ...custom];
+  const defaultList = DEFAULT_PERSONAS.map((def) => {
+    const override = custom.find((c) => c.id === def.id);
+    return override || def;
+  });
+  const purelyCustom = custom.filter((c) => !DEFAULT_PERSONAS.some((d) => d.id === c.id));
+  return [...defaultList, ...purelyCustom];
 }
 
 export function getPersona(id?: string): Persona {

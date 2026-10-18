@@ -9,6 +9,7 @@ import {
   Minimize2,
   Maximize2,
   RotateCw,
+  Trash2,
 } from 'lucide-react';
 import type { Persona } from '../types';
 import {
@@ -18,7 +19,7 @@ import {
   getReadyScenesCount,
   type SceneGenProgress,
 } from '../services/characterSceneGenerator';
-import { getAllPersonas } from '../services/personas';
+import { getAllPersonas, saveCustomPersona } from '../services/personas';
 
 interface SceneGenerationModalProps {
   isOpen: boolean;
@@ -124,6 +125,54 @@ export const SceneGenerationModal: React.FC<SceneGenerationModalProps> = ({
       abortControllerRef.current.abort();
     }
     setIsGenerating(false);
+  };
+
+  const handleDeleteScene = (sceneKey: string) => {
+    if (!currentPersona || isGenerating) return;
+
+    const updatedScenes = { ...(currentPersona.activityScenes || {}) };
+    delete updatedScenes[sceneKey];
+
+    const updatedPersona: Persona = {
+      ...currentPersona,
+      activityScenes: updatedScenes,
+    };
+
+    saveCustomPersona(updatedPersona);
+    setCurrentPersona(updatedPersona);
+    onPersonaUpdated?.(updatedPersona);
+
+    const { ready, total } = getReadyScenesCount(updatedPersona);
+    setProgress((prev) => ({
+      ...prev,
+      completed: ready,
+      percent: total > 0 ? Math.round((ready / total) * 100) : 0,
+      done: ready === total,
+    }));
+  };
+
+  const handleDeleteAllScenes = () => {
+    if (!currentPersona || isGenerating) return;
+    if (!window.confirm(`Vil du slette alle genererede scener for ${currentPersona.name || 'denne figur'}?`)) {
+      return;
+    }
+
+    const updatedPersona: Persona = {
+      ...currentPersona,
+      activityScenes: {},
+    };
+
+    saveCustomPersona(updatedPersona);
+    setCurrentPersona(updatedPersona);
+    onPersonaUpdated?.(updatedPersona);
+
+    const { ready, total } = getReadyScenesCount(updatedPersona);
+    setProgress({
+      total: total || DEFAULT_SCENE_DEFINITIONS.length,
+      completed: ready,
+      percent: 0,
+      done: false,
+    });
   };
 
   if (!isOpen || !currentPersona) return null;
@@ -243,13 +292,26 @@ export const SceneGenerationModal: React.FC<SceneGenerationModalProps> = ({
               </div>
             </div>
 
-            <div className="text-right">
-              <span className="text-sm font-black text-slate-900">
-                {ready} / {total}
-              </span>
-              <span className="block text-[11px] font-bold text-slate-500">
-                ({progress.percent}%)
-              </span>
+            <div className="flex items-center gap-2.5">
+              {ready > 0 && !isGenerating && (
+                <button
+                  type="button"
+                  onClick={handleDeleteAllScenes}
+                  title="Slet alle genererede scener for denne figur"
+                  className="px-2.5 py-1 text-[11px] font-bold text-rose-700 hover:text-rose-900 bg-rose-50 hover:bg-rose-100 border border-rose-300 rounded-lg flex items-center gap-1 transition-colors cursor-pointer"
+                >
+                  <Trash2 size={12} />
+                  <span>Slet alle</span>
+                </button>
+              )}
+              <div className="text-right">
+                <span className="text-sm font-black text-slate-900">
+                  {ready} / {total}
+                </span>
+                <span className="block text-[11px] font-bold text-slate-500">
+                  ({progress.percent}%)
+                </span>
+              </div>
             </div>
           </div>
 
@@ -330,6 +392,21 @@ export const SceneGenerationModal: React.FC<SceneGenerationModalProps> = ({
                       </div>
                     )}
                   </div>
+
+                  {/* Delete individual scene button */}
+                  {isDone && !isGenerating && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteScene(sceneDef.key);
+                      }}
+                      title="Slet denne scene"
+                      className="absolute top-1.5 left-1.5 z-10 w-5 h-5 rounded-md bg-white/90 hover:bg-rose-600 text-slate-600 hover:text-white border border-slate-300 hover:border-rose-600 flex items-center justify-center shadow-2xs transition-colors cursor-pointer"
+                    >
+                      <Trash2 size={11} className="stroke-[2.5]" />
+                    </button>
+                  )}
 
                   {/* Scene Preview Container (matching 2126x740 ratio) */}
                   <div
