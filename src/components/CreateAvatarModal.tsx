@@ -144,7 +144,7 @@ export const CreateAvatarModal: React.FC<CreateAvatarModalProps> = ({
     const id = `avatar_${Date.now()}`;
     const newPersona: Persona = {
       id,
-      name: id,
+      name: 'Min figur',
       shortCode: '',
       avatarUrl: generatedAvatarUrl,
       description: '',

@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import type { Persona } from '../types';
 import { getAllPersonas, saveCustomPersona, deleteCustomPersona, isDefaultPersona, DEFAULT_PERSONAS } from '../services/personas';
-import { X, Check, User, Upload, Camera, Trash2, AlertTriangle } from 'lucide-react';
+import { X, Check, User, Upload, Camera, Trash2, AlertTriangle, Sparkles, Clock, CheckCircle2 } from 'lucide-react';
 import { CreateAvatarModal } from './CreateAvatarModal';
+import { SceneGenerationModal } from './SceneGenerationModal';
+import { getReadyScenesCount } from '../services/characterSceneGenerator';
 
 interface PersonaSelectorModalProps {
   isOpen: boolean;
@@ -23,6 +25,7 @@ export const PersonaSelectorModal: React.FC<PersonaSelectorModalProps> = ({
   const [personas, setPersonas] = useState<Persona[]>(() => getAllPersonas());
   const [avatarToDelete, setAvatarToDelete] = useState<Persona | null>(null);
   const [isCreatePhotoModalOpen, setIsCreatePhotoModalOpen] = useState(false);
+  const [sceneGenPersona, setSceneGenPersona] = useState<Persona | null>(null);
 
   // Sync state whenever modal opens or current active persona changes
   useEffect(() => {
@@ -51,7 +54,7 @@ export const PersonaSelectorModal: React.FC<PersonaSelectorModalProps> = ({
         const id = `avatar_${Date.now()}`;
         const newPersona: Persona = {
           id,
-          name: id,
+          name: 'Min figur',
           shortCode: '',
           avatarUrl: result,
           description: '',
@@ -61,6 +64,8 @@ export const PersonaSelectorModal: React.FC<PersonaSelectorModalProps> = ({
         const updated = getAllPersonas();
         setPersonas(updated);
         setSelectedId(newPersona.id);
+        // Automatically launch standard scene generation for new character!
+        setSceneGenPersona(newPersona);
       }
     };
     reader.readAsDataURL(file);
@@ -144,44 +149,76 @@ export const PersonaSelectorModal: React.FC<PersonaSelectorModalProps> = ({
             {personas.map((p) => {
               const isSelected = selectedId === p.id;
               const isCustom = !isDefaultPersona(p.id);
+              const { ready, total } = getReadyScenesCount(p);
+              const isAllReady = ready === total;
 
               return (
                 <div
                   key={p.id}
                   onClick={() => setSelectedId(p.id)}
-                  className={`relative aspect-square rounded-2xl border-3 p-2.5 transition-all flex items-center justify-center cursor-pointer group bg-white ${
+                  className={`relative rounded-2xl border-3 p-2.5 transition-all flex flex-col items-center justify-between cursor-pointer group bg-white ${
                     isSelected
                       ? 'border-slate-900 bg-amber-50 shadow-md ring-3 ring-amber-400'
                       : 'border-slate-300 hover:border-slate-600 hover:bg-slate-50'
                   }`}
                 >
-                  <img
-                    src={p.avatarUrl}
-                    alt="Figur"
-                    className="w-full h-full object-contain filter drop-shadow-xs group-hover:scale-105 transition-transform pointer-events-none"
-                  />
+                  <div className="w-full aspect-square flex items-center justify-center relative mb-1.5">
+                    <img
+                      src={p.avatarUrl}
+                      alt="Figur"
+                      className="w-full h-full object-contain filter drop-shadow-xs group-hover:scale-105 transition-transform pointer-events-none"
+                    />
 
-                  {/* Active selection checkmark */}
-                  {isSelected && (
-                    <span className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-slate-900 text-white flex items-center justify-center shadow-md z-10 pointer-events-none">
-                      <Check size={12} className="stroke-[3]" />
-                    </span>
-                  )}
+                    {/* Active selection checkmark */}
+                    {isSelected && (
+                      <span className="absolute top-0 right-0 w-5 h-5 rounded-full bg-slate-900 text-white flex items-center justify-center shadow-md z-10 pointer-events-none">
+                        <Check size={12} className="stroke-[3]" />
+                      </span>
+                    )}
 
-                  {/* Discreet, smaller delete button for custom avatars (appears on hover) */}
-                  {isCustom && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setAvatarToDelete(p);
-                      }}
-                      title="Slet figur"
-                      className="absolute top-1.5 left-1.5 w-5 h-5 rounded-md bg-black/40 hover:bg-rose-600 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-20 cursor-pointer"
-                    >
-                      <Trash2 size={11} className="stroke-[2.5]" />
-                    </button>
-                  )}
+                    {/* Discreet delete button for custom avatars (appears on hover) */}
+                    {isCustom && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setAvatarToDelete(p);
+                        }}
+                        title="Slet figur"
+                        className="absolute top-0 left-0 w-5 h-5 rounded-md bg-black/40 hover:bg-rose-600 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-20 cursor-pointer"
+                      >
+                        <Trash2 size={11} className="stroke-[2.5]" />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Scene readiness badge & quick action */}
+                  <div className="w-full text-center mt-auto">
+                    <div className="text-[10px] font-bold mb-1">
+                      {isAllReady ? (
+                        <span className="inline-flex items-center gap-0.5 text-emerald-700 bg-emerald-100/70 px-1.5 py-0.5 rounded-full">
+                          <CheckCircle2 size={10} /> 14/14 scener
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-0.5 text-amber-800 bg-amber-100 px-1.5 py-0.5 rounded-full">
+                          <Clock size={10} /> {ready}/{total} scener
+                        </span>
+                      )}
+                    </div>
+                    {isCustom && !isAllReady && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSceneGenPersona(p);
+                        }}
+                        className="w-full py-1 px-1 rounded-lg border border-slate-900 bg-amber-400 hover:bg-amber-500 text-slate-900 font-black text-[10px] shadow-xs flex items-center justify-center gap-1 cursor-pointer"
+                      >
+                        <Sparkles size={11} />
+                        <span>Generer scener</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
               );
             })}
@@ -189,22 +226,36 @@ export const PersonaSelectorModal: React.FC<PersonaSelectorModalProps> = ({
         </div>
 
         {/* Modal Footer */}
-        <div className="p-3 bg-slate-100 border-t-2 border-slate-200 flex items-center justify-end gap-2.5">
+        <div className="p-3 bg-slate-100 border-t-2 border-slate-200 flex items-center justify-between gap-2.5">
           <button
             type="button"
-            onClick={onClose}
-            className="px-4 py-2 bg-white hover:bg-slate-200 text-slate-800 font-bold rounded-xl border-2 border-slate-300 text-xs transition-colors cursor-pointer"
+            onClick={() => {
+              const selected = personas.find((p) => p.id === selectedId) || personas[0];
+              if (selected) setSceneGenPersona(selected);
+            }}
+            className="px-3.5 py-2 rounded-xl border-2 border-slate-900 bg-amber-400 hover:bg-amber-500 text-slate-900 font-black text-xs shadow-xs transition-colors cursor-pointer flex items-center gap-1.5"
           >
-            Annuller
+            <Sparkles size={14} />
+            <span>Tjek / generer scener</span>
           </button>
-          <button
-            type="button"
-            onClick={handleSave}
-            className="px-5 py-2 bg-amber-400 hover:bg-amber-500 text-slate-900 font-black rounded-xl border-2 border-slate-900 text-xs shadow-xs hover:shadow transition-all flex items-center gap-1.5 cursor-pointer"
-          >
-            <Check size={16} className="stroke-[3]" />
-            Vælg figur
-          </button>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 bg-white hover:bg-slate-200 text-slate-800 font-bold rounded-xl border-2 border-slate-300 text-xs transition-colors cursor-pointer"
+            >
+              Annuller
+            </button>
+            <button
+              type="button"
+              onClick={handleSave}
+              className="px-5 py-2 bg-amber-400 hover:bg-amber-500 text-slate-900 font-black rounded-xl border-2 border-slate-900 text-xs shadow-xs hover:shadow transition-all flex items-center gap-1.5 cursor-pointer"
+            >
+              <Check size={16} className="stroke-[3]" />
+              Vælg figur
+            </button>
+          </div>
         </div>
       </div>
 
@@ -265,6 +316,21 @@ export const PersonaSelectorModal: React.FC<PersonaSelectorModalProps> = ({
           setPersonas(updated);
           setSelectedId(newPersona.id);
           onSelectPersona(newPersona.id, newPersona.shortCode || '', newPersona.avatarUrl);
+          // Automatically launch scene generation for the new character!
+          setSceneGenPersona(newPersona);
+        }}
+      />
+
+      <SceneGenerationModal
+        isOpen={!!sceneGenPersona}
+        persona={sceneGenPersona}
+        onClose={() => setSceneGenPersona(null)}
+        onPersonaUpdated={(updated) => {
+          const all = getAllPersonas();
+          setPersonas(all);
+          if (selectedId === updated.id) {
+            onSelectPersona(updated.id, updated.shortCode || '', updated.avatarUrl);
+          }
         }}
       />
     </div>

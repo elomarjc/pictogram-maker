@@ -37,6 +37,9 @@ import {
   removeImageBackground,
   autoFitSceneToStandardFormat,
 } from '../services/imageGenerationApi';
+import { getShortSceneTitle } from '../utils/sceneTitleHelper';
+import { SceneGenerationModal } from './SceneGenerationModal';
+import { getReadyScenesCount } from '../services/characterSceneGenerator';
 
 interface PictogramEditorModalProps {
   pictogram: Pictogram | null;
@@ -266,6 +269,7 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
 
   const activePersona = persona || getPersona();
   const [appliedToAll, setAppliedToAll] = useState(false);
+  const [isSceneGenOpen, setIsSceneGenOpen] = useState(false);
   const [title, setTitle] = useState(pictogram.title);
   const [time, setTime] = useState(pictogram.time || '');
   const [illustrationId, setIllustrationId] = useState(pictogram.illustrationId || 'spisetid');
@@ -428,11 +432,10 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
     reader.onload = async () => {
       if (typeof reader.result === 'string') {
         const baseName = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
-        const sceneTitle = inlineSceneText.trim()
-          ? inlineSceneText.slice(0, 24).trim()
-          : title.trim() && title !== 'Aktivitetsnavn'
-          ? title.trim()
-          : baseName;
+        const sceneTitle = getShortSceneTitle(
+          inlineSceneText,
+          title.trim() && title !== 'Aktivitetsnavn' ? title.trim() : baseName
+        );
 
         let processedUrl = reader.result;
         try {
@@ -507,9 +510,7 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
         // keep finalDataUrl if auto-fit fails
       }
 
-      const sceneTitle =
-        inlineSceneText.slice(0, 24).trim() ||
-        (title.trim() && title !== 'Aktivitetsnavn' ? title.trim() : 'Ny AI scene');
+      const sceneTitle = getShortSceneTitle(inlineSceneText, title);
 
       // Automatically save and apply to card without forcing manual crop!
       const updatedCustom = saveCustomScene({
@@ -949,6 +950,30 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
             {/* TAB 1: Icons & Scenes grid */}
             {activeTab === 'illustrations' && (
               <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 max-h-56 overflow-y-auto p-1">
+                {/* Missing scenes banner for current persona */}
+                {(() => {
+                  const { ready, total } = getReadyScenesCount(activePersona);
+                  if (ready >= total) return null;
+                  return (
+                    <div className="col-span-full mb-1 p-2 bg-amber-50 border-2 border-amber-300 rounded-xl flex items-center justify-between gap-2 shadow-xs">
+                      <div className="flex items-center gap-2">
+                        <Sparkles size={15} className="text-amber-600 flex-shrink-0" />
+                        <span className="text-xs font-bold text-slate-800">
+                          Figuren mangler {total - ready} standardscener ({ready}/{total} klar).
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setIsSceneGenOpen(true)}
+                        className="px-2.5 py-1 bg-amber-400 hover:bg-amber-500 text-slate-900 font-black text-xs rounded-lg border border-slate-900 shadow-xs cursor-pointer flex items-center gap-1 flex-shrink-0"
+                      >
+                        <Sparkles size={12} />
+                        <span>Generer manglende</span>
+                      </button>
+                    </div>
+                  );
+                })()}
+
                 {/* Upload tile */}
                 <label className="flex flex-col items-center justify-center p-1.5 rounded-xl border-2 border-dashed border-slate-300 hover:border-slate-900 bg-white hover:bg-amber-50 cursor-pointer transition-all group h-22">
                   <div className="w-7 h-7 rounded-lg bg-amber-100 group-hover:bg-amber-400 flex items-center justify-center text-slate-900 transition-colors mb-1">
@@ -1407,6 +1432,12 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
           setCropImageSource(null);
         }}
         onSave={handleCropSave}
+      />
+
+      <SceneGenerationModal
+        isOpen={isSceneGenOpen}
+        persona={activePersona}
+        onClose={() => setIsSceneGenOpen(false)}
       />
     </div>
   );

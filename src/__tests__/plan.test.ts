@@ -262,3 +262,73 @@ describe('Uafhængig skriftstørrelse (enkelte kort vs. global værktøjslinje)'
   });
 });
 
+describe('Korte scene-titler og automatisk standardscene-generator', () => {
+  it('genererer præcise, korte danske titler ud fra scenebeskrivelser', async () => {
+    const { getShortSceneTitle } = await import('../utils/sceneTitleHelper');
+
+    // Activity matching
+    expect(getShortSceneTitle('Figuren er i gang med at hænge vasketøj op i haven')).toBe('Vasketøj');
+    expect(getShortSceneTitle('Manden børster tænder foran spejlet')).toBe('Børste tænder');
+    expect(getShortSceneTitle('Drikke en varm kop kaffe om morgenen')).toBe('Kaffe & The');
+    expect(getShortSceneTitle('tage sin daglige medicin')).toBe('Medicin');
+    expect(getShortSceneTitle('i bad med sæbe')).toBe('Badetid');
+    expect(getShortSceneTitle('spise lækker aftensmad')).toBe('Aftensmad');
+    expect(getShortSceneTitle('ligge i sengen og sove godnat')).toBe('Sengetid');
+    expect(getShortSceneTitle('gå en frisk gåtur i skoven')).toBe('Gåtur');
+
+    // Strips narrative prefixes and cuts cleanly on word boundaries
+    const custom = getShortSceneTitle('Figuren bygger et kæmpe tårn af store klodser i stuen');
+    expect(custom).not.toContain('Figuren');
+    expect(custom.length).toBeLessThanOrEqual(25);
+    expect(custom.endsWith(' ')).toBe(false);
+
+    // Fallbacks
+    expect(getShortSceneTitle('', 'Tegnetid')).toBe('Tegnetid');
+    expect(getShortSceneTitle('', 'Aktivitetsnavn')).toBe('Ny scene');
+  });
+
+  it('beregner manglende scener for nye figurer vs standard figurer', async () => {
+    const {
+      DEFAULT_SCENE_DEFINITIONS,
+      getMissingScenesForPersona,
+      getReadyScenesCount,
+      buildScenePromptForPersona,
+    } = await import('../services/characterSceneGenerator');
+
+    expect(DEFAULT_SCENE_DEFINITIONS.length).toBe(14);
+
+    // Standard man has all 14 scenes
+    const { DEFAULT_PERSONAS } = await import('../services/personas');
+    const defaultMan = DEFAULT_PERSONAS[0];
+    const manMissing = getMissingScenesForPersona(defaultMan);
+    expect(manMissing.length).toBe(0);
+    const manReady = getReadyScenesCount(defaultMan);
+    expect(manReady.ready).toBe(14);
+    expect(manReady.total).toBe(14);
+
+    // A brand new custom persona has 0 scenes ready and 14 missing
+    const newPersona = {
+      id: 'avatar_test_123',
+      name: 'Min testfigur',
+      shortCode: 'M.',
+      avatarUrl: 'data:image/png;base64,test',
+      description: 'glad person med briller',
+      activityScenes: {},
+    };
+    const missing = getMissingScenesForPersona(newPersona);
+    expect(missing.length).toBe(14);
+    const readyCount = getReadyScenesCount(newPersona);
+    expect(readyCount.ready).toBe(0);
+    expect(readyCount.total).toBe(14);
+
+    // Test prompt construction for a scene
+    const laundryDef = DEFAULT_SCENE_DEFINITIONS.find((d) => d.key === 'vaesketoeg')!;
+    const prompt = buildScenePromptForPersona(newPersona, laundryDef);
+    expect(prompt).toContain('Clean 2D cartoon pictogram vector illustration');
+    expect(prompt).toContain('Min testfigur');
+    expect(prompt).toContain('laundry');
+    expect(prompt).toContain('isolated on pure solid white background');
+  });
+});
+
+

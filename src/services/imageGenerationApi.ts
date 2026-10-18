@@ -161,9 +161,9 @@ export async function generateSceneImage(
 }
 
 /**
- * Removes solid background from an image client-side using flood-fill.
- * Turns the solid border/background into 100% transparent alpha.
- * Returns a transparent PNG Data URL.
+ * Removes solid background from an image client-side.
+ * Uses adaptive border sampling, flood fill with luminance/saturation detection,
+ * and global near-white cleanup to guarantee clean transparent PNGs even with JPEG artifacts.
  */
 export async function removeImageBackground(imageDataUrl: string): Promise<string> {
   return new Promise((resolve) => {
@@ -172,8 +172,10 @@ export async function removeImageBackground(imageDataUrl: string): Promise<strin
     img.onload = () => {
       try {
         const canvas = document.createElement('canvas');
-        canvas.width = img.width;
-        canvas.height = img.height;
+        const w = img.naturalWidth || img.width;
+        const h = img.naturalHeight || img.height;
+        canvas.width = w;
+        canvas.height = h;
         const ctx = canvas.getContext('2d');
         if (!ctx) {
           resolve(imageDataUrl);
@@ -181,36 +183,56 @@ export async function removeImageBackground(imageDataUrl: string): Promise<strin
         }
 
         ctx.drawImage(img, 0, 0);
-        const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const imgData = ctx.getImageData(0, 0, w, h);
         const data = imgData.data;
-        const w = canvas.width;
-        const h = canvas.height;
 
-        // Sample background reference from corners
-        const samplePoints = [
-          [0, 0],
-          [w - 1, 0],
-          [0, h - 1],
-          [w - 1, h - 1],
-          [Math.floor(w / 2), 0],
-        ];
+        // 1. Sample border pixels along all 4 edges to determine background color
+        const sampleR: number[] = [];
+        const sampleG: number[] = [];
+        const sampleB: number[] = [];
 
-        let bgR = 0, bgG = 0, bgB = 0;
-        for (const [cx, cy] of samplePoints) {
-          const idx = (cy * w + cx) * 4;
-          bgR += data[idx];
-          bgG += data[idx + 1];
-          bgB += data[idx + 2];
+        const stepX = Math.max(1, Math.floor(w / 40));
+        const stepY = Math.max(1, Math.floor(h / 40));
+
+        for (let x = 0; x < w; x += stepX) {
+          const topIdx = (0 * w + x) * 4;
+          sampleR.push(data[topIdx]);
+          sampleG.push(data[topIdx + 1]);
+          sampleB.push(data[topIdx + 2]);
+
+          const btmIdx = ((h - 1) * w + x) * 4;
+          sampleR.push(data[btmIdx]);
+          sampleG.push(data[btmIdx + 1]);
+          sampleB.push(data[btmIdx + 2]);
         }
-        bgR = Math.round(bgR / samplePoints.length);
-        bgG = Math.round(bgG / samplePoints.length);
-        bgB = Math.round(bgB / samplePoints.length);
 
-        // Flood fill from outer boundaries
-        const threshold = 48;
+        for (let y = 0; y < h; y += stepY) {
+          const lftIdx = (y * w + 0) * 4;
+          sampleR.push(data[lftIdx]);
+          sampleG.push(data[lftIdx + 1]);
+          sampleB.push(data[lftIdx + 2]);
+
+          const rgtIdx = (y * w + (w - 1)) * 4;
+          sampleR.push(data[rgtIdx]);
+          sampleG.push(data[rgtIdx + 1]);
+          sampleB.push(data[rgtIdx + 2]);
+        }
+
+        const getMedian = (arr: number[]) => {
+          const sorted = [...arr].sort((a, b) => a - b);
+          return sorted[Math.floor(sorted.length / 2)] ?? 255;
+        };
+
+        const bgR = getMedian(sampleR);
+        const bgG = getMedian(sampleG);
+        const bgB = getMedian(sampleB);
+
+        // 2. Flood fill from outer boundaries
         const visited = new Uint8Array(w * h);
+        const isBg = new Uint8Array(w * h);
         const queue: number[] = [];
 
+        // Push border pixels
         for (let x = 0; x < w; x++) {
           queue.push(0 * w + x);
           queue.push((h - 1) * w + x);
@@ -218,10 +240,14 @@ export async function removeImageBackground(imageDataUrl: string): Promise<strin
           visited[(h - 1) * w + x] = 1;
         }
         for (let y = 0; y < h; y++) {
-          queue.push(y * w + 0);
-          queue.push(y * w + (w - 1));
-          visited[y * w + 0] = 1;
-          visited[y * w + (w - 1)] = 1;
+          if (!visited[y * w + 0]) {
+            queue.push(y * w + 0);
+            visited[y * w + 0] = 1;
+          }
+          if (!visited[y * w + (w - 1)]) {
+            queue.push(y * w + (w - 1));
+            visited[y * w + (w - 1)] = 1;
+          }
         }
 
         let head = 0;
@@ -236,22 +262,73 @@ export async function removeImageBackground(imageDataUrl: string): Promise<strin
           const b = data[idx + 2];
 
           const dist = Math.sqrt((r - bgR) ** 2 + (g - bgG) ** 2 + (b - bgB) ** 2);
-          if (dist <= threshold) {
-            data[idx + 3] = 0; // Transparent
+          const maxVal = Math.max(r, g, b);
+          const minVal = Math.min(r, g, b);
+          const lum = (maxVal + minVal) / 2;
+          const sat = maxVal > 0 ? (maxVal - minVal) / maxVal : 0;
 
-            const neighbors = [
-              [px - 1, py],
-              [px + 1, py],
-              [px, py - 1],
-              [px, py + 1],
-            ];
+          // Background criterion:
+          // Color distance close to edge median (dist <= 75), OR light neutral (lum >= 220 && sat <= 0.16)
+          if (dist <= 75 || (lum >= 220 && sat <= 0.16)) {
+            isBg[pos] = 1;
 
-            for (const [nx, ny] of neighbors) {
-              if (nx >= 0 && nx < w && ny >= 0 && ny < h) {
-                const nPos = ny * w + nx;
-                if (!visited[nPos]) {
-                  visited[nPos] = 1;
-                  queue.push(nPos);
+            if (px > 0 && !visited[pos - 1]) {
+              visited[pos - 1] = 1;
+              queue.push(pos - 1);
+            }
+            if (px < w - 1 && !visited[pos + 1]) {
+              visited[pos + 1] = 1;
+              queue.push(pos + 1);
+            }
+            if (py > 0 && !visited[pos - w]) {
+              visited[pos - w] = 1;
+              queue.push(pos - w);
+            }
+            if (py < h - 1 && !visited[pos + w]) {
+              visited[pos + w] = 1;
+              queue.push(pos + w);
+            }
+          }
+        }
+
+        // 3. Global pass: remove any near-white enclosed background pockets (e.g. between arms/props)
+        for (let i = 0; i < w * h; i++) {
+          const idx = i * 4;
+          const r = data[idx];
+          const g = data[idx + 1];
+          const b = data[idx + 2];
+
+          const maxVal = Math.max(r, g, b);
+          const minVal = Math.min(r, g, b);
+          const lum = (maxVal + minVal) / 2;
+          const sat = maxVal > 0 ? (maxVal - minVal) / maxVal : 0;
+
+          if (isBg[i] || (lum >= 244 && sat <= 0.06)) {
+            data[idx + 3] = 0; // 100% transparent
+          }
+        }
+
+        // 4. Edge anti-aliasing / smoothing: soften transition on boundary pixels
+        for (let y = 1; y < h - 1; y++) {
+          for (let x = 1; x < w - 1; x++) {
+            const pos = y * w + x;
+            const idx = pos * 4;
+            if (data[idx + 3] > 0) {
+              const hasTransNeighbor =
+                data[((y - 1) * w + x) * 4 + 3] === 0 ||
+                data[((y + 1) * w + x) * 4 + 3] === 0 ||
+                data[(y * w + (x - 1)) * 4 + 3] === 0 ||
+                data[(y * w + (x + 1)) * 4 + 3] === 0;
+
+              if (hasTransNeighbor) {
+                const r = data[idx];
+                const g = data[idx + 1];
+                const b = data[idx + 2];
+                const lum = (Math.max(r, g, b) + Math.min(r, g, b)) / 2;
+                if (lum > 190) {
+                  // Soften semi-bright halo pixels
+                  const alphaFactor = Math.max(0, 1 - (lum - 190) / 65);
+                  data[idx + 3] = Math.round(data[idx + 3] * alphaFactor);
                 }
               }
             }
@@ -333,16 +410,41 @@ export async function autoFitSceneToStandardFormat(
         const imgData = tempCtx.getImageData(0, 0, srcW, srcH);
         const data = imgData.data;
 
+        // Check if image already has transparent pixels
+        let transparentPixelCount = 0;
+        for (let y = 0; y < srcH; y++) {
+          for (let x = 0; x < srcW; x++) {
+            const idx = (y * srcW + x) * 4;
+            if (data[idx + 3] <= 20) {
+              transparentPixelCount++;
+            }
+          }
+        }
+
+        // If less than 2% of pixels are transparent, automatically remove background first!
+        if (transparentPixelCount < (srcW * srcH) * 0.02) {
+          removeImageBackground(imageDataUrl)
+            .then((transparentUrl) => {
+              if (transparentUrl !== imageDataUrl) {
+                autoFitSceneToStandardFormat(transparentUrl, targetWidth, targetHeight).then(resolve);
+                return;
+              }
+              resolve(imageDataUrl);
+            })
+            .catch(() => resolve(imageDataUrl));
+          return;
+        }
+
         let minX = srcW;
         let minY = srcH;
         let maxX = -1;
         let maxY = -1;
 
-        // Scan pixels for non-transparent content (alpha > 15)
+        // Scan pixels for non-transparent content (alpha > 20)
         for (let y = 0; y < srcH; y++) {
           for (let x = 0; x < srcW; x++) {
             const idx = (y * srcW + x) * 4;
-            if (data[idx + 3] > 15) {
+            if (data[idx + 3] > 20) {
               if (x < minX) minX = x;
               if (x > maxX) maxX = x;
               if (y < minY) minY = y;
@@ -351,7 +453,7 @@ export async function autoFitSceneToStandardFormat(
           }
         }
 
-        // If no transparent bounds detected (e.g. solid opaque image), use whole image
+        // If no transparent bounds detected, use whole image
         if (maxX < minX || maxY < minY) {
           minX = 0;
           minY = 0;
