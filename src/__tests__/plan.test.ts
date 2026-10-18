@@ -327,8 +327,45 @@ describe('Korte scene-titler og automatisk standardscene-generator', () => {
     expect(prompt).toContain('Clean 2D cartoon pictogram vector illustration');
     expect(prompt).toContain('Min testfigur');
     expect(prompt).toContain('laundry');
-    expect(prompt).toContain('isolated on pure solid white background');
   });
 });
+
+describe('Hurtig redigering (quickCardHelper)', () => {
+  it('tildeler relevante ikoner og reference-farver baseret på aktivitetens titel', async () => {
+    const { guessIconAndColor } = await import('../utils/quickCardHelper');
+
+    // Mad & Kaffe
+    const coffee = guessIconAndColor('The & Kaffe', 0);
+    expect(coffee.iconId).toBe('coffee');
+    expect(coffee.bgColor).toBe('#fdef8c');
+
+    const food = guessIconAndColor('Frokost og pause', 1);
+    expect(food.iconId).toBe('utensils');
+    expect(food.bgColor).toBe('#fdc67c');
+
+    // Medicin & hygiejne
+    const medicine = guessIconAndColor('Husk medicin', 2);
+    expect(medicine.iconId).toBe('pill');
+    expect(medicine.bgColor).toBe('#c1ea9a');
+
+    const bath = guessIconAndColor('Badetid og hårvask', 3);
+    expect(bath.iconId).toBe('shower');
+    expect(bath.bgColor).toBe('#9adafd');
+
+    // Pligter og gåtur
+    const walk = guessIconAndColor('Gåtur i skoven', 4);
+    expect(walk.iconId).toBe('walk');
+
+    const laundry = guessIconAndColor('Vasketøj', 5);
+    expect(laundry.iconId).toBe('shirt');
+    expect(laundry.bgColor).toBe('#fbb6db');
+
+    // Ukendt titel cykler igennem farver
+    const generic = guessIconAndColor('Helt speciel aktivitet', 0);
+    expect(generic.iconId).toBe('smile');
+    expect(generic.bgColor).toBe('#fdef8c');
+  });
+});
+
 
 

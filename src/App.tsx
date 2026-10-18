@@ -22,6 +22,7 @@ import { PersonaSelectorModal } from './components/PersonaSelectorModal';
 import { SceneGenerationModal } from './components/SceneGenerationModal';
 import { getPersona } from './services/personas';
 import type { Persona } from './types';
+import { guessIconAndColor } from './utils/quickCardHelper';
 
 export const App: React.FC = () => {
   // Load plans from sessionStorage on initial render
@@ -242,6 +243,194 @@ export const App: React.FC = () => {
             ...targetDay,
             headerSubtitle: sourceDay.headerSubtitle || targetDay.headerSubtitle,
             pictograms: clonedPics,
+          },
+        },
+      };
+    });
+  };
+
+  // Quick edit handlers for WeekView
+  const handleQuickAddCard = (dayId: DayOfWeek, title: string) => {
+    const cleanTitle = title.trim();
+    if (!cleanTitle) return;
+
+    updateCurrentPlan((prev) => {
+      const daySchedule = prev.days[dayId];
+      const currentCount = daySchedule?.pictograms.length || 0;
+      const { iconId, bgColor } = guessIconAndColor(cleanTitle, currentCount);
+
+      const newPic: Pictogram = {
+        id: generateUniqueId('pic_quick'),
+        title: cleanTitle,
+        subtitle: '',
+        iconId,
+        bgColor,
+        fontSize: 'base',
+      };
+
+      return {
+        ...prev,
+        days: {
+          ...prev.days,
+          [dayId]: {
+            ...daySchedule,
+            pictograms: [...(daySchedule?.pictograms || []), newPic],
+          },
+        },
+      };
+    });
+  };
+
+  const handleQuickUpdateCardTitle = (dayId: DayOfWeek, cardId: string, newTitle: string) => {
+    const cleanTitle = newTitle.trim();
+    if (!cleanTitle) return;
+
+    updateCurrentPlan((prev) => {
+      const daySchedule = prev.days[dayId];
+      if (!daySchedule) return prev;
+      return {
+        ...prev,
+        days: {
+          ...prev.days,
+          [dayId]: {
+            ...daySchedule,
+            pictograms: daySchedule.pictograms.map((p) =>
+              p.id === cardId ? { ...p, title: cleanTitle } : p
+            ),
+          },
+        },
+      };
+    });
+  };
+
+  const handleQuickDeleteCard = (dayId: DayOfWeek, cardId: string) => {
+    updateCurrentPlan((prev) => {
+      const daySchedule = prev.days[dayId];
+      if (!daySchedule) return prev;
+      return {
+        ...prev,
+        days: {
+          ...prev.days,
+          [dayId]: {
+            ...daySchedule,
+            pictograms: daySchedule.pictograms.filter((p) => p.id !== cardId),
+          },
+        },
+      };
+    });
+  };
+
+  const handleQuickDuplicateCard = (dayId: DayOfWeek, cardId: string) => {
+    updateCurrentPlan((prev) => {
+      const daySchedule = prev.days[dayId];
+      if (!daySchedule) return prev;
+      const idx = daySchedule.pictograms.findIndex((p) => p.id === cardId);
+      if (idx === -1) return prev;
+
+      const original = daySchedule.pictograms[idx];
+      const cloned: Pictogram = {
+        ...original,
+        id: generateUniqueId('pic_copy'),
+      };
+
+      const newPics = [...daySchedule.pictograms];
+      newPics.splice(idx + 1, 0, cloned);
+
+      return {
+        ...prev,
+        days: {
+          ...prev.days,
+          [dayId]: {
+            ...daySchedule,
+            pictograms: newPics,
+          },
+        },
+      };
+    });
+  };
+
+  const handleQuickMoveCard = (dayId: DayOfWeek, cardId: string, direction: 'up' | 'down') => {
+    updateCurrentPlan((prev) => {
+      const daySchedule = prev.days[dayId];
+      if (!daySchedule) return prev;
+      const idx = daySchedule.pictograms.findIndex((p) => p.id === cardId);
+      if (idx === -1) return prev;
+
+      const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
+      if (targetIdx < 0 || targetIdx >= daySchedule.pictograms.length) return prev;
+
+      const newPics = [...daySchedule.pictograms];
+      const [moved] = newPics.splice(idx, 1);
+      newPics.splice(targetIdx, 0, moved);
+
+      return {
+        ...prev,
+        days: {
+          ...prev.days,
+          [dayId]: {
+            ...daySchedule,
+            pictograms: newPics,
+          },
+        },
+      };
+    });
+  };
+
+  const handleQuickMoveCardBetweenDays = (
+    fromDayId: DayOfWeek,
+    toDayId: DayOfWeek,
+    cardId: string,
+    targetIndex?: number
+  ) => {
+    updateCurrentPlan((prev) => {
+      const sourceSchedule = prev.days[fromDayId];
+      const targetSchedule = prev.days[toDayId];
+      if (!sourceSchedule || !targetSchedule) return prev;
+
+      const card = sourceSchedule.pictograms.find((p) => p.id === cardId);
+      if (!card) return prev;
+
+      const newSourcePics = sourceSchedule.pictograms.filter((p) => p.id !== cardId);
+      const newTargetPics = [...targetSchedule.pictograms];
+
+      if (
+        typeof targetIndex === 'number' &&
+        targetIndex >= 0 &&
+        targetIndex <= newTargetPics.length
+      ) {
+        newTargetPics.splice(targetIndex, 0, card);
+      } else {
+        newTargetPics.push(card);
+      }
+
+      return {
+        ...prev,
+        days: {
+          ...prev.days,
+          [fromDayId]: {
+            ...sourceSchedule,
+            pictograms: newSourcePics,
+          },
+          [toDayId]: {
+            ...targetSchedule,
+            pictograms: newTargetPics,
+          },
+        },
+      };
+    });
+  };
+
+  const handleQuickReorderCards = (dayId: DayOfWeek, newCards: Pictogram[]) => {
+    updateCurrentPlan((prev) => {
+      const daySchedule = prev.days[dayId];
+      if (!daySchedule) return prev;
+      return {
+        ...prev,
+        days: {
+          ...prev.days,
+          [dayId]: {
+            ...daySchedule,
+            pictograms: newCards,
           },
         },
       };
@@ -473,6 +662,13 @@ export const App: React.FC = () => {
             selectedDayId={selectedDayId === 'week' ? 'mandag' : selectedDayId}
             onSelectDay={(dayId) => setSelectedDayId(dayId)}
             onAddPictogramToDay={(dayId) => handleOpenAddPictogram(dayId)}
+            onQuickAddCard={handleQuickAddCard}
+            onQuickUpdateCardTitle={handleQuickUpdateCardTitle}
+            onQuickDeleteCard={handleQuickDeleteCard}
+            onQuickDuplicateCard={handleQuickDuplicateCard}
+            onQuickMoveCard={handleQuickMoveCard}
+            onQuickMoveCardBetweenDays={handleQuickMoveCardBetweenDays}
+            onQuickReorderCards={handleQuickReorderCards}
           />
         ) : (
           <DailyBoard
