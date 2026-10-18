@@ -30,5 +30,9 @@ export const CONFIGURED_CLOUDFLARE_ACCOUNTS: ConfiguredCloudflareAccount[] = [
   {
     "name": "Primær konto (Konto 1)",
     "url": "https://free-image-generation-api.elomarjc.workers.dev"
+  },
+  {
+    "name": "Konto 2",
+    "url": "https://piktogram.kygoanderson.workers.dev"
   }
 ];
