@@ -195,67 +195,52 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto">
-      <div className="bg-white rounded-3xl border-3 border-slate-900 shadow-2xl max-w-3xl w-full max-h-[92vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto animate-in fade-in">
+      <div className="bg-white rounded-3xl border-4 border-slate-900 shadow-2xl max-w-2xl w-full max-h-[92vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-150">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b-2 border-slate-900 bg-amber-400">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-white border-2 border-slate-900 flex items-center justify-center">
+        <div className="flex items-center justify-between px-5 py-3.5 border-b-2 border-slate-900 bg-amber-400">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-xl bg-white border-2 border-slate-900 flex items-center justify-center shadow-xs">
               <Sparkles size={18} className="text-slate-900" />
             </div>
-            <div>
-              <h2 className="text-xl font-black text-slate-900 tracking-tight leading-none">
-                Rediger Piktogram
-              </h2>
-              <p className="text-xs font-bold text-slate-800 mt-0.5">
-                Tilpas aktivitet, skriftstørrelse og billede
-              </p>
-            </div>
+            <h2 className="text-lg font-black text-slate-900 tracking-tight leading-none">
+              Rediger piktogram
+            </h2>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-xl hover:bg-black/10 text-slate-900 transition-colors"
+            className="p-1 rounded-xl hover:bg-black/10 text-slate-900 transition-colors cursor-pointer"
           >
             <X size={20} />
           </button>
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSave} className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-5">
-          {/* Live Preview section showing exact print / board appearance */}
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-black uppercase tracking-wider text-slate-700">
-                Forhåndsvisning (vises præcis sådan på tavlen):
-              </label>
-              <span className="text-[11px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-300">
-                Live forhåndsvisning
-              </span>
-            </div>
-            <div className="p-3 sm:p-4 bg-slate-100/90 rounded-2xl border-2 border-slate-300 flex justify-center items-center overflow-x-auto">
-              <div className="w-full max-w-md">
-                <PictogramCard
-                  pictogram={previewPic}
-                  persona={activePersona}
-                  index={0}
-                  totalCount={1}
-                  viewMode="strip"
-                  onEdit={() => {}}
-                  onDuplicate={() => {}}
-                  onDelete={() => {}}
-                  onMoveUp={() => {}}
-                  onMoveDown={() => {}}
-                  onMoveToDay={() => {}}
-                />
-              </div>
+        <form onSubmit={handleSave} className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-3.5">
+          {/* Live Preview card */}
+          <div className="p-3 bg-slate-100 rounded-2xl border-2 border-slate-200 flex justify-center items-center">
+            <div className="w-full max-w-md">
+              <PictogramCard
+                pictogram={previewPic}
+                persona={activePersona}
+                index={0}
+                totalCount={1}
+                viewMode="strip"
+                onEdit={() => {}}
+                onDuplicate={() => {}}
+                onDelete={() => {}}
+                onMoveUp={() => {}}
+                onMoveDown={() => {}}
+                onMoveToDay={() => {}}
+              />
             </div>
           </div>
 
-          {/* Form fields */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="space-y-1 sm:col-span-2">
-              <label className="text-sm font-bold text-slate-800">
+          {/* Form fields: Aktivitet & Tidspunkt */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+            <div className="sm:col-span-2 space-y-1">
+              <label className="text-xs font-bold text-slate-700 block">
                 Aktivitetens navn *
               </label>
               <input
@@ -264,88 +249,74 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="F.eks. Spisetid, Morgenmad, Medicin"
-                className="w-full px-3.5 py-2.5 rounded-xl border-2 border-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-400 font-bold text-slate-900 font-rounded"
+                className="w-full px-3 py-2 rounded-xl border-2 border-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-400 font-bold text-sm text-slate-900"
               />
             </div>
 
             <div className="space-y-1">
-              <label className="text-sm font-bold text-slate-800">
-                Klokkeslæt (valgfrit)
+              <label className="text-xs font-bold text-slate-700 block">
+                Klokkeslæt
               </label>
               <input
                 type="text"
                 value={time}
                 onChange={(e) => setTime(e.target.value)}
                 placeholder="F.eks. 08:00"
-                className="w-full px-3.5 py-2.5 rounded-xl border-2 border-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-400 font-medium text-slate-900"
+                className="w-full px-3 py-2 rounded-xl border-2 border-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-400 font-medium text-sm text-slate-900"
               />
             </div>
+          </div>
 
-            <div className="space-y-1.5 sm:col-span-3 bg-slate-50 border-2 border-slate-200 rounded-2xl p-3.5">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <div>
-                  <label className="text-xs font-black uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
-                    <Type size={15} className="text-amber-600" />
-                    Tekststørrelse (skriv et tal for præcis skriftstørrelse)
-                  </label>
-                  <p className="text-[11px] text-slate-500">
-                    Ingen begrænsning – juster tallet for at gøre skriften så stor eller lille som ønsket.
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-1 bg-white border-2 border-slate-900 rounded-xl px-2.5 py-1 shadow-2xs">
-                    <input
-                      type="number"
-                      min={6}
-                      max={99}
-                      value={fontSizeNum}
-                      onChange={(e) => {
-                        const val = parseInt(e.target.value, 10);
-                        if (!isNaN(val)) setFontSizeNum(Math.max(1, val));
-                      }}
-                      className="w-14 text-center font-black text-sm text-slate-900 outline-none"
-                    />
-                    <span className="text-xs font-bold text-slate-500">px</span>
-                  </div>
-
-                  {/* Quick +/- buttons */}
-                  <div className="flex items-center gap-1">
-                    <button
-                      type="button"
-                      onClick={() => setFontSizeNum((prev) => Math.max(8, prev - 2))}
-                      className="w-8 h-8 rounded-lg bg-white hover:bg-slate-100 border border-slate-300 font-black text-xs text-slate-700 transition-colors"
-                      title="Mindre tekst"
-                    >
-                      A-
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setFontSizeNum((prev) => prev + 2)}
-                      className="w-8 h-8 rounded-lg bg-white hover:bg-slate-100 border border-slate-300 font-black text-xs text-slate-700 transition-colors"
-                      title="Større tekst"
-                    >
-                      A+
-                    </button>
-                  </div>
+          {/* Form row: Tekststørrelse & Farve side-by-side */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            {/* Tekststørrelse */}
+            <div className="p-2.5 bg-slate-50 border-2 border-slate-200 rounded-2xl space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                  <Type size={14} className="text-amber-600" />
+                  Tekststørrelse
+                </span>
+                <div className="flex items-center gap-1 bg-white border border-slate-300 rounded-lg px-2 py-0.5">
+                  <button
+                    type="button"
+                    onClick={() => setFontSizeNum((prev) => Math.max(8, prev - 2))}
+                    className="w-4 h-5 rounded hover:bg-slate-100 font-bold text-xs text-slate-600 cursor-pointer"
+                  >
+                    -
+                  </button>
+                  <input
+                    type="number"
+                    min={6}
+                    max={99}
+                    value={fontSizeNum}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value, 10);
+                      if (!isNaN(val)) setFontSizeNum(Math.max(1, val));
+                    }}
+                    className="w-8 text-center font-bold text-xs text-slate-900 outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setFontSizeNum((prev) => prev + 2)}
+                    className="w-4 h-5 rounded hover:bg-slate-100 font-bold text-xs text-slate-600 cursor-pointer"
+                  >
+                    +
+                  </button>
                 </div>
               </div>
 
-              {/* Quick preset chips */}
-              <div className="flex items-center gap-1.5 pt-1">
-                <span className="text-[11px] font-bold text-slate-500">Genveje:</span>
+              <div className="flex items-center gap-1">
                 {[
-                  { label: 'Lille (14)', size: 14 },
-                  { label: 'Normal (18)', size: 18 },
-                  { label: 'Stor (22)', size: 22 },
-                  { label: 'Ekstra stor (28)', size: 28 },
-                  { label: 'Kæmpe (36)', size: 36 },
+                  { label: 'S (14)', size: 14 },
+                  { label: 'M (18)', size: 18 },
+                  { label: 'L (22)', size: 22 },
+                  { label: 'XL (28)', size: 28 },
                 ].map((chip) => (
                   <button
                     key={chip.size}
                     type="button"
                     onClick={() => setFontSizeNum(chip.size)}
-                    className={`px-2 py-0.5 rounded-md text-[11px] font-bold transition-colors ${
+                    className={`flex-1 py-1 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
                       fontSizeNum === chip.size
                         ? 'bg-slate-900 text-white shadow-2xs'
                         : 'bg-white text-slate-700 hover:bg-slate-200 border border-slate-300'
@@ -356,38 +327,38 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
                 ))}
               </div>
             </div>
-          </div>
 
-          {/* Color palette selector */}
-          <div className="space-y-2">
-            <label className="text-sm font-bold text-slate-800">
-              Kortets baggrundsfarve (reference-pasteller)
-            </label>
-            <div className="flex flex-wrap gap-2.5">
-              {REFERENCE_COLOR_PRESETS.map((preset) => (
-                <button
-                  key={preset.id}
-                  type="button"
-                  onClick={() => setBgColor(preset.bg)}
-                  style={{ backgroundColor: preset.bg }}
-                  className={`w-9 h-9 rounded-xl border-2 border-slate-900 flex items-center justify-center transition-transform hover:scale-110 shadow-xs ${
-                    bgColor.toLowerCase() === preset.bg.toLowerCase() ? 'ring-3 ring-amber-500 scale-105' : ''
-                  }`}
-                  title={preset.name}
-                >
-                  {bgColor.toLowerCase() === preset.bg.toLowerCase() && <Check size={16} className="text-slate-900 stroke-[3]" />}
-                </button>
-              ))}
+            {/* Baggrundsfarve */}
+            <div className="p-2.5 bg-slate-50 border-2 border-slate-200 rounded-2xl space-y-1.5">
+              <span className="text-xs font-bold text-slate-700 block">Farve</span>
+              <div className="flex flex-wrap gap-1.5">
+                {REFERENCE_COLOR_PRESETS.map((preset) => (
+                  <button
+                    key={preset.id}
+                    type="button"
+                    onClick={() => setBgColor(preset.bg)}
+                    style={{ backgroundColor: preset.bg }}
+                    className={`w-7 h-7 rounded-xl border-2 border-slate-900 flex items-center justify-center transition-transform hover:scale-110 cursor-pointer ${
+                      bgColor.toLowerCase() === preset.bg.toLowerCase() ? 'ring-3 ring-amber-400 scale-105' : ''
+                    }`}
+                    title={preset.name}
+                  >
+                    {bgColor.toLowerCase() === preset.bg.toLowerCase() && (
+                      <Check size={13} className="text-slate-900 stroke-[3]" />
+                    )}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
           {/* Visual asset picker tabs */}
-          <div className="space-y-3 pt-2">
+          <div className="space-y-2.5 pt-1">
             <div className="flex border-b-2 border-slate-200">
               <button
                 type="button"
                 onClick={() => setActiveTab('illustrations')}
-                className={`py-2 px-4 font-bold text-sm border-b-2 -mb-[2px] transition-colors ${
+                className={`py-1.5 px-3.5 font-bold text-xs border-b-2 -mb-[2px] transition-colors cursor-pointer ${
                   activeTab === 'illustrations'
                     ? 'border-slate-900 text-slate-900'
                     : 'border-transparent text-slate-500 hover:text-slate-800'
@@ -398,125 +369,104 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
               <button
                 type="button"
                 onClick={() => setActiveTab('upload')}
-                className={`py-2 px-4 font-bold text-sm border-b-2 -mb-[2px] transition-colors ${
+                className={`py-1.5 px-3.5 font-bold text-xs border-b-2 -mb-[2px] transition-colors cursor-pointer ${
                   activeTab === 'upload'
                     ? 'border-slate-900 text-slate-900'
                     : 'border-transparent text-slate-500 hover:text-slate-800'
                 }`}
               >
-                Upload eget billede
+                Upload / AI-scene
               </button>
             </div>
 
             {/* TAB 1: Persona Activity Scenes */}
             {activeTab === 'illustrations' && (
-              <div className="space-y-3">
-                <p className="text-xs text-slate-600">
-                  Vælg en aktivitet for figuren. Figuren i venstre side opdateres automatisk:
-                </p>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-56 overflow-y-auto p-1">
-                  {Object.entries(activePersona.activityScenes).map(([key, imgUrl]) => {
-                    const isSelected = !customImageUrl && illustrationId === key;
-                    const label = SCENE_DESCRIPTIONS[key] || key;
-                    return (
-                      <button
-                        key={key}
-                        type="button"
-                        onClick={() => {
-                          setIllustrationId(key);
-                          setSceneImageUrl('');
-                          setCustomImageUrl('');
-                        }}
-                        className={`flex flex-col items-center justify-between p-2 rounded-2xl border-2 transition-all overflow-hidden ${
-                          isSelected
-                            ? 'bg-amber-100 border-slate-900 ring-2 ring-amber-400 shadow-sm'
-                            : 'bg-slate-50 border-slate-300 hover:border-slate-500'
-                        }`}
-                      >
-                        <div className="w-full h-16 rounded-xl border border-slate-900/30 overflow-hidden bg-white mb-1.5">
-                          <img src={imgUrl} alt={label} className="w-full h-full object-cover object-center" />
-                        </div>
-                        <span className="text-[11px] font-bold text-slate-900 text-center line-clamp-1">
-                          {label}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 max-h-48 overflow-y-auto p-1">
+                {Object.entries(activePersona.activityScenes).map(([key, imgUrl]) => {
+                  const isSelected = !customImageUrl && illustrationId === key;
+                  const label = SCENE_DESCRIPTIONS[key] || key;
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => {
+                        setIllustrationId(key);
+                        setSceneImageUrl('');
+                        setCustomImageUrl('');
+                      }}
+                      className={`flex flex-col items-center justify-between p-1.5 rounded-xl border-2 transition-all cursor-pointer ${
+                        isSelected
+                          ? 'bg-amber-100 border-slate-900 ring-2 ring-amber-400 shadow-xs'
+                          : 'bg-slate-50 border-slate-300 hover:border-slate-500 hover:bg-white'
+                      }`}
+                    >
+                      <div className="w-full h-14 rounded-lg border border-slate-900/30 overflow-hidden bg-white mb-1">
+                        <img src={imgUrl} alt={label} className="w-full h-full object-cover object-center" />
+                      </div>
+                      <span className="text-[11px] font-bold text-slate-900 text-center line-clamp-1">
+                        {label}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             )}
 
-
-            {/* TAB 2: Upload Custom Image & Inline Idiot-Proof Scene Guide */}
+            {/* TAB 2: Upload or AI Generate */}
             {activeTab === 'upload' && (
-              <div className="space-y-4 p-2">
-                {/* 0. Direkte 1-Klik AI Billedgenerator */}
-                <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-3 border-amber-400 rounded-2xl p-4 sm:p-5 space-y-3.5 shadow-xs">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-10 h-10 rounded-xl bg-amber-400 border-2 border-slate-900 flex items-center justify-center shrink-0 shadow-xs">
-                      <Sparkles size={22} className="text-slate-900" />
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-black text-slate-900">
-                        Skab nyt billede med 1 klik
-                      </h4>
-                      <p className="text-xs font-semibold text-slate-700">
-                        Vælg en aktivitet nedenfor og tryk på knappen. Så tegnes figuren automatisk i scenen.
-                      </p>
-                    </div>
+              <div className="space-y-3 p-1">
+                {/* AI Generator */}
+                <div className="bg-amber-50/70 border-2 border-amber-300 rounded-2xl p-3.5 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black text-slate-900 flex items-center gap-1.5">
+                      <Sparkles size={15} className="text-amber-600" />
+                      Skab ny scene med figuren (1-klik)
+                    </span>
+                    <span className="text-[11px] font-bold text-amber-900 bg-amber-200/80 px-2 py-0.5 rounded-full border border-amber-300 flex items-center gap-1">
+                      <img src={activePersona.avatarUrl} alt="" className="w-3.5 h-3.5 rounded-full object-cover" />
+                      <span>Valgt figur</span>
+                    </span>
                   </div>
 
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-black text-slate-800">
-                        Vælg hurtig scene eller skriv hvad figuren skal lave:
-                      </span>
-                      <span className="text-[11px] font-bold text-amber-900 bg-amber-200/80 px-2 py-0.5 rounded-full border border-amber-300 flex items-center gap-1.5">
-                        <img src={activePersona.avatarUrl} alt="" className="w-3.5 h-3.5 rounded-full object-cover" />
-                        <span>Valgt figur</span>
-                      </span>
-                    </div>
-
-                    <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto p-1 bg-white/70 rounded-xl border border-amber-200">
-                      {PRESET_SCENE_PROMPTS.slice(0, 10).map((preset) => (
-                        <button
-                          key={preset.id}
-                          type="button"
-                          onClick={() => {
-                            setSelectedScenePromptId(preset.id);
-                            setInlineSceneText(preset.prompt);
-                          }}
-                          className={`px-2.5 py-1 rounded-lg text-xs font-bold border transition-colors ${
-                            selectedScenePromptId === preset.id
-                              ? 'bg-amber-400 border-slate-900 text-slate-900 shadow-2xs'
-                              : 'bg-white border-slate-300 hover:border-slate-500 text-slate-700'
-                          }`}
-                        >
-                          {preset.title}
-                        </button>
-                      ))}
-                    </div>
-
-                    <textarea
-                      value={inlineSceneText}
-                      onChange={(e) => setInlineSceneText(e.target.value)}
-                      rows={2}
-                      placeholder="Beskriv scenen her, f.eks.: vasker tøj, drikker en kop kaffe, støvsuger stuen..."
-                      className="w-full px-3 py-2 text-xs font-bold rounded-xl border-2 border-slate-300 focus:border-slate-900 bg-white resize-none shadow-inner"
-                    />
+                  <div className="flex flex-wrap gap-1 max-h-20 overflow-y-auto p-1 bg-white rounded-xl border border-amber-200">
+                    {PRESET_SCENE_PROMPTS.slice(0, 8).map((preset) => (
+                      <button
+                        key={preset.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedScenePromptId(preset.id);
+                          setInlineSceneText(preset.prompt);
+                        }}
+                        className={`px-2 py-0.5 rounded-md text-[11px] font-bold border transition-colors cursor-pointer ${
+                          selectedScenePromptId === preset.id
+                            ? 'bg-amber-400 border-slate-900 text-slate-900'
+                            : 'bg-white border-slate-200 hover:border-slate-400 text-slate-700'
+                        }`}
+                      >
+                        {preset.title}
+                      </button>
+                    ))}
                   </div>
+
+                  <textarea
+                    value={inlineSceneText}
+                    onChange={(e) => setInlineSceneText(e.target.value)}
+                    rows={2}
+                    placeholder="Beskriv hvad figuren skal lave..."
+                    className="w-full px-3 py-1.5 text-xs font-bold rounded-xl border-2 border-slate-300 focus:border-slate-900 bg-white resize-none"
+                  />
 
                   {aiError && (
-                    <div className="p-2.5 rounded-xl bg-rose-50 border-2 border-rose-300 text-xs font-bold text-rose-800 flex items-center gap-2">
-                      <AlertCircle size={16} className="text-rose-700 shrink-0" />
+                    <div className="p-2 rounded-xl bg-rose-50 border border-rose-300 text-xs font-bold text-rose-800 flex items-center gap-2">
+                      <AlertCircle size={14} className="text-rose-700 shrink-0" />
                       <span>{aiError}</span>
                     </div>
                   )}
 
                   {aiSuccessMessage && (
-                    <div className="p-2.5 rounded-xl bg-emerald-50 border-2 border-emerald-300 text-xs font-bold text-emerald-800 flex items-center gap-1.5">
-                      <Check size={16} className="text-emerald-700 stroke-[3]" />
-                      {aiSuccessMessage}
+                    <div className="p-2 rounded-xl bg-emerald-50 border border-emerald-300 text-xs font-bold text-emerald-800 flex items-center gap-1.5">
+                      <Check size={14} className="text-emerald-700 stroke-[3]" />
+                      <span>{aiSuccessMessage}</span>
                     </div>
                   )}
 
@@ -524,80 +474,48 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
                     type="button"
                     disabled={isGeneratingAi}
                     onClick={handleGenerateWithAi}
-                    className="w-full py-3 bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white font-black text-sm rounded-xl border-2 border-slate-900 flex items-center justify-center gap-2 shadow-sm transition-all"
+                    className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white font-black text-xs rounded-xl border-2 border-slate-900 flex items-center justify-center gap-2 shadow-xs transition-all cursor-pointer"
                   >
                     {isGeneratingAi ? (
                       <>
-                        <Loader2 size={16} className="animate-spin text-amber-400" />
-                        Genererer AI piktogram-billede...
+                        <Loader2 size={15} className="animate-spin text-amber-400" />
+                        <span>Genererer scene med figuren...</span>
                       </>
                     ) : (
                       <>
-                        <Sparkles size={16} className="text-amber-400" />
-                        Generér nyt piktogram-billede direkte (1-klik)
+                        <Sparkles size={15} className="text-amber-400" />
+                        <span>Generér scene nu</span>
                       </>
                     )}
                   </button>
                 </div>
 
-                {/* Upload action card */}
-                <div className="bg-slate-50 border-2 border-slate-300 rounded-2xl p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h5 className="text-xs font-black text-slate-800 uppercase tracking-wider">
-                        Upload eget billede / foto
-                      </h5>
-                      <p className="text-xs text-slate-600 mt-0.5">
-                        Billedet gemmes lokalt og vises med det samme på dit piktogram.
-                      </p>
-                    </div>
+                {/* Upload own image */}
+                <div className="bg-slate-50 border-2 border-slate-200 rounded-2xl p-3 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <span className="text-xs font-bold text-slate-800 block">
+                      Har du dit eget billede?
+                    </span>
+                    <span className="text-[11px] text-slate-500">
+                      Vælg et billede fra computeren
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
                     {customImageUrl && (
                       <button
                         type="button"
                         onClick={() => setCustomImageUrl('')}
-                        className="inline-flex items-center gap-1 text-xs text-rose-600 font-bold hover:underline"
+                        className="p-1.5 rounded-xl border border-slate-300 hover:border-rose-400 text-rose-600 hover:bg-rose-50 text-xs font-bold transition-colors cursor-pointer"
+                        title="Fjern eget billede"
                       >
-                        <Trash2 size={13} />
-                        Fjern eget billede
+                        <Trash2 size={14} />
                       </button>
                     )}
-                  </div>
 
-                  {customImageUrl ? (
-                    <div className="flex items-center gap-4 p-3 bg-white border-2 border-emerald-400 rounded-xl shadow-xs">
-                      <div className="w-20 h-16 rounded-lg border border-slate-900/30 overflow-hidden bg-slate-100 flex items-center justify-center shrink-0">
-                        <img src={customImageUrl} alt="Forhåndsvisning" className="w-full h-full object-contain" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-black text-emerald-800 flex items-center gap-1.5">
-                          <Check size={15} className="text-emerald-600 stroke-[3]" />
-                          Billedet er uploadet og aktivt!
-                        </p>
-                        <p className="text-[11px] text-slate-500 mt-0.5">
-                          Se forhåndsvisningen øverst i vinduet for at se det på det færdige kort.
-                        </p>
-                      </div>
-                      <label className="px-3 py-1.5 rounded-lg border border-slate-300 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs cursor-pointer transition-colors shrink-0">
-                        Skift fil
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleImageUpload}
-                          className="hidden"
-                        />
-                      </label>
-                    </div>
-                  ) : (
-                    <label className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-slate-300 hover:border-slate-800 bg-white hover:bg-amber-50/50 rounded-2xl cursor-pointer transition-colors group">
-                      <div className="w-10 h-10 rounded-full bg-amber-100 group-hover:bg-amber-300 flex items-center justify-center text-slate-900 transition-colors mb-2">
-                        <Upload size={18} />
-                      </div>
-                      <span className="text-xs font-black text-slate-900">
-                        Klik her for at vælge dit genererede billede
-                      </span>
-                      <span className="text-[11px] text-slate-500 mt-0.5">
-                        Vælg din gemte PNG fra computeren
-                      </span>
+                    <label className="px-3 py-1.5 bg-amber-400 hover:bg-amber-500 text-slate-900 font-bold text-xs rounded-xl border-2 border-slate-900 cursor-pointer shadow-2xs transition-colors flex items-center gap-1.5">
+                      <Upload size={13} />
+                      <span>{customImageUrl ? 'Skift billede' : 'Vælg billede'}</span>
                       <input
                         type="file"
                         accept="image/*"
@@ -605,13 +523,13 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
                         className="hidden"
                       />
                     </label>
-                  )}
+                  </div>
                 </div>
               </div>
             )}
           </div>
 
-          {/* Discreet collapsible advanced settings for technical admins only */}
+          {/* Discreet collapsible advanced connection settings */}
           <details className="text-[11px] text-slate-400 group px-1">
             <summary className="cursor-pointer hover:text-slate-600 font-medium select-none list-none flex items-center gap-1.5 opacity-60 hover:opacity-100 transition-opacity">
               <Settings size={13} />
@@ -648,19 +566,19 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
           </details>
 
           {/* Modal Actions */}
-          <div className="flex items-center justify-end gap-3 pt-4 border-t-2 border-slate-200">
+          <div className="flex items-center justify-end gap-2.5 pt-3 border-t-2 border-slate-200">
             <button
               type="button"
               onClick={onClose}
-              className="px-5 py-2.5 rounded-xl border-2 border-slate-300 font-bold text-slate-700 hover:bg-slate-100 text-sm transition-colors"
+              className="px-4 py-2 rounded-xl border-2 border-slate-300 font-bold text-slate-700 hover:bg-slate-100 text-xs transition-colors cursor-pointer"
             >
               Annuller
             </button>
             <button
               type="submit"
-              className="px-6 py-2.5 rounded-xl border-2 border-slate-900 bg-amber-400 hover:bg-amber-500 font-black text-slate-900 text-sm shadow-sm hover:shadow transition-all flex items-center gap-2"
+              className="px-5 py-2 rounded-xl border-2 border-slate-900 bg-amber-400 hover:bg-amber-500 font-black text-slate-900 text-xs shadow-xs hover:shadow transition-all flex items-center gap-1.5 cursor-pointer"
             >
-              <Check size={18} className="stroke-[3]" />
+              <Check size={16} className="stroke-[3]" />
               Gem piktogram
             </button>
           </div>
