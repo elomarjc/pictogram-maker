@@ -14,14 +14,10 @@ export function buildDanishMasterPrompt(options: {
   personaName?: string;
   isWoman?: boolean;
 }): string {
-  const charSubject = options.isWoman
-    ? 'kvinden fra Referencebillede 1 (kvindelig figur med hestehale og turkis hættetrøje)'
-    : 'manden fra Referencebillede 1 (mandlig figur med kort mørkt hår / buzzcut og grå hættetrøje)';
-
   return `# Master Prompt — Piktogram Generator (Dansk)
 
 ## Referencebilleder der SKAL vedhæftes i ChatGPT / DALL-E:
-- **Billede 1 — Figur / Avatar (Ref 1):** Brug dette billede som den præcise figur-reference. Bevar personens udseende, ansigt, hudtone, frisure, ansigtstræk, tøj, kropsproportioner og genkendelige identitet nøjagtigt.
+- **Billede 1 — Figur / Avatar (Ref 1):** Brug dette billede som den præcise figur- og tøjreference. Alt vedrørende personens udseende, ansigt, hudtone, frisure, ansigtstræk og tøj skal aflæses 100% direkte fra Billede 1 og holdes fuldstændig konsistent.
 - **Billede 2 — Eksempel / Tegnestil (Ref 2):** Brug dette billede som den visuelle stilart-reference for tegneserie-illustrationen: linjetykkelse, farvemætning, cel-shading og venlig, pædagogisk piktogram-æstetik. Lav IKKE en hel tavle eller ramme, kun selve illustrationen.
 
 ## Scene der skal genereres:
@@ -30,14 +26,14 @@ ${options.sceneDescription.trim() || 'Personen udfører aktiviteten glad og natu
 ## Instruktioner til ChatGPT / DALL-E:
 Skab **én enkeltstående 2D cartoon illustration** af den angivne scene. Resultatet skal indsættes direkte på et piktogramkort i en visuel dagsplan.
 
-### 1. Karakter-konsistens
-- Hovedpersonen er ${charSubject}.
-- Figuren skal være 100% genkendelig og visuelt konsistent med Referencebillede 1.
+### 1. Karakter- & Tøjkonsistens (Ref 1)
+- Hovedpersonen er figuren fra Referencebillede 1 (Ref 1).
+- Figurens udseende, ansigtstræk, frisure, hudtone og tøj SKAL være 100% konsistent med figuren/avataren i Referencebillede 1 (Ref 1).
 - Tilpas figurens kropsstilling, ansigtsudtryk og håndstillinger naturligt til den ønskede aktivitet.
 - Udtrykket skal være venligt, glad, imødekommende og let at afkode med et enkelt blik.
 
-### 2. Tegnestil
-- Ren, skarp 2D tegneseriestil som i Referencebillede 2.
+### 2. Tegnestil (Ref 2)
+- Ren, skarp 2D tegneseriestil som i Referencebillede 2 (Ref 2).
 - Tydelige, tykke og bløde sorte omrids (outlines) rundt om figuren og genstande.
 - Klare, mættede farver med enkel cel-shading (skygger uden fotorealisme).
 - Runde former, klare silhuetter og venlige proportioner (som i Referencebillede 2).
@@ -65,14 +61,10 @@ export function buildEnglishMasterPrompt(options: {
   personaName?: string;
   isWoman?: boolean;
 }): string {
-  const charSubject = options.isWoman
-    ? 'the woman from Reference Image 1 (female character with dark hair in a ponytail wearing a teal hoodie)'
-    : 'the man from Reference Image 1 (male character with short dark buzzcut hair wearing a grey hoodie)';
-
   return `# Master Prompt — Transparent Cartoon Pictogram Generator
 
-## Reference Images
-- **Image 1 — Avatar (Ref 1):** Use this image as the exact character reference. Preserve the character's facial features, skin tone, hairstyle, clothing, body proportions, and recognizable identity exactly.
+## Reference Images (Attach in ChatGPT / DALL-E)
+- **Image 1 — Avatar (Ref 1):** Use this image exclusively as the character and clothing reference. All physical appearance, face, hairstyle, skin tone, and clothing must be derived 100% directly from Image 1 and kept strictly consistent.
 - **Image 2 — Example (Ref 2):** Use this image as the visual style reference for the 2D cartoon illustration: linework, saturated colors, cel shading, and friendly educational pictogram aesthetic. Do not reproduce the full chart or card frame.
 
 ## Scene to Generate:
@@ -81,14 +73,14 @@ ${options.sceneDescription.trim() || 'The character performs the requested activ
 ## Instructions for ChatGPT / DALL-E:
 Create ONE standalone 2D cartoon illustration of the specified scene for a visual autism schedule pictogram card.
 
-### 1. Character Consistency
-- Main character is ${charSubject}.
-- The character must be 100% recognizable and visually consistent with Reference Image 1.
+### 1. Character & Clothing Consistency (Ref 1)
+- Main subject is the character from Reference Image 1 (Ref 1).
+- The character's face, hairstyle, skin tone, and clothing MUST be 100% consistent with the avatar in Reference Image 1 (Ref 1).
 - Adapt body posture, facial expression, and hands naturally to the activity.
 - Expression must be warm, friendly, smiling, and easy to understand at a glance.
 
-### 2. Illustration Style
-- Clean, crisp 2D cartoon style matching Reference Image 2.
+### 2. Illustration Style (Ref 2)
+- Clean, crisp 2D cartoon style matching Reference Image 2 (Ref 2).
 - Bold, thick, smooth black outlines around the character and objects.
 - Clean flat saturated colors with simple subtle cel shading.
 - Rounded friendly shapes, clear silhouettes. No 3D, no photorealism.
@@ -357,13 +349,9 @@ export function buildCloudflareAiPrompt(options: {
   personaName?: string;
   isWoman?: boolean;
 }): string {
-  const character = options.isWoman
-    ? 'friendly young woman with dark hair in a ponytail wearing a teal hoodie'
-    : 'friendly young man with short buzzcut dark hair wearing a grey hoodie';
-
   const activity = options.sceneDescription.trim() || 'performing daily task happily';
 
-  return `Clean 2D cartoon pictogram vector illustration of a ${character}, ${activity}. Exact style matching autism schedule cards: flat cel-shaded vector art style, thick soft black outlines, bright clean solid colors, isolated on pure white background, friendly autism visual schedule icon, no text, no frame, high quality.`;
+  return `Clean 2D cartoon pictogram vector illustration of the character from Reference Image 1 (Ref 1), keeping the appearance, hairstyle, face, and clothing 100% consistent with the avatar, ${activity}. Exact style matching autism schedule cards: flat cel-shaded vector art style, thick soft black outlines, bright clean solid colors, isolated on pure white background, friendly autism visual schedule icon, no text, no frame, high quality.`;
 }
 
 /**

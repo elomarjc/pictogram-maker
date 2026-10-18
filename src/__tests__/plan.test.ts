@@ -143,7 +143,9 @@ describe('Prompt optimering og scene-beskrivelser', () => {
     expect(daPrompt).toContain('Billede 2 — Eksempel / Tegnestil (Ref 2)');
     expect(daPrompt).toContain('Figuren lægger et farverigt puslespil ved bordet.');
     expect(daPrompt).toContain('100% Gennemsigtig Baggrund');
-    expect(daPrompt).toContain('buzzcut');
+    expect(daPrompt).toContain('Karakter- & Tøjkonsistens (Ref 1)');
+    expect(daPrompt).not.toContain('buzzcut');
+    expect(daPrompt).not.toContain('hættetrøje');
 
     const enPrompt = buildEnglishMasterPrompt({
       sceneDescription: 'The character is baking cookies in the kitchen.',
@@ -156,6 +158,9 @@ describe('Prompt optimering og scene-beskrivelser', () => {
     expect(enPrompt).toContain('Image 2 — Example (Ref 2)');
     expect(enPrompt).toContain('The character is baking cookies in the kitchen.');
     expect(enPrompt).toContain('Transparent Background');
+    expect(enPrompt).toContain('Character & Clothing Consistency (Ref 1)');
+    expect(enPrompt).not.toContain('hoodie');
+    expect(enPrompt).not.toContain('ponytail');
   });
 });
 

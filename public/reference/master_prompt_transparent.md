@@ -11,10 +11,10 @@
 
 Create **one standalone 2D cartoon illustration** depicting the specified scene. The result will be used as an individual row illustration in a visual daily-routine pictogram chart.
 
-### 1. Character Consistency
+### 1. Character & Clothing Consistency
 - Use the character from Image 1 as the main subject.
 - Keep the character recognizable and visually consistent across every generated image.
-- Preserve the same gray hoodie, face shape, eyes, eyebrows, nose, mouth style, skin tone, and overall proportions.
+- Preserve the clothing, face shape, eyes, eyebrows, nose, mouth style, hairstyle, skin tone, and overall proportions directly from Image 1.
 - Adapt the character’s pose, facial expression, and hand positions naturally to the requested activity.
 - Make the character friendly, cheerful, approachable, and easy to understand at a glance.
 
