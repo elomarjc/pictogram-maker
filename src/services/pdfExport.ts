@@ -34,7 +34,9 @@ function drawDayHeader(
   width: number,
   height: number,
   showIcons: boolean,
-  colorMode: 'color' | 'grayscale'
+  colorMode: 'color' | 'grayscale',
+  leftIcon: string = 'sun',
+  rightIcon: string = 'cloud'
 ) {
   // Background rectangle with rounded top corners (Authentic Sky Blue #7ECBFC)
   const [bgR, bgG, bgB] = colorMode === 'color' ? hexToRgb('#7ECBFC') : [230, 230, 230];
@@ -43,53 +45,61 @@ function drawDayHeader(
   doc.setLineWidth(0.8);
   doc.roundedRect(x, y, width, height, 4, 4, 'FD');
 
-  // Smiling Sun on the left
   if (showIcons) {
-    const sunX = x + 12;
-    const sunY = y + height / 2;
-    const sunR = 5;
+    const drawIcon = (iconKey: string, cx: number, cy: number) => {
+      if (iconKey === 'none') return;
+      if (iconKey === 'moon' || iconKey === 'moon_stars') {
+        const [mR, mG, mB] = colorMode === 'color' ? [254, 240, 138] : [245, 245, 245];
+        doc.setFillColor(mR, mG, mB);
+        doc.setDrawColor(30, 41, 59);
+        doc.setLineWidth(0.6);
+        doc.circle(cx, cy, 4.5, 'FD');
+        doc.setFillColor(bgR, bgG, bgB);
+        doc.circle(cx + 2.2, cy - 1, 3.8, 'F');
+      } else if (iconKey === 'star') {
+        const [sR, sG, sB] = colorMode === 'color' ? [253, 224, 71] : [240, 240, 240];
+        doc.setFillColor(sR, sG, sB);
+        doc.setDrawColor(30, 41, 59);
+        doc.setLineWidth(0.6);
+        doc.circle(cx, cy, 4, 'FD');
+      } else if (iconKey === 'cloud') {
+        const [cR, cG, cB] = colorMode === 'color' ? [255, 255, 255] : [250, 250, 250];
+        doc.setFillColor(cR, cG, cB);
+        doc.setDrawColor(30, 41, 59);
+        doc.setLineWidth(0.6);
+        doc.circle(cx - 4, cy + 1, 3.5, 'FD');
+        doc.circle(cx + 4, cy + 1, 3.5, 'FD');
+        doc.circle(cx, cy - 2, 4.5, 'FD');
+        doc.rect(cx - 4, cy + 1, 8, 3.5, 'FD');
+      } else {
+        // Default: Sun
+        const sunR = 5;
+        doc.setDrawColor(245, 158, 11);
+        doc.setLineWidth(0.6);
+        for (let i = 0; i < 8; i++) {
+          const angle = (i * Math.PI) / 4;
+          const x1 = cx + Math.cos(angle) * (sunR + 1);
+          const y1 = cy + Math.sin(angle) * (sunR + 1);
+          const x2 = cx + Math.cos(angle) * (sunR + 3.5);
+          const y2 = cy + Math.sin(angle) * (sunR + 3.5);
+          doc.line(x1, y1, x2, y2);
+        }
+        const [sR, sG, sB] = colorMode === 'color' ? [254, 240, 138] : [245, 245, 245];
+        doc.setFillColor(sR, sG, sB);
+        doc.setDrawColor(30, 41, 59);
+        doc.setLineWidth(0.6);
+        doc.circle(cx, cy, sunR, 'FD');
+        doc.setFillColor(30, 41, 59);
+        doc.circle(cx - 1.8, cy - 1, 0.5, 'F');
+        doc.circle(cx + 1.8, cy - 1, 0.5, 'F');
+        doc.setLineWidth(0.4);
+        doc.line(cx - 1.5, cy + 1.2, cx, cy + 2.2);
+        doc.line(cx, cy + 2.2, cx + 1.5, cy + 1.2);
+      }
+    };
 
-    // Sun rays
-    doc.setDrawColor(245, 158, 11);
-    doc.setLineWidth(0.6);
-    for (let i = 0; i < 8; i++) {
-      const angle = (i * Math.PI) / 4;
-      const x1 = sunX + Math.cos(angle) * (sunR + 1);
-      const y1 = sunY + Math.sin(angle) * (sunR + 1);
-      const x2 = sunX + Math.cos(angle) * (sunR + 3.5);
-      const y2 = sunY + Math.sin(angle) * (sunR + 3.5);
-      doc.line(x1, y1, x2, y2);
-    }
-
-    // Sun circle
-    const [sR, sG, sB] = colorMode === 'color' ? [254, 240, 138] : [245, 245, 245];
-    doc.setFillColor(sR, sG, sB);
-    doc.setDrawColor(30, 41, 59);
-    doc.setLineWidth(0.6);
-    doc.circle(sunX, sunY, sunR, 'FD');
-
-    // Sun face: small eyes & smile
-    doc.setFillColor(30, 41, 59);
-    doc.circle(sunX - 1.8, sunY - 1, 0.5, 'F');
-    doc.circle(sunX + 1.8, sunY - 1, 0.5, 'F');
-    // Smile lines
-    doc.setLineWidth(0.4);
-    doc.line(sunX - 1.5, sunY + 1.2, sunX, sunY + 2.2);
-    doc.line(sunX, sunY + 2.2, sunX + 1.5, sunY + 1.2);
-
-    // Fluffy Cloud on the right
-    const cloudX = x + width - 18;
-    const cloudY = y + height / 2;
-    const [cR, cG, cB] = colorMode === 'color' ? [255, 255, 255] : [250, 250, 250];
-    doc.setFillColor(cR, cG, cB);
-    doc.setDrawColor(30, 41, 59);
-    doc.setLineWidth(0.6);
-
-    // Three intersecting circles + bottom rect for cloud
-    doc.circle(cloudX - 4, cloudY + 1, 3.5, 'FD');
-    doc.circle(cloudX + 4, cloudY + 1, 3.5, 'FD');
-    doc.circle(cloudX, cloudY - 2, 4.5, 'FD');
-    doc.rect(cloudX - 4, cloudY + 1, 8, 3.5, 'FD');
+    drawIcon(leftIcon, x + 12, y + height / 2);
+    drawIcon(rightIcon, x + width - 18, y + height / 2);
   }
 
   // Header Title: e.g. "Mandag"
@@ -348,7 +358,9 @@ export async function generatePdf(
           boardWidth,
           headerHeight,
           settings.showHeaderIcons,
-          settings.colorMode
+          settings.colorMode,
+          day.headerLeftIcon || 'sun',
+          day.headerRightIcon || 'cloud'
         );
         currentY += headerHeight + headerGap;
       }

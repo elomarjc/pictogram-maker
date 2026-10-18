@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import type { DaySchedule, Pictogram, PrintLayoutMode, Persona } from '../types';
 import { PictogramCard } from './PictogramCard';
-import { REFERENCE_ICONS } from '../services/personas';
+import { HeaderIconDisplay, HEADER_ICONS, SHIFT_PRESETS } from '../data/headerIcons';
 import {
   Plus,
   Copy,
@@ -10,6 +10,7 @@ import {
   LayoutList,
   Grid,
   Pencil,
+  X,
 } from 'lucide-react';
 
 interface DailyBoardProps {
@@ -29,6 +30,7 @@ interface DailyBoardProps {
   onClearDay: () => void;
   onUpdateHeaderSubtitle: (newSubtitle: string) => void;
   onUpdateDayName?: (newName: string) => void;
+  onUpdateHeaderIcons?: (leftIcon: string, rightIcon: string) => void;
 }
 
 export const DailyBoard: React.FC<DailyBoardProps> = ({
@@ -48,10 +50,35 @@ export const DailyBoard: React.FC<DailyBoardProps> = ({
   onClearDay,
   onUpdateHeaderSubtitle: _onUpdateHeaderSubtitle,
   onUpdateDayName,
+  onUpdateHeaderIcons,
 }) => {
   const [draggedIdx, setDraggedIdx] = useState<number | null>(null);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [tempTitle, setTempTitle] = useState(schedule.dayName);
+
+  // State for header icon popover dropdown
+  const [activeIconPicker, setActiveIconPicker] = useState<'left' | 'right' | null>(null);
+  const leftIconRef = useRef<HTMLDivElement>(null);
+  const rightIconRef = useRef<HTMLDivElement>(null);
+  const iconPickerRef = useRef<HTMLDivElement>(null);
+
+  const currentLeftIcon = schedule.headerLeftIcon || 'sun';
+  const currentRightIcon = schedule.headerRightIcon || 'cloud';
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        iconPickerRef.current &&
+        !iconPickerRef.current.contains(e.target as Node) &&
+        !leftIconRef.current?.contains(e.target as Node) &&
+        !rightIconRef.current?.contains(e.target as Node)
+      ) {
+        setActiveIconPicker(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   useEffect(() => {
     setTempTitle(schedule.dayName);
@@ -177,11 +204,33 @@ export const DailyBoard: React.FC<DailyBoardProps> = ({
 
       {/* Main Board Container - Matching reference proportions */}
       <div id="daily-board-container" className="bg-white rounded-3xl border-4 border-slate-900 shadow-xl overflow-hidden p-3 sm:p-5 max-w-xl mx-auto">
-        {/* Board Header: Sky-blue banner with Sun, Title, and Cloud */}
-        <div className="bg-[#7ECBFC] border-3 border-slate-900 rounded-2xl p-2.5 sm:p-3 mb-3 flex items-center justify-between shadow-xs">
-          {/* Sun icon on the left */}
-          <div className="flex items-center justify-center w-11 h-11 sm:w-14 sm:h-14 shrink-0">
-            <img src={REFERENCE_ICONS.sun} crossOrigin="anonymous" alt="Sol" className="w-full h-full object-contain filter drop-shadow-xs" />
+        {/* Board Header: Sky-blue banner with customizable high-res icons and day title */}
+        <div className="relative bg-[#7ECBFC] border-3 border-slate-900 rounded-2xl p-2 sm:p-2.5 mb-3 flex items-center justify-between shadow-xs">
+          {/* Left Icon (Clickable Dropdown/Popup) */}
+          <div className="relative shrink-0" ref={leftIconRef}>
+            <button
+              type="button"
+              onClick={() => setActiveIconPicker(activeIconPicker === 'left' ? null : 'left')}
+              title="Klik for at skifte venstre ikon (f.eks. Sol, Måne, Kaffe, Dagvagt/Aftenvagt)"
+              className="group/icon flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-2xl hover:bg-white/40 transition-all p-1 cursor-pointer border-2 border-transparent hover:border-slate-900/50 relative"
+            >
+              {currentLeftIcon !== 'none' ? (
+                <div className="w-full h-full filter drop-shadow-xs">
+                  <HeaderIconDisplay iconKey={currentLeftIcon} fallbackKey="sun" />
+                </div>
+              ) : (
+                <div className="w-9 h-9 rounded-xl border-2 border-dashed border-slate-700/60 flex items-center justify-center text-slate-800 text-[10px] font-bold bg-white/40">
+                  + Ikon
+                </div>
+              )}
+              {/* Subtle hover edit badge */}
+              <span
+                data-html2canvas-ignore="true"
+                className="print:hidden absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-white border border-slate-900 text-slate-800 shadow-xs flex items-center justify-center opacity-0 group-hover/icon:opacity-100 transition-opacity"
+              >
+                <Pencil size={10} className="stroke-[2.5]" />
+              </span>
+            </button>
           </div>
 
           {/* Central Title: Clean day name with rounded font, directly editable when clicked */}
@@ -228,10 +277,143 @@ export const DailyBoard: React.FC<DailyBoardProps> = ({
             )}
           </div>
 
-          {/* Cloud icon on the right */}
-          <div className="flex items-center justify-center w-11 h-11 sm:w-14 sm:h-14 shrink-0">
-            <img src={REFERENCE_ICONS.cloud} crossOrigin="anonymous" alt="Sky" className="w-full h-full object-contain filter drop-shadow-xs" />
+          {/* Right Icon (Clickable Dropdown/Popup) */}
+          <div className="relative shrink-0" ref={rightIconRef}>
+            <button
+              type="button"
+              onClick={() => setActiveIconPicker(activeIconPicker === 'right' ? null : 'right')}
+              title="Klik for at skifte højre ikon (f.eks. Sky, Stjerne, Seng, Dagvagt/Aftenvagt)"
+              className="group/icon flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-2xl hover:bg-white/40 transition-all p-1 cursor-pointer border-2 border-transparent hover:border-slate-900/50 relative"
+            >
+              {currentRightIcon !== 'none' ? (
+                <div className="w-full h-full filter drop-shadow-xs">
+                  <HeaderIconDisplay iconKey={currentRightIcon} fallbackKey="cloud" />
+                </div>
+              ) : (
+                <div className="w-9 h-9 rounded-xl border-2 border-dashed border-slate-700/60 flex items-center justify-center text-slate-800 text-[10px] font-bold bg-white/40">
+                  + Ikon
+                </div>
+              )}
+              {/* Subtle hover edit badge */}
+              <span
+                data-html2canvas-ignore="true"
+                className="print:hidden absolute -bottom-1 -left-1 w-5 h-5 rounded-full bg-white border border-slate-900 text-slate-800 shadow-xs flex items-center justify-center opacity-0 group-hover/icon:opacity-100 transition-opacity"
+              >
+                <Pencil size={10} className="stroke-[2.5]" />
+              </span>
+            </button>
           </div>
+
+          {/* Icon Picker Popover */}
+          {activeIconPicker && (
+            <div
+              ref={iconPickerRef}
+              data-html2canvas-ignore="true"
+              className={`print:hidden absolute ${
+                activeIconPicker === 'left' ? 'left-2' : 'right-2'
+              } top-full mt-2 z-50 bg-white border-3 border-slate-900 rounded-3xl p-3.5 shadow-2xl w-72 sm:w-80 space-y-3 animate-in fade-in zoom-in-95 text-left`}
+            >
+              {/* Popover Header */}
+              <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                <span className="text-xs font-black text-slate-900">
+                  {activeIconPicker === 'left' ? 'Vælg venstre ikon' : 'Vælg højre ikon'}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setActiveIconPicker(null)}
+                  className="p-1 rounded-lg hover:bg-slate-100 text-slate-600 hover:text-slate-900 transition-colors cursor-pointer"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              {/* Quick Shift Presets */}
+              <div className="space-y-1.5">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                  Vagt & Tema (Begge ikoner)
+                </span>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {SHIFT_PRESETS.map((preset) => {
+                    const isCurrent =
+                      currentLeftIcon === preset.leftIcon && currentRightIcon === preset.rightIcon;
+                    return (
+                      <button
+                        key={preset.id}
+                        type="button"
+                        onClick={() => {
+                          onUpdateHeaderIcons?.(preset.leftIcon, preset.rightIcon);
+                          setActiveIconPicker(null);
+                        }}
+                        className={`p-1.5 rounded-xl border-2 text-left transition-all cursor-pointer flex items-center gap-2 ${
+                          isCurrent
+                            ? 'border-slate-900 bg-amber-100 font-black shadow-2xs'
+                            : 'border-slate-200 hover:border-slate-400 bg-slate-50 hover:bg-white text-slate-800'
+                        }`}
+                      >
+                        <div className="flex items-center gap-0.5 shrink-0 w-8 h-4">
+                          <div className="w-4 h-4">
+                            <HeaderIconDisplay iconKey={preset.leftIcon} />
+                          </div>
+                          <div className="w-4 h-4">
+                            <HeaderIconDisplay iconKey={preset.rightIcon} />
+                          </div>
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <span className="text-[11px] font-bold block truncate text-slate-900">
+                            {preset.name}
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Individual Icons Grid */}
+              <div className="space-y-1.5 pt-1 border-t border-slate-200">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                  {activeIconPicker === 'left' ? 'Skift venstre ikon alene' : 'Skift højre ikon alene'}
+                </span>
+                <div className="grid grid-cols-4 gap-1.5 max-h-48 overflow-y-auto p-0.5">
+                  {Object.entries(HEADER_ICONS).map(([key, def]) => {
+                    const selectedKey = activeIconPicker === 'left' ? currentLeftIcon : currentRightIcon;
+                    const isSelected = selectedKey === key;
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => {
+                          if (activeIconPicker === 'left') {
+                            onUpdateHeaderIcons?.(key, currentRightIcon);
+                          } else {
+                            onUpdateHeaderIcons?.(currentLeftIcon, key);
+                          }
+                          setActiveIconPicker(null);
+                        }}
+                        className={`p-1.5 rounded-xl border-2 flex flex-col items-center justify-between gap-1 transition-all cursor-pointer aspect-square ${
+                          isSelected
+                            ? 'border-slate-900 bg-amber-100 ring-2 ring-amber-400 shadow-2xs'
+                            : 'border-slate-200 hover:border-slate-400 bg-slate-50 hover:bg-white'
+                        }`}
+                        title={def.name}
+                      >
+                        <div className="w-7 h-7 flex items-center justify-center">
+                          {key === 'none' ? (
+                            <span className="text-[10px] font-bold text-slate-400">Ingen</span>
+                          ) : (
+                            <HeaderIconDisplay iconKey={key} />
+                          )}
+                        </div>
+                        <span className="text-[9.5px] font-bold text-slate-700 truncate w-full text-center">
+                          {def.name.split(' ')[0]}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* List of Pictograms (Top to Bottom) */}

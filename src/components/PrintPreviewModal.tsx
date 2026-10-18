@@ -12,7 +12,8 @@ import {
   FileImage,
 } from 'lucide-react';
 import { PictogramCard } from './PictogramCard';
-import { getPersona, REFERENCE_ICONS } from '../services/personas';
+import { getPersona } from '../services/personas';
+import { HeaderIconDisplay } from '../data/headerIcons';
 
 interface PrintPreviewModalProps {
   plan: WeekPlan;
@@ -244,8 +245,8 @@ export const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
               >
                 {/* Board Header: Exact match to DailyBoard header */}
                 <div className="bg-[#7ECBFC] border-3 border-slate-900 rounded-2xl p-2.5 sm:p-3 mb-3 flex items-center justify-between shadow-xs">
-                  <div className="flex items-center justify-center w-11 h-11 sm:w-14 sm:h-14 shrink-0">
-                    <img src={REFERENCE_ICONS.sun} crossOrigin="anonymous" alt="Sol" className="w-full h-full object-contain filter drop-shadow-xs" />
+                  <div className="flex items-center justify-center w-11 h-11 sm:w-14 sm:h-14 shrink-0 filter drop-shadow-xs">
+                    <HeaderIconDisplay iconKey={activeDaySchedule?.headerLeftIcon || 'sun'} fallbackKey="sun" />
                   </div>
 
                   <div className="text-center px-2 flex-1">
@@ -254,8 +255,8 @@ export const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
                     </h3>
                   </div>
 
-                  <div className="flex items-center justify-center w-11 h-11 sm:w-14 sm:h-14 shrink-0">
-                    <img src={REFERENCE_ICONS.cloud} crossOrigin="anonymous" alt="Sky" className="w-full h-full object-contain filter drop-shadow-xs" />
+                  <div className="flex items-center justify-center w-11 h-11 sm:w-14 sm:h-14 shrink-0 filter drop-shadow-xs">
+                    <HeaderIconDisplay iconKey={activeDaySchedule?.headerRightIcon || 'cloud'} fallbackKey="cloud" />
                   </div>
                 </div>
 

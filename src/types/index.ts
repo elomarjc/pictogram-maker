@@ -55,6 +55,8 @@ export interface DaySchedule {
   dayId: DayOfWeek;
   dayName: string;
   headerSubtitle?: string; // e.g. "K." or "AV" or "Aften" or "Dag"
+  headerLeftIcon?: string; // e.g. 'sun', 'moon', 'coffee', 'home', 'none'
+  headerRightIcon?: string; // e.g. 'cloud', 'star', 'bed', 'heart', 'none'
   pictograms: Pictogram[];
 }
 

@@ -311,6 +311,21 @@ export const App: React.FC = () => {
     }));
   };
 
+  const handleUpdateHeaderIcons = (leftIcon: string, rightIcon: string) => {
+    const activeDay = selectedDayId === 'week' ? 'mandag' : selectedDayId;
+    updateCurrentPlan((prev) => ({
+      ...prev,
+      days: {
+        ...prev.days,
+        [activeDay]: {
+          ...prev.days[activeDay],
+          headerLeftIcon: leftIcon,
+          headerRightIcon: rightIcon,
+        },
+      },
+    }));
+  };
+
   // --- Plan Management Operations ---
   const handleCreatePlan = (name: string, templateId: string) => {
     const tpl = BUILTIN_TEMPLATES.find((t) => t.id === templateId) || BUILTIN_TEMPLATES[0];
@@ -435,6 +450,7 @@ export const App: React.FC = () => {
             onClearDay={() => handleClearDay(selectedDayId)}
             onUpdateHeaderSubtitle={handleUpdateHeaderSubtitle}
             onUpdateDayName={handleUpdateDayName}
+            onUpdateHeaderIcons={handleUpdateHeaderIcons}
           />
         )}
       </main>
