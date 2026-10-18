@@ -51,6 +51,38 @@ const SCENE_DESCRIPTIONS: Record<string, string> = {
   handle: 'Handle indkøb',
 };
 
+const STORAGE_KEY_CUSTOM_ICONS = 'pictogram_custom_icons';
+
+function getStoredCustomIcons(): string[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_CUSTOM_ICONS);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveCustomIcon(dataUrl: string): string[] {
+  const list = getStoredCustomIcons().filter((url) => url !== dataUrl);
+  list.unshift(dataUrl);
+  try {
+    localStorage.setItem(STORAGE_KEY_CUSTOM_ICONS, JSON.stringify(list));
+  } catch {
+    // quota fallback
+  }
+  return list;
+}
+
+function deleteCustomIcon(dataUrl: string): string[] {
+  const list = getStoredCustomIcons().filter((url) => url !== dataUrl);
+  try {
+    localStorage.setItem(STORAGE_KEY_CUSTOM_ICONS, JSON.stringify(list));
+  } catch {
+    // fallback
+  }
+  return list;
+}
+
 export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
   pictogram,
   isOpen,
@@ -66,6 +98,13 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
   const [illustrationId, setIllustrationId] = useState(pictogram.illustrationId || 'spisetid');
   const [sceneImageUrl, setSceneImageUrl] = useState(pictogram.sceneImageUrl || '');
   const [customImageUrl, setCustomImageUrl] = useState(pictogram.customImageUrl || '');
+  const [customIcons, setCustomIcons] = useState<string[]>(() => {
+    const stored = getStoredCustomIcons();
+    if (pictogram.customImageUrl && !stored.includes(pictogram.customImageUrl)) {
+      return [pictogram.customImageUrl, ...stored];
+    }
+    return stored;
+  });
   const [bgColor, setBgColor] = useState(pictogram.bgColor || '#fdef8c');
   // Convert legacy presets to pixel numbers if needed, default to 20px
   const initialPixelSize =
@@ -91,7 +130,6 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
   const [workerUrl, setWorkerUrl] = useState(getStoredWorkerUrl());
   const [workerApiKey, setWorkerApiKey] = useState(getStoredApiKey());
   const [aiError, setAiError] = useState<string | null>(null);
-  const [aiSuccessMessage, setAiSuccessMessage] = useState<string | null>(null);
 
   const handleGenerateWithAi = async () => {
     if (!workerUrl.trim()) {
@@ -100,7 +138,6 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
     }
 
     setAiError(null);
-    setAiSuccessMessage(null);
     setIsGeneratingAi(true);
 
     try {
@@ -130,8 +167,12 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
         strength: 0.7,
       });
 
+      const updated = saveCustomIcon(generatedDataUrl);
+      setCustomIcons(updated);
       setCustomImageUrl(generatedDataUrl);
-      setAiSuccessMessage('Billedet er genereret og indsat på dit piktogram!');
+      setIllustrationId('');
+      setSceneImageUrl('');
+      setActiveTab('illustrations');
     } catch (err) {
       setAiError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -144,14 +185,20 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      alert('Vælg venligst en gyldig billedfil (f.eks. PNG eller JPEG).');
+      alert('Vælg venligst en gyldig billedfil (PNG, JPG, WebP).');
       return;
     }
 
     const reader = new FileReader();
     reader.onload = () => {
       if (typeof reader.result === 'string') {
-        setCustomImageUrl(reader.result);
+        const dataUrl = reader.result;
+        const updated = saveCustomIcon(dataUrl);
+        setCustomIcons(updated);
+        setCustomImageUrl(dataUrl);
+        setIllustrationId('');
+        setSceneImageUrl('');
+        setActiveTab('illustrations');
       }
     };
     reader.readAsDataURL(file);
@@ -353,35 +400,104 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
           </div>
 
           {/* Visual asset picker tabs */}
-          <div className="space-y-2.5 pt-1">
+          <div className="space-y-2 pt-1">
             <div className="flex border-b-2 border-slate-200">
               <button
                 type="button"
                 onClick={() => setActiveTab('illustrations')}
-                className={`py-1.5 px-3.5 font-bold text-xs border-b-2 -mb-[2px] transition-colors cursor-pointer ${
+                className={`py-1 px-3 font-bold text-xs border-b-2 -mb-[2px] transition-colors cursor-pointer ${
                   activeTab === 'illustrations'
                     ? 'border-slate-900 text-slate-900'
                     : 'border-transparent text-slate-500 hover:text-slate-800'
                 }`}
               >
-                Figur-scener
+                Ikoner & Scener
               </button>
               <button
                 type="button"
                 onClick={() => setActiveTab('upload')}
-                className={`py-1.5 px-3.5 font-bold text-xs border-b-2 -mb-[2px] transition-colors cursor-pointer ${
+                className={`py-1 px-3 font-bold text-xs border-b-2 -mb-[2px] transition-colors cursor-pointer ${
                   activeTab === 'upload'
                     ? 'border-slate-900 text-slate-900'
                     : 'border-transparent text-slate-500 hover:text-slate-800'
                 }`}
               >
-                Upload / AI-scene
+                Lav ny AI-scene
               </button>
             </div>
 
-            {/* TAB 1: Persona Activity Scenes */}
+            {/* TAB 1: Icons & Scenes grid (includes Upload button + custom uploaded images + preset scenes) */}
             {activeTab === 'illustrations' && (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 max-h-48 overflow-y-auto p-1">
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 max-h-56 overflow-y-auto p-1">
+                {/* Upload tile directly in the icons grid */}
+                <label className="flex flex-col items-center justify-center p-1.5 rounded-xl border-2 border-dashed border-slate-300 hover:border-slate-900 bg-white hover:bg-amber-50 cursor-pointer transition-all group h-22">
+                  <div className="w-7 h-7 rounded-lg bg-amber-100 group-hover:bg-amber-400 flex items-center justify-center text-slate-900 transition-colors mb-1">
+                    <Upload size={14} />
+                  </div>
+                  <span className="text-[10.5px] font-bold text-slate-700 group-hover:text-slate-900 text-center leading-tight">
+                    Upload
+                  </span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="hidden"
+                  />
+                </label>
+
+                {/* Custom uploaded images */}
+                {customIcons.map((imgUrl, idx) => {
+                  const isSelected = customImageUrl === imgUrl;
+                  return (
+                    <div
+                      key={`custom-${idx}`}
+                      onClick={() => {
+                        setCustomImageUrl(imgUrl);
+                        setIllustrationId('');
+                        setSceneImageUrl('');
+                      }}
+                      className={`relative group flex flex-col items-center justify-between p-1.5 rounded-xl border-2 transition-all cursor-pointer h-22 ${
+                        isSelected
+                          ? 'bg-amber-100 border-slate-900 ring-2 ring-amber-400 shadow-xs'
+                          : 'bg-slate-50 border-slate-300 hover:border-slate-500 hover:bg-white'
+                      }`}
+                    >
+                      <div className="w-full flex-1 rounded-lg border border-slate-900/20 overflow-hidden bg-white mb-1 flex items-center justify-center">
+                        <img src={imgUrl} alt="Eget billede" className="w-full h-full object-contain" />
+                      </div>
+                      <span className="text-[10px] font-bold text-slate-800 text-center line-clamp-1">
+                        Eget billede
+                      </span>
+
+                      {/* Active checkmark */}
+                      {isSelected && (
+                        <span className="absolute top-1 right-1 w-4 h-4 rounded-full bg-slate-900 text-white flex items-center justify-center shadow-xs z-10 pointer-events-none">
+                          <Check size={10} className="stroke-[3]" />
+                        </span>
+                      )}
+
+                      {/* Smaller, hidden delete button (appears on hover) */}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const updated = deleteCustomIcon(imgUrl);
+                          setCustomIcons(updated);
+                          if (customImageUrl === imgUrl) {
+                            setCustomImageUrl('');
+                            setIllustrationId('spisetid');
+                          }
+                        }}
+                        title="Fjern billede"
+                        className="absolute top-1 left-1 w-4 h-4 rounded-md bg-black/40 hover:bg-rose-600 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-20 cursor-pointer"
+                      >
+                        <Trash2 size={9} className="stroke-[2.5]" />
+                      </button>
+                    </div>
+                  );
+                })}
+
+                {/* Persona Activity Scenes */}
                 {Object.entries(activePersona.activityScenes).map(([key, imgUrl]) => {
                   const isSelected = !customImageUrl && illustrationId === key;
                   const label = SCENE_DESCRIPTIONS[key] || key;
@@ -394,16 +510,16 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
                         setSceneImageUrl('');
                         setCustomImageUrl('');
                       }}
-                      className={`flex flex-col items-center justify-between p-1.5 rounded-xl border-2 transition-all cursor-pointer ${
+                      className={`flex flex-col items-center justify-between p-1.5 rounded-xl border-2 transition-all cursor-pointer h-22 ${
                         isSelected
                           ? 'bg-amber-100 border-slate-900 ring-2 ring-amber-400 shadow-xs'
                           : 'bg-slate-50 border-slate-300 hover:border-slate-500 hover:bg-white'
                       }`}
                     >
-                      <div className="w-full h-14 rounded-lg border border-slate-900/30 overflow-hidden bg-white mb-1">
+                      <div className="w-full flex-1 rounded-lg border border-slate-900/30 overflow-hidden bg-white mb-1">
                         <img src={imgUrl} alt={label} className="w-full h-full object-cover object-center" />
                       </div>
-                      <span className="text-[11px] font-bold text-slate-900 text-center line-clamp-1">
+                      <span className="text-[10px] font-bold text-slate-900 text-center line-clamp-1">
                         {label}
                       </span>
                     </button>
@@ -412,23 +528,22 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
               </div>
             )}
 
-            {/* TAB 2: Upload or AI Generate */}
+            {/* TAB 2: AI Generate scene */}
             {activeTab === 'upload' && (
-              <div className="space-y-3 p-1">
-                {/* AI Generator */}
-                <div className="bg-amber-50/70 border-2 border-amber-300 rounded-2xl p-3.5 space-y-2.5">
+              <div className="p-1">
+                <div className="bg-amber-50/70 border-2 border-amber-300 rounded-2xl p-3 space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-black text-slate-900 flex items-center gap-1.5">
-                      <Sparkles size={15} className="text-amber-600" />
-                      Skab ny scene med figuren (1-klik)
+                      <Sparkles size={14} className="text-amber-600" />
+                      Generér scene med figuren
                     </span>
-                    <span className="text-[11px] font-bold text-amber-900 bg-amber-200/80 px-2 py-0.5 rounded-full border border-amber-300 flex items-center gap-1">
+                    <span className="text-[10px] font-bold text-amber-900 bg-amber-200/80 px-2 py-0.5 rounded-full border border-amber-300 flex items-center gap-1">
                       <img src={activePersona.avatarUrl} alt="" className="w-3.5 h-3.5 rounded-full object-cover" />
-                      <span>Valgt figur</span>
+                      <span>{activePersona.name}</span>
                     </span>
                   </div>
 
-                  <div className="flex flex-wrap gap-1 max-h-20 overflow-y-auto p-1 bg-white rounded-xl border border-amber-200">
+                  <div className="flex flex-wrap gap-1 max-h-18 overflow-y-auto p-1 bg-white rounded-xl border border-amber-200">
                     {PRESET_SCENE_PROMPTS.slice(0, 8).map((preset) => (
                       <button
                         key={preset.id}
@@ -437,7 +552,7 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
                           setSelectedScenePromptId(preset.id);
                           setInlineSceneText(preset.prompt);
                         }}
-                        className={`px-2 py-0.5 rounded-md text-[11px] font-bold border transition-colors cursor-pointer ${
+                        className={`px-2 py-0.5 rounded-md text-[10.5px] font-bold border transition-colors cursor-pointer ${
                           selectedScenePromptId === preset.id
                             ? 'bg-amber-400 border-slate-900 text-slate-900'
                             : 'bg-white border-slate-200 hover:border-slate-400 text-slate-700'
@@ -453,7 +568,7 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
                     onChange={(e) => setInlineSceneText(e.target.value)}
                     rows={2}
                     placeholder="Beskriv hvad figuren skal lave..."
-                    className="w-full px-3 py-1.5 text-xs font-bold rounded-xl border-2 border-slate-300 focus:border-slate-900 bg-white resize-none"
+                    className="w-full px-2.5 py-1.5 text-xs font-bold rounded-xl border-2 border-slate-300 focus:border-slate-900 bg-white resize-none"
                   />
 
                   {aiError && (
@@ -463,67 +578,24 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
                     </div>
                   )}
 
-                  {aiSuccessMessage && (
-                    <div className="p-2 rounded-xl bg-emerald-50 border border-emerald-300 text-xs font-bold text-emerald-800 flex items-center gap-1.5">
-                      <Check size={14} className="text-emerald-700 stroke-[3]" />
-                      <span>{aiSuccessMessage}</span>
-                    </div>
-                  )}
-
                   <button
                     type="button"
                     disabled={isGeneratingAi}
                     onClick={handleGenerateWithAi}
-                    className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white font-black text-xs rounded-xl border-2 border-slate-900 flex items-center justify-center gap-2 shadow-xs transition-all cursor-pointer"
+                    className="w-full py-2 bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white font-black text-xs rounded-xl border-2 border-slate-900 flex items-center justify-center gap-2 shadow-xs transition-all cursor-pointer"
                   >
                     {isGeneratingAi ? (
                       <>
-                        <Loader2 size={15} className="animate-spin text-amber-400" />
-                        <span>Genererer scene med figuren...</span>
+                        <Loader2 size={14} className="animate-spin text-amber-400" />
+                        <span>Genererer scene...</span>
                       </>
                     ) : (
                       <>
-                        <Sparkles size={15} className="text-amber-400" />
+                        <Sparkles size={14} className="text-amber-400" />
                         <span>Generér scene nu</span>
                       </>
                     )}
                   </button>
-                </div>
-
-                {/* Upload own image */}
-                <div className="bg-slate-50 border-2 border-slate-200 rounded-2xl p-3 flex items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <span className="text-xs font-bold text-slate-800 block">
-                      Har du dit eget billede?
-                    </span>
-                    <span className="text-[11px] text-slate-500">
-                      Vælg et billede fra computeren
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-2 shrink-0">
-                    {customImageUrl && (
-                      <button
-                        type="button"
-                        onClick={() => setCustomImageUrl('')}
-                        className="p-1.5 rounded-xl border border-slate-300 hover:border-rose-400 text-rose-600 hover:bg-rose-50 text-xs font-bold transition-colors cursor-pointer"
-                        title="Fjern eget billede"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    )}
-
-                    <label className="px-3 py-1.5 bg-amber-400 hover:bg-amber-500 text-slate-900 font-bold text-xs rounded-xl border-2 border-slate-900 cursor-pointer shadow-2xs transition-colors flex items-center gap-1.5">
-                      <Upload size={13} />
-                      <span>{customImageUrl ? 'Skift billede' : 'Vælg billede'}</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleImageUpload}
-                        className="hidden"
-                      />
-                    </label>
-                  </div>
                 </div>
               </div>
             )}
