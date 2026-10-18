@@ -11,6 +11,8 @@ import {
   Grid,
   Pencil,
   X,
+  Type,
+  ChevronDown,
 } from 'lucide-react';
 
 interface DailyBoardProps {
@@ -31,6 +33,7 @@ interface DailyBoardProps {
   onUpdateHeaderSubtitle: (newSubtitle: string) => void;
   onUpdateDayName?: (newName: string) => void;
   onUpdateHeaderIcons?: (leftIcon: string, rightIcon: string) => void;
+  onUpdateAllCardsFontSize?: (size: number) => void;
 }
 
 export const DailyBoard: React.FC<DailyBoardProps> = ({
@@ -51,6 +54,7 @@ export const DailyBoard: React.FC<DailyBoardProps> = ({
   onUpdateHeaderSubtitle: _onUpdateHeaderSubtitle,
   onUpdateDayName,
   onUpdateHeaderIcons,
+  onUpdateAllCardsFontSize,
 }) => {
   const [draggedIdx, setDraggedIdx] = useState<number | null>(null);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -61,6 +65,21 @@ export const DailyBoard: React.FC<DailyBoardProps> = ({
   const leftIconRef = useRef<HTMLDivElement>(null);
   const rightIconRef = useRef<HTMLDivElement>(null);
   const iconPickerRef = useRef<HTMLDivElement>(null);
+
+  // State for global font size dropdown
+  const [isFontSizeMenuOpen, setIsFontSizeMenuOpen] = useState(false);
+  const fontSizeMenuRef = useRef<HTMLDivElement>(null);
+
+  const currentGlobalFontSize = (() => {
+    const firstPic = schedule.pictograms.find((p) => p.fontSize);
+    if (!firstPic || !firstPic.fontSize) return 22;
+    if (typeof firstPic.fontSize === 'number') return firstPic.fontSize;
+    if (typeof firstPic.fontSize === 'string' && /^\d+$/.test(firstPic.fontSize)) return Number(firstPic.fontSize);
+    if (firstPic.fontSize === 'sm') return 14;
+    if (firstPic.fontSize === 'lg') return 24;
+    if (firstPic.fontSize === 'xl') return 28;
+    return 22;
+  })();
 
   const currentLeftIcon = schedule.headerLeftIcon || 'sun';
   const currentRightIcon = schedule.headerRightIcon || 'cloud';
@@ -74,6 +93,12 @@ export const DailyBoard: React.FC<DailyBoardProps> = ({
         !rightIconRef.current?.contains(e.target as Node)
       ) {
         setActiveIconPicker(null);
+      }
+      if (
+        fontSizeMenuRef.current &&
+        !fontSizeMenuRef.current.contains(e.target as Node)
+      ) {
+        setIsFontSizeMenuOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -172,6 +197,77 @@ export const DailyBoard: React.FC<DailyBoardProps> = ({
               Kort
             </button>
           </div>
+
+          {/* Quick font size control for all cards */}
+          {onUpdateAllCardsFontSize && (
+            <div className="relative" ref={fontSizeMenuRef}>
+              <button
+                type="button"
+                onClick={() => setIsFontSizeMenuOpen((prev) => !prev)}
+                title="Skift tekststørrelse for alle kort"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white hover:bg-slate-50 text-slate-900 font-bold rounded-xl border-2 border-slate-900 shadow-xs text-xs cursor-pointer transition-all"
+              >
+                <Type size={13} className="text-slate-700" />
+                <span className="hidden sm:inline">Tekst</span>
+                <span className="font-black text-amber-950 bg-amber-100 px-1 rounded border border-amber-300">
+                  {currentGlobalFontSize}
+                </span>
+                <ChevronDown size={12} className={`text-slate-600 transition-transform ${isFontSizeMenuOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {isFontSizeMenuOpen && (
+                <div className="absolute left-0 top-full mt-1.5 z-40 p-3 bg-white border-2 border-slate-900 rounded-2xl shadow-xl w-56 space-y-2.5 animate-in fade-in zoom-in-95">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-700">Tekststørrelse</span>
+                    <div className="flex items-center gap-1 bg-slate-100 border border-slate-300 rounded-lg px-1.5 py-0.5">
+                      <button
+                        type="button"
+                        onClick={() => onUpdateAllCardsFontSize(Math.max(8, currentGlobalFontSize - 2))}
+                        className="w-5 h-6 rounded hover:bg-slate-200 font-black text-sm text-slate-700 cursor-pointer"
+                      >
+                        -
+                      </button>
+                      <span className="w-7 text-center font-bold text-xs text-slate-900">{currentGlobalFontSize}</span>
+                      <button
+                        type="button"
+                        onClick={() => onUpdateAllCardsFontSize(currentGlobalFontSize + 2)}
+                        className="w-5 h-6 rounded hover:bg-slate-200 font-black text-sm text-slate-700 cursor-pointer"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-4 gap-1">
+                    {[
+                      { label: 'S', size: 14 },
+                      { label: 'M', size: 18 },
+                      { label: 'L', size: 22 },
+                      { label: 'XL', size: 28 },
+                    ].map((chip) => (
+                      <button
+                        key={chip.size}
+                        type="button"
+                        onClick={() => {
+                          onUpdateAllCardsFontSize(chip.size);
+                        }}
+                        className={`py-1 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
+                          currentGlobalFontSize === chip.size
+                            ? 'bg-slate-900 text-white'
+                            : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                        }`}
+                      >
+                        {chip.label}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-[10px] text-slate-500 font-semibold text-center">
+                    Gælder alle kort i planen
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="flex items-center gap-1.5 sm:gap-2">

@@ -17,6 +17,7 @@ interface PictogramEditorModalProps {
   persona?: Persona;
   onClose: () => void;
   onSave: (pic: Pictogram) => void;
+  onApplyFontSizeToAll?: (fontSize: number) => void;
 }
 
 const REFERENCE_COLOR_PRESETS = [
@@ -177,10 +178,12 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
   persona,
   onClose,
   onSave,
+  onApplyFontSizeToAll,
 }) => {
   if (!isOpen || !pictogram) return null;
 
   const activePersona = persona || getPersona();
+  const [appliedToAll, setAppliedToAll] = useState(false);
   const [title, setTitle] = useState(pictogram.title);
   const [time, setTime] = useState(pictogram.time || '');
   const [illustrationId, setIllustrationId] = useState(pictogram.illustrationId || 'spisetid');
@@ -392,15 +395,8 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
             <PictogramCard
               pictogram={previewPic}
               persona={activePersona}
-              index={0}
-              totalCount={1}
               viewMode="strip"
-              onEdit={() => {}}
-              onDuplicate={() => {}}
-              onDelete={() => {}}
-              onMoveUp={() => {}}
-              onMoveDown={() => {}}
-              onMoveToDay={() => {}}
+              isPreview={true}
             />
           </div>
 
@@ -642,6 +638,37 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
                       </button>
                     ))}
                   </div>
+
+                  {onApplyFontSizeToAll && (
+                    <div className="pt-2 border-t border-slate-200">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onApplyFontSizeToAll(fontSizeNum);
+                          setAppliedToAll(true);
+                          setTimeout(() => setAppliedToAll(false), 2000);
+                        }}
+                        className={`w-full py-1.5 px-2 rounded-xl border text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs ${
+                          appliedToAll
+                            ? 'bg-emerald-100 border-emerald-500 text-emerald-900'
+                            : 'bg-slate-50 hover:bg-amber-100 border-slate-300 hover:border-slate-900 text-slate-800'
+                        }`}
+                        title="Opdater tekststørrelsen på alle kort i hele planen"
+                      >
+                        {appliedToAll ? (
+                          <>
+                            <Check size={14} className="stroke-[3] text-emerald-700" />
+                            <span>Anvendt på alle kort!</span>
+                          </>
+                        ) : (
+                          <>
+                            <Type size={13} className="text-slate-600" />
+                            <span>Anvend på alle kort</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

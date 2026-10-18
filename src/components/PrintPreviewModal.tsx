@@ -78,22 +78,27 @@ export const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
         // 1:1 Exact capture: Renders preview to image first, then places image into PDF
         const previewEl = document.getElementById('print-sheet-exact-preview');
         const dayName = activeDaySchedule?.dayName || 'piktogram-dagsplan';
+        const fallbackSettings: PrintSettings = {
+          layoutMode: 'board',
+          cardWidthCm: 6.5,
+          cardHeightCm: 10.0,
+          showDayHeader: true,
+          showHeaderIcons: true,
+          showCutLines: false,
+          colorMode: 'color',
+          scope: scope === 'selected' ? 'selected' : 'current',
+          targetDayId,
+        };
+
         if (previewEl) {
-          await exportElementToPdf(previewEl, `${dayName}-piktogrammer.pdf`);
+          try {
+            await exportElementToPdf(previewEl, `${dayName}-piktogrammer.pdf`);
+          } catch (captureErr) {
+            console.warn('Canvas PDF export failed, falling back to direct jsPDF generation:', captureErr);
+            await downloadWeekPlanPdf(plan, fallbackSettings);
+          }
         } else {
-          // Fallback if DOM element not found
-          const printSettings: PrintSettings = {
-            layoutMode: 'board',
-            cardWidthCm: 6.5,
-            cardHeightCm: 10.0,
-            showDayHeader: true,
-            showHeaderIcons: true,
-            showCutLines: false,
-            colorMode: 'color',
-            scope: scope === 'selected' ? 'selected' : 'current',
-            targetDayId,
-          };
-          await downloadWeekPlanPdf(plan, printSettings);
+          await downloadWeekPlanPdf(plan, fallbackSettings);
         }
       }
     } catch (err) {
@@ -277,12 +282,7 @@ export const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
                           index={idx}
                           totalCount={activePics.length}
                           viewMode="strip"
-                          onEdit={() => {}}
-                          onDuplicate={() => {}}
-                          onDelete={() => {}}
-                          onMoveUp={() => {}}
-                          onMoveDown={() => {}}
-                          onMoveToDay={() => {}}
+                          isPreview={true}
                         />
                       </div>
                     ))}

@@ -1,5 +1,5 @@
 import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
+import html2canvas from 'html2canvas-pro';
 import type { DaySchedule, Pictogram, PrintSettings, WeekPlan, Persona } from '../types';
 import { DAYS_OF_WEEK } from '../types';
 import { getPersona, resolveSceneImage } from './personas';
@@ -519,7 +519,10 @@ async function inlineImagesAsDataUrls(container: HTMLElement): Promise<() => voi
         img.src = dataUrl;
         if (img.decode) {
           try {
-            await img.decode();
+            await Promise.race([
+              img.decode(),
+              new Promise((r) => setTimeout(r, 600)),
+            ]);
           } catch {
             // Ignore decode errors on non-essential frames
           }
@@ -553,7 +556,7 @@ export async function captureElementToCanvas(element: HTMLElement): Promise<HTML
       allowTaint: false,
       backgroundColor: '#FFFFFF',
       logging: false,
-      imageTimeout: 15000,
+      imageTimeout: 5000,
       ignoreElements: (el) => el.getAttribute('data-html2canvas-ignore') === 'true',
     });
     return canvas;

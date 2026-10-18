@@ -326,6 +326,28 @@ export const App: React.FC = () => {
     }));
   };
 
+  const handleApplyFontSizeToAll = (size: number | string) => {
+    updateCurrentPlan((prev) => {
+      const updatedDays = { ...prev.days };
+      for (const dayKey of Object.keys(updatedDays) as DayOfWeek[]) {
+        const day = updatedDays[dayKey];
+        if (day && day.pictograms) {
+          updatedDays[dayKey] = {
+            ...day,
+            pictograms: day.pictograms.map((p) => ({
+              ...p,
+              fontSize: size,
+            })),
+          };
+        }
+      }
+      return {
+        ...prev,
+        days: updatedDays,
+      };
+    });
+  };
+
   // --- Plan Management Operations ---
   const handleCreatePlan = (name: string, templateId: string) => {
     const tpl = BUILTIN_TEMPLATES.find((t) => t.id === templateId) || BUILTIN_TEMPLATES[0];
@@ -451,6 +473,7 @@ export const App: React.FC = () => {
             onUpdateHeaderSubtitle={handleUpdateHeaderSubtitle}
             onUpdateDayName={handleUpdateDayName}
             onUpdateHeaderIcons={handleUpdateHeaderIcons}
+            onUpdateAllCardsFontSize={handleApplyFontSizeToAll}
           />
         )}
       </main>
@@ -489,6 +512,7 @@ export const App: React.FC = () => {
           setEditingPictogram(null);
         }}
         onSave={handleSavePictogram}
+        onApplyFontSizeToAll={handleApplyFontSizeToAll}
       />
 
       <PrintPreviewModal
