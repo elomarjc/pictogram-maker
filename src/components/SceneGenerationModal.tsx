@@ -25,6 +25,7 @@ interface SceneGenerationModalProps {
   persona: Persona | null;
   onClose: () => void;
   onPersonaUpdated?: (updatedPersona: Persona) => void;
+  autoStart?: boolean;
 }
 
 export const SceneGenerationModal: React.FC<SceneGenerationModalProps> = ({
@@ -32,6 +33,7 @@ export const SceneGenerationModal: React.FC<SceneGenerationModalProps> = ({
   persona,
   onClose,
   onPersonaUpdated,
+  autoStart = false,
 }) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
@@ -56,27 +58,28 @@ export const SceneGenerationModal: React.FC<SceneGenerationModalProps> = ({
     }
   }, [persona, isOpen]);
 
-  // Start generation automatically when opened and missing scenes exist
+  // Initialize progress and auto-start if requested
   useEffect(() => {
     if (!isOpen || !currentPersona || isGenerating) return;
 
+    const { ready, total } = getReadyScenesCount(currentPersona);
     const missing = getMissingScenesForPersona(currentPersona);
+
+    setProgress({
+      total: total || DEFAULT_SCENE_DEFINITIONS.length,
+      completed: ready,
+      percent: total > 0 ? Math.round((ready / total) * 100) : 0,
+      done: missing.length === 0,
+    });
+
     if (missing.length === 0) {
-      setProgress({
-        total: DEFAULT_SCENE_DEFINITIONS.length,
-        completed: DEFAULT_SCENE_DEFINITIONS.length,
-        percent: 100,
-        done: true,
-      });
       return;
     }
 
-    startGeneration(currentPersona);
-
-    return () => {
-      // Don't auto-abort on unmount if minimized
-    };
-  }, [isOpen, currentPersona?.id]);
+    if (autoStart) {
+      startGeneration(currentPersona);
+    }
+  }, [isOpen, currentPersona?.id, autoStart]);
 
   const startGeneration = async (targetPersona: Persona) => {
     setErrorMsg(null);
@@ -348,7 +351,9 @@ export const SceneGenerationModal: React.FC<SceneGenerationModalProps> = ({
                       </div>
                     ) : (
                       <div className="flex flex-col items-center justify-center text-slate-400">
-                        <span className="text-[10px] font-bold">Venter i kø</span>
+                        <span className="text-[10px] font-bold">
+                          {isGenerating ? 'Venter i kø' : 'Ikke oprettet endnu'}
+                        </span>
                       </div>
                     )}
                   </div>

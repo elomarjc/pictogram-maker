@@ -26,6 +26,7 @@ export const PersonaSelectorModal: React.FC<PersonaSelectorModalProps> = ({
   const [avatarToDelete, setAvatarToDelete] = useState<Persona | null>(null);
   const [isCreatePhotoModalOpen, setIsCreatePhotoModalOpen] = useState(false);
   const [sceneGenPersona, setSceneGenPersona] = useState<Persona | null>(null);
+  const [sceneGenAutoStart, setSceneGenAutoStart] = useState(false);
 
   // Sync state whenever modal opens or current active persona changes
   useEffect(() => {
@@ -65,6 +66,7 @@ export const PersonaSelectorModal: React.FC<PersonaSelectorModalProps> = ({
         setPersonas(updated);
         setSelectedId(newPersona.id);
         // Automatically launch standard scene generation for new character!
+        setSceneGenAutoStart(true);
         setSceneGenPersona(newPersona);
       }
     };
@@ -192,32 +194,34 @@ export const PersonaSelectorModal: React.FC<PersonaSelectorModalProps> = ({
                     )}
                   </div>
 
-                  {/* Scene readiness badge & quick action */}
-                  <div className="w-full text-center mt-auto">
-                    <div className="text-[10px] font-bold mb-1">
+                  {/* Scene readiness pill (clickable to inspect scenes) */}
+                  <div className="w-full text-center mt-auto pt-1">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSceneGenAutoStart(false);
+                        setSceneGenPersona(p);
+                      }}
+                      title="Klik for at se figurens scener"
+                      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black transition-all cursor-pointer shadow-2xs hover:scale-105 active:scale-95 ${
+                        isAllReady
+                          ? 'text-emerald-800 bg-emerald-100/90 hover:bg-emerald-200 border border-emerald-300'
+                          : 'text-amber-900 bg-amber-100 hover:bg-amber-200 border border-amber-300'
+                      }`}
+                    >
                       {isAllReady ? (
-                        <span className="inline-flex items-center gap-0.5 text-emerald-700 bg-emerald-100/70 px-1.5 py-0.5 rounded-full">
-                          <CheckCircle2 size={10} /> 14/14 scener
-                        </span>
+                        <>
+                          <CheckCircle2 size={11} className="text-emerald-700" />
+                          <span>14/14 scener</span>
+                        </>
                       ) : (
-                        <span className="inline-flex items-center gap-0.5 text-amber-800 bg-amber-100 px-1.5 py-0.5 rounded-full">
-                          <Clock size={10} /> {ready}/{total} scener
-                        </span>
+                        <>
+                          <Clock size={11} className="text-amber-700" />
+                          <span>{ready}/{total} scener</span>
+                        </>
                       )}
-                    </div>
-                    {isCustom && !isAllReady && (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSceneGenPersona(p);
-                        }}
-                        className="w-full py-1 px-1 rounded-lg border border-slate-900 bg-amber-400 hover:bg-amber-500 text-slate-900 font-black text-[10px] shadow-xs flex items-center justify-center gap-1 cursor-pointer"
-                      >
-                        <Sparkles size={11} />
-                        <span>Generer scener</span>
-                      </button>
-                    )}
+                    </button>
                   </div>
                 </div>
               );
@@ -231,7 +235,10 @@ export const PersonaSelectorModal: React.FC<PersonaSelectorModalProps> = ({
             type="button"
             onClick={() => {
               const selected = personas.find((p) => p.id === selectedId) || personas[0];
-              if (selected) setSceneGenPersona(selected);
+              if (selected) {
+                setSceneGenAutoStart(false);
+                setSceneGenPersona(selected);
+              }
             }}
             className="px-3.5 py-2 rounded-xl border-2 border-slate-900 bg-amber-400 hover:bg-amber-500 text-slate-900 font-black text-xs shadow-xs transition-colors cursor-pointer flex items-center gap-1.5"
           >
@@ -317,6 +324,7 @@ export const PersonaSelectorModal: React.FC<PersonaSelectorModalProps> = ({
           setSelectedId(newPersona.id);
           onSelectPersona(newPersona.id, newPersona.shortCode || '', newPersona.avatarUrl);
           // Automatically launch scene generation for the new character!
+          setSceneGenAutoStart(true);
           setSceneGenPersona(newPersona);
         }}
       />
@@ -324,7 +332,11 @@ export const PersonaSelectorModal: React.FC<PersonaSelectorModalProps> = ({
       <SceneGenerationModal
         isOpen={!!sceneGenPersona}
         persona={sceneGenPersona}
-        onClose={() => setSceneGenPersona(null)}
+        autoStart={sceneGenAutoStart}
+        onClose={() => {
+          setSceneGenPersona(null);
+          setSceneGenAutoStart(false);
+        }}
         onPersonaUpdated={(updated) => {
           const all = getAllPersonas();
           setPersonas(all);
