@@ -21,7 +21,6 @@ import {
   ExternalLink,
   Layers,
   FileText,
-  Server,
 } from 'lucide-react';
 import {
   buildCloudflareAiPrompt,
@@ -39,7 +38,6 @@ import {
 import { getShortSceneTitle } from '../utils/sceneTitleHelper';
 import { getDbItem, setDbItem } from '../services/storageDb';
 import { SceneGenerationModal } from './SceneGenerationModal';
-import { CloudflareAccountsModal } from './CloudflareAccountsModal';
 import { getReadyScenesCount } from '../services/characterSceneGenerator';
 
 interface PictogramEditorModalProps {
@@ -494,7 +492,6 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
   const [aiRotationNotice, setAiRotationNotice] = useState<string | null>(null);
-  const [isAccountsModalOpen, setIsAccountsModalOpen] = useState(false);
 
   const handleGenerateWithAi = async () => {
     setAiError(null);
@@ -1396,15 +1393,6 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
                     <div className="flex items-center gap-1.5">
                       <button
                         type="button"
-                        onClick={() => setIsAccountsModalOpen(true)}
-                        className="py-1 px-2.5 bg-white hover:bg-slate-100 text-slate-700 font-bold text-[11px] rounded-xl border border-slate-300 flex items-center gap-1 transition-colors cursor-pointer"
-                        title="Administrer Cloudflare AI Konti & Rotation"
-                      >
-                        <Server size={12} className="text-amber-600" />
-                        <span>AI Konti</span>
-                      </button>
-                      <button
-                        type="button"
                         disabled={isGeneratingAi || !inlineSceneText.trim()}
                         onClick={handleGenerateWithAi}
                         className="py-1.5 px-3 bg-slate-100 hover:bg-amber-100 disabled:opacity-50 text-slate-800 font-bold text-xs rounded-xl border border-slate-300 hover:border-slate-900 flex items-center gap-1.5 transition-colors cursor-pointer"
@@ -1437,16 +1425,6 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
                         <AlertCircle size={15} className="text-amber-700 shrink-0 mt-0.5" />
                         <span>{aiError}</span>
                       </div>
-                      {aiError.includes('kvote') && (
-                        <button
-                          type="button"
-                          onClick={() => setIsAccountsModalOpen(true)}
-                          className="self-start text-[11px] font-black px-2.5 py-1 bg-amber-400 hover:bg-amber-500 text-slate-900 rounded-lg border border-slate-900 flex items-center gap-1 transition-colors cursor-pointer"
-                        >
-                          <Server size={12} />
-                          <span>Tilføj ekstra konto i AI Konti</span>
-                        </button>
-                      )}
                     </div>
                   )}
                 </div>
@@ -1489,11 +1467,6 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
         isOpen={isSceneGenOpen}
         persona={activePersona}
         onClose={() => setIsSceneGenOpen(false)}
-      />
-
-      <CloudflareAccountsModal
-        isOpen={isAccountsModalOpen}
-        onClose={() => setIsAccountsModalOpen(false)}
       />
     </div>
   );

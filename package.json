@@ -8,7 +8,9 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "test": "vitest run",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "accounts": "node scripts/manage-accounts.mjs list",
+    "add-account": "node scripts/manage-accounts.mjs add"
   },
   "dependencies": {
     "html2canvas": "^1.4.1",

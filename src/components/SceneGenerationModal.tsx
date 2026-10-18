@@ -9,8 +9,6 @@ import {
   Minimize2,
   Maximize2,
   RotateCw,
-  Server,
-  Plus,
 } from 'lucide-react';
 import type { Persona } from '../types';
 import {
@@ -21,9 +19,7 @@ import {
   type SceneGenProgress,
 } from '../services/characterSceneGenerator';
 import { getAllPersonas } from '../services/personas';
-import { CloudflareAccountsModal } from './CloudflareAccountsModal';
 import {
-  getActiveWorkerAccounts,
   resetAllAccountQuotas,
   getQuotaResetInfo,
 } from '../services/imageGenerationApi';
@@ -43,7 +39,6 @@ export const SceneGenerationModal: React.FC<SceneGenerationModalProps> = ({
 }) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
-  const [isAccountsModalOpen, setIsAccountsModalOpen] = useState(false);
   const [isWaitingForReset, setIsWaitingForReset] = useState(false);
   const resetTimerRef = useRef<number | null>(null);
 
@@ -95,17 +90,6 @@ export const SceneGenerationModal: React.FC<SceneGenerationModalProps> = ({
         startGeneration(currentPersona);
       }
     }, waitMs);
-  };
-
-  const handleAccountsChanged = () => {
-    const active = getActiveWorkerAccounts();
-    if (active.length > 0 && currentPersona) {
-      setErrorMsg(null);
-      setIsWaitingForReset(false);
-      if (!isGenerating) {
-        startGeneration(currentPersona);
-      }
-    }
   };
 
   // Start generation automatically when opened and missing scenes exist
@@ -249,15 +233,6 @@ export const SceneGenerationModal: React.FC<SceneGenerationModalProps> = ({
           <div className="flex items-center gap-1.5">
             <button
               type="button"
-              onClick={() => setIsAccountsModalOpen(true)}
-              className="px-2.5 py-1 rounded-xl bg-white/90 hover:bg-white border-2 border-slate-900 font-bold text-xs text-slate-900 flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs mr-1"
-              title="Administrer Cloudflare AI Konti & Rotation"
-            >
-              <Server size={13} />
-              <span>AI Konti</span>
-            </button>
-            <button
-              type="button"
               onClick={() => setIsMinimized(true)}
               title="Minimer til hjørnet og fortsæt i baggrunden"
               className="p-1.5 rounded-xl hover:bg-black/10 text-slate-900 transition-colors cursor-pointer"
@@ -349,21 +324,13 @@ export const SceneGenerationModal: React.FC<SceneGenerationModalProps> = ({
                 </div>
               </div>
 
-              <div className="flex flex-wrap gap-2 pt-1">
-                <button
-                  type="button"
-                  onClick={() => setIsAccountsModalOpen(true)}
-                  className="px-3 py-1.5 rounded-xl border-2 border-slate-900 bg-amber-400 hover:bg-amber-500 font-bold text-xs text-slate-900 shadow-2xs flex items-center gap-1.5 transition-colors cursor-pointer"
-                >
-                  <Plus size={14} className="stroke-[3]" />
-                  <span>Tilføj ekstra konto (fortsæt nu)</span>
-                </button>
+              <div className="pt-1">
                 <button
                   type="button"
                   onClick={handleScheduleAutoResume}
-                  className="px-3 py-1.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-100 font-bold text-xs text-slate-700 shadow-2xs flex items-center gap-1.5 transition-colors cursor-pointer"
+                  className="px-3.5 py-2 rounded-xl border-2 border-slate-900 bg-amber-400 hover:bg-amber-500 font-black text-xs text-slate-900 shadow-xs flex items-center gap-1.5 transition-colors cursor-pointer"
                 >
-                  <Clock size={14} />
+                  <Clock size={15} />
                   <span>
                     {isWaitingForReset
                       ? `Venter på automatisk fortsættelse kl. ${progress.resetInfo?.localTimeStr || '02:00'}...`
@@ -526,12 +493,6 @@ export const SceneGenerationModal: React.FC<SceneGenerationModalProps> = ({
           </div>
         </div>
       </div>
-
-      <CloudflareAccountsModal
-        isOpen={isAccountsModalOpen}
-        onClose={() => setIsAccountsModalOpen(false)}
-        onAccountsChanged={handleAccountsChanged}
-      />
     </div>
   );
 };

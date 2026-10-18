@@ -4,6 +4,8 @@
  * Supports multi-account rotation, quota tracking, and automatic failover.
  */
 
+import { CONFIGURED_CLOUDFLARE_ACCOUNTS } from '../config/cloudflareAccounts';
+
 const STORAGE_KEY_WORKER_URL = 'pictogram_cf_ai_worker_url';
 const STORAGE_KEY_API_KEY = 'pictogram_cf_ai_api_key';
 const STORAGE_KEY_WORKER_ACCOUNTS = 'pictogram_cf_ai_worker_accounts';
@@ -88,52 +90,60 @@ export class AllAccountsQuotaExceededError extends Error {
 
 /**
  * Returns all configured Cloudflare worker accounts, automatically lifting exhaustion
- * if the daily reset time (00:00 UTC) has passed.
+ * if the daily reset time (00:00 UTC) has passed. Synchronizes with CONFIGURED_CLOUDFLARE_ACCOUNTS.
  */
 export function getStoredWorkerAccounts(): CloudflareWorkerAccount[] {
+  let storedAccounts: CloudflareWorkerAccount[] = [];
   try {
     const raw = localStorage.getItem(STORAGE_KEY_WORKER_ACCOUNTS);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        const now = Date.now();
-        let changed = false;
-        const cleaned: CloudflareWorkerAccount[] = parsed.map((acc: CloudflareWorkerAccount) => {
-          if (acc.exhaustedUntil && new Date(acc.exhaustedUntil).getTime() <= now) {
-            changed = true;
-            return {
-              ...acc,
-              isExhausted: false,
-              exhaustedUntil: undefined,
-              lastError: undefined,
-            };
-          }
-          return acc;
-        });
-
-        if (changed) {
-          saveStoredWorkerAccounts(cleaned);
-        }
-        return cleaned;
+      if (Array.isArray(parsed)) {
+        storedAccounts = parsed;
       }
     }
   } catch {
-    // fallback to defaults
+    // fallback
   }
 
-  // Backwards compatibility migration
-  const legacyUrl = localStorage.getItem(STORAGE_KEY_WORKER_URL) || DEFAULT_WORKER_URL;
-  const legacyKey = localStorage.getItem(STORAGE_KEY_API_KEY) || '';
-  const initialAccounts: CloudflareWorkerAccount[] = [
-    {
-      id: 'account_default',
-      name: 'Primær konto (Konto 1)',
-      url: legacyUrl,
-      apiKey: legacyKey,
-    },
-  ];
-  saveStoredWorkerAccounts(initialAccounts);
-  return initialAccounts;
+  // Use configured accounts from src/config/cloudflareAccounts.ts
+  const configuredAccounts = CONFIGURED_CLOUDFLARE_ACCOUNTS.length > 0
+    ? CONFIGURED_CLOUDFLARE_ACCOUNTS
+    : [
+        {
+          name: 'Primær konto (Konto 1)',
+          url: DEFAULT_WORKER_URL,
+        },
+      ];
+
+  const now = Date.now();
+
+  // Build merged list: configured accounts first, mapped with existing runtime state if found
+  const merged: CloudflareWorkerAccount[] = configuredAccounts.map((conf, index) => {
+    const cleanUrl = conf.url.trim().replace(/\/+$/, '');
+    const existing = storedAccounts.find(
+      (a) => a.url.trim().replace(/\/+$/, '').toLowerCase() === cleanUrl.toLowerCase() ||
+             a.name.toLowerCase() === conf.name.toLowerCase()
+    );
+
+    const isExhausted = existing?.isExhausted && existing?.exhaustedUntil
+      ? new Date(existing.exhaustedUntil).getTime() > now
+      : false;
+
+    return {
+      id: existing?.id || `cf_conf_${index + 1}_${cleanUrl.replace(/[^a-zA-Z0-9]/g, '_').slice(-16)}`,
+      name: conf.name,
+      url: cleanUrl,
+      apiKey: conf.apiKey,
+      isExhausted,
+      exhaustedUntil: isExhausted ? existing?.exhaustedUntil : undefined,
+      lastUsedAt: existing?.lastUsedAt,
+      lastError: isExhausted ? existing?.lastError : undefined,
+    };
+  });
+
+  saveStoredWorkerAccounts(merged);
+  return merged;
 }
 
 export function saveStoredWorkerAccounts(accounts: CloudflareWorkerAccount[]): void {
