@@ -25,6 +25,7 @@ import {
 import {
   buildCloudflareAiPrompt,
   buildDanishMasterPrompt,
+  buildEnglishMasterPrompt,
   optimizeScenePrompt,
 } from '../data/scenePrompts';
 import { PICTO_STYLE_REF_URL } from '../services/personas';
@@ -35,7 +36,6 @@ import {
   getStoredApiKey,
   removeImageBackground,
 } from '../services/imageGenerationApi';
-import { convertImageToDataUrl } from '../services/pdfExport';
 
 interface PictogramEditorModalProps {
   pictogram: Pictogram | null;
@@ -314,6 +314,7 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
   const [copiedRef1, setCopiedRef1] = useState(false);
   const [copiedRef2, setCopiedRef2] = useState(false);
   const [showPromptPreview, setShowPromptPreview] = useState(false);
+  const [masterPromptLang, setMasterPromptLang] = useState<'en' | 'da'>('en');
   const uploadInputRef = useRef<HTMLInputElement>(null);
 
   // Dropdown states for compact time, color and font size pickers
@@ -398,8 +399,13 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
   };
 
   const handleCopyMasterPrompt = async () => {
-    const promptText = buildDanishMasterPrompt({
-      sceneDescription: inlineSceneText.trim() || 'Figuren udfører aktiviteten glad og naturligt.',
+    const promptFn = masterPromptLang === 'en' ? buildEnglishMasterPrompt : buildDanishMasterPrompt;
+    const defaultDesc =
+      masterPromptLang === 'en'
+        ? 'The character performs the daily activity happily.'
+        : 'Figuren udfører aktiviteten glad og naturligt.';
+    const promptText = promptFn({
+      sceneDescription: inlineSceneText.trim() || defaultDesc,
       personaName: activePersona.name,
       isWoman: activePersona.id === 'woman_a',
     });
@@ -453,24 +459,18 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
       const promptToUse = buildCloudflareAiPrompt({
         sceneDescription: inlineSceneText,
         personaName: activePersona.name,
+        personaId: activePersona.id,
+        personaDescription: activePersona.description,
         isWoman: activePersona.id === 'woman_a',
       });
 
-      let avatarRefBase64: string | undefined = undefined;
-      if (activePersona.avatarUrl) {
-        try {
-          const converted = await convertImageToDataUrl(activePersona.avatarUrl);
-          if (converted) avatarRefBase64 = converted;
-        } catch {
-          // If avatar conversion fails, proceed with prompt
-        }
-      }
-
+      // Note: We deliberately do NOT pass referenceImage to generateSceneImage.
+      // The Cloudflare Worker backend treats any image_b64 as an Avatar Creator selfie request,
+      // which overwrites the scene prompt with an avatar bust portrait. Flux-1-Schnell
+      // executes text-to-image directly on our prompt with character and activity details.
       const generatedDataUrl = await generateSceneImage(promptToUse, {
         workerUrl,
         apiKey: workerApiKey,
-        referenceImage: avatarRefBase64,
-        strength: 0.65,
       });
 
       // Automatically remove solid background to make it transparent
@@ -1184,33 +1184,68 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
 
                 {/* 3. Masterprompt & ChatGPT handlinger */}
                 <div className="bg-slate-900 text-white rounded-2xl p-3.5 space-y-2.5 border-2 border-slate-900 shadow-sm">
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex items-center gap-1.5">
                       <FileText size={15} className="text-amber-400" />
                       <span className="text-xs font-black text-white">
                         Generer i ChatGPT / DALL-E (Anbefalet)
                       </span>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => setShowPromptPreview((prev) => !prev)}
-                      className="text-[11px] font-bold text-amber-300 hover:text-amber-200 cursor-pointer underline"
-                    >
-                      {showPromptPreview ? 'Skjul prompt' : 'Vis prompt'}
-                    </button>
+
+                    <div className="flex items-center gap-2">
+                      {/* Language switcher for Masterprompt */}
+                      <div className="flex items-center bg-slate-800 p-0.5 rounded-lg border border-slate-700 text-[10px]">
+                        <button
+                          type="button"
+                          onClick={() => setMasterPromptLang('en')}
+                          className={`px-2 py-0.5 rounded font-bold transition-all cursor-pointer ${
+                            masterPromptLang === 'en'
+                              ? 'bg-amber-400 text-slate-950 shadow-xs'
+                              : 'text-slate-300 hover:text-white'
+                          }`}
+                        >
+                          English (Bedst til AI)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setMasterPromptLang('da')}
+                          className={`px-2 py-0.5 rounded font-bold transition-all cursor-pointer ${
+                            masterPromptLang === 'da'
+                              ? 'bg-amber-400 text-slate-950 shadow-xs'
+                              : 'text-slate-300 hover:text-white'
+                          }`}
+                        >
+                          Dansk
+                        </button>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => setShowPromptPreview((prev) => !prev)}
+                        className="text-[11px] font-bold text-amber-300 hover:text-amber-200 cursor-pointer underline"
+                      >
+                        {showPromptPreview ? 'Skjul' : 'Vis'}
+                      </button>
+                    </div>
                   </div>
 
                   <p className="text-[11px] text-slate-300 leading-snug">
-                    Kopiér Masterprompten herunder og vedhæft <strong>Ref 1</strong> (Figur) og <strong>Ref 2</strong> (Piktogram-stil) i ChatGPT.
+                    Kopiér Masterprompten på {masterPromptLang === 'en' ? 'engelsk (anbefalet til AI)' : 'dansk'} herunder og vedhæft <strong>Ref 1</strong> (Figur) og <strong>Ref 2</strong> (Piktogram-stil) i ChatGPT.
                   </p>
 
                   {showPromptPreview && (
                     <pre className="p-2.5 rounded-xl bg-slate-950 text-slate-200 text-[10.5px] font-mono whitespace-pre-wrap max-h-36 overflow-y-auto border border-slate-800">
-                      {buildDanishMasterPrompt({
-                        sceneDescription: inlineSceneText || 'Figuren udfører aktiviteten glad og naturligt.',
-                        personaName: activePersona.name,
-                        isWoman: activePersona.id === 'woman_a',
-                      })}
+                      {masterPromptLang === 'en'
+                        ? buildEnglishMasterPrompt({
+                            sceneDescription: inlineSceneText || 'The character performs the daily activity happily.',
+                            personaName: activePersona.name,
+                            isWoman: activePersona.id === 'woman_a',
+                          })
+                        : buildDanishMasterPrompt({
+                            sceneDescription: inlineSceneText || 'Figuren udfører aktiviteten glad og naturligt.',
+                            personaName: activePersona.name,
+                            isWoman: activePersona.id === 'woman_a',
+                          })}
                     </pre>
                   )}
 

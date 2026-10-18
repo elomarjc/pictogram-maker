@@ -3,6 +3,7 @@ import type { Pictogram, Persona } from '../types';
 import { ICONS } from '../data/icons';
 import { ILLUSTRATIONS } from '../data/illustrations';
 import { resolveSceneImage, getPersona } from '../services/personas';
+import { darkenColor } from '../services/colorUtils';
 import {
   Pencil,
   Copy,
@@ -78,6 +79,8 @@ export const PictogramCard: React.FC<PictogramCardProps> = ({
     ? { fontSize: `${numericFontSize}px` }
     : {};
 
+  const sceneBgColor = darkenColor(pictogram.bgColor || '#FFFFFF', 0.14);
+
   if (viewMode === 'vertical') {
     // iPhone vertical aspect ratio card (6.5 x 10 cm proportions)
     return (
@@ -107,7 +110,10 @@ export const PictogramCard: React.FC<PictogramCardProps> = ({
         </div>
 
         {/* Top/Middle: Large illustration / image (takes up more space) */}
-        <div className="flex-1 bg-white rounded-xl border-2 border-slate-900 overflow-hidden flex items-center justify-center my-1 shadow-inner relative">
+        <div
+          style={{ backgroundColor: sceneBgColor }}
+          className="flex-1 rounded-xl border-2 border-slate-900 overflow-hidden flex items-center justify-center my-1 shadow-inner relative"
+        >
           {sceneImageUrl ? (
             <img
               src={sceneImageUrl}
@@ -186,7 +192,10 @@ export const PictogramCard: React.FC<PictogramCardProps> = ({
       }`}
     >
       {/* Left section: Graphic illustration / Photo (figure fills more space) */}
-      <div className="w-40 sm:w-56 md:w-64 h-full min-h-[84px] sm:min-h-[96px] bg-white border-r-3 border-slate-900 flex items-center justify-center shrink-0 overflow-hidden relative">
+      <div
+        style={{ backgroundColor: sceneBgColor }}
+        className="w-40 sm:w-56 md:w-64 h-full min-h-[84px] sm:min-h-[96px] border-r-3 border-slate-900 flex items-center justify-center shrink-0 overflow-hidden relative"
+      >
         {sceneImageUrl ? (
           <img
             src={sceneImageUrl}

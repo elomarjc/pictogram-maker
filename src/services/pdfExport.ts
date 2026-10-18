@@ -134,9 +134,19 @@ function drawBoardStrip(
   doc.setLineWidth(0.7);
   doc.roundedRect(x, y, width, height, 3, 3, 'FD');
 
-  // Left side: Illustration indicator box (fills more of the strip)
+  // Left side: Illustration indicator box with slightly darker shade of card color
   const leftBoxW = Math.round(width * 0.48);
+  const darkR = Math.max(0, Math.round(r * 0.86));
+  const darkG = Math.max(0, Math.round(g * 0.86));
+  const darkB = Math.max(0, Math.round(b * 0.86));
+  doc.setFillColor(darkR, darkG, darkB);
+  doc.roundedRect(x, y, leftBoxW, height, 3, 3, 'F');
+  doc.rect(x + leftBoxW - 3, y, 3, height, 'F');
+
+  // Stroke border and divider line
   doc.setDrawColor(30, 41, 59);
+  doc.setLineWidth(0.7);
+  doc.roundedRect(x, y, width, height, 3, 3, 'D');
   doc.setLineWidth(0.5);
   doc.line(x + leftBoxW, y, x + leftBoxW, y + height);
 
@@ -238,7 +248,10 @@ function drawVerticalCard(
   const imgBoxW = width - imgPad * 2;
   const imgBoxH = imgAreaH - imgPad;
 
-  doc.setFillColor(255, 255, 255);
+  const darkGridR = Math.max(0, Math.round(r * 0.86));
+  const darkGridG = Math.max(0, Math.round(g * 0.86));
+  const darkGridB = Math.max(0, Math.round(b * 0.86));
+  doc.setFillColor(darkGridR, darkGridG, darkGridB);
   doc.setDrawColor(30, 41, 59);
   doc.setLineWidth(0.5);
   doc.roundedRect(x + imgPad, y + imgPad, imgBoxW, imgBoxH, 3, 3, 'FD');

@@ -118,52 +118,40 @@ Enhver bruger kan klikke på **"Rediger"** på et kort, vælge fanen **"Upload e
 
 ---
 
-## 📁 Projektstruktur
+## 📁 Projektstruktur & Reference Bibliotek
+
+Repositoryet er organiseret, så figurer (avatars), scener og ikoner er intuitive at finde:
 
 ```
 pictogram-maker/
-├── .github/
-│   └── workflows/
-│       └── deploy.yml          # GitHub Actions automatisk Pages-deployment
+├── reference/                         # Centralt reference-bibliotek (se reference/README.md)
+│   ├── personas/
+│   │   ├── man/                       # Mandlig figur (K.)
+│   │   │   ├── avatar.webp            # Avatar portræt (Ref 1)
+│   │   │   └── scenes/                # 14 aktivitetsscener (sengetid, vasketøj, kaffe m.fl.)
+│   │   └── woman/                     # Kvindelig figur (A.)
+│   │       ├── avatar.webp            # Avatar portræt (Ref 1)
+│   │       └── scenes/                # Aktivitetsscener (vasketøj, kaffe, medicin m.fl.)
+│   ├── icons/                         # Piktogram-symboler (kop, seng, bruser m.fl.)
+│   ├── cards/                         # Fulde referencekort
+│   ├── style_guide/                   # Visuel tegnestilsreference (Ref 2)
+│   └── README.md                      # Detaljeret oversigt over alle figurer og scener
 ├── public/
-│   ├── favicon.svg             # Ikon til browser-fane
-│   └── reference/
-│       └── eksempel-paa-piktogram.jpeg  # Referencebillede (Mandag - AV)
+│   ├── favicon.svg                    # Browser-fane ikon
+│   └── reference/                     # Statiske reference-aktiver til Vite / GitHub Pages
 ├── src/
-│   ├── __tests__/              # Automatiserede tests
-│   │   ├── plan.test.ts        # Tests for skabeloner og sessionStorage
-│   │   └── pdf.test.ts         # Tests for PDF-generering og pagination
-│   ├── components/             # React UI-komponenter
-│   │   ├── Header.tsx          # Topnavigation, ugedagsfaner og printknap
-│   │   ├── DailyBoard.tsx      # Dagsplan-tavle med sol/sky og aktivitetsrækkefølge
-│   │   ├── WeekView.tsx        # Ugeoversigt med alle 7 dage
-│   │   ├── PictogramCard.tsx   # Piktogramkort (tavlestribe & vertikalt kort)
-│   │   ├── PictogramEditorModal.tsx # Redigering af aktivitet, farve og illustration
-│   │   ├── PrintPreviewModal.tsx    # PDF- og printindstillinger (A4 mm)
-│   │   ├── PlanManagerModal.tsx     # Skift, omdøb, opret og backup af planer
-│   │   ├── TemplatePickerModal.tsx  # Vælg standardskabelon
-│   │   ├── MoveToDayModal.tsx       # Flyt/kopiér kort mellem dage
-│   │   ├── CopyDayModal.tsx         # Kopiér hel dagsplan til anden ugedag
-│   │   ├── PrivacyInfoModal.tsx     # Forklaring af privatliv og sletning
-│   │   └── ReferenceViewerModal.tsx # Visning af referencebilledet i appen
-│   ├── data/
-│   │   ├── icons.tsx           # Lucide-piktogrammer og farvepaletter
-│   │   ├── illustrations.tsx   # Specialdesignede SVG-illustrationer
-│   │   └── templates.ts        # Standardskabeloner (K. m.fl.)
-│   ├── services/
-│   │   ├── pdfExport.ts        # jsPDF layoutmotor med mm-mål og sideskift
-│   │   └── storage.ts          # sessionStorage og lokal JSON import/export
-│   ├── types/
-│   │   └── index.ts            # TypeScript definitioner
-│   ├── App.tsx                 # Hovedapplikation
-│   ├── main.tsx                # React entry point
-│   └── index.css               # Tailwind CSS og dedikerede print-styles
-├── index.html                  # HTML template med dansk sprog og metadata
-├── package.json                # Afhængigheder og scripts
-├── tsconfig.json               # TypeScript konfiguration
-├── vite.config.ts              # Vite konfiguration med chunking og relative stier
-└── vitest.config.ts            # Testkonfiguration
+│   ├── components/                    # React UI-komponenter (DailyBoard, PictogramCard, etc.)
+│   ├── data/                          # Ikoner, skabeloner og prompt-generatorer
+│   ├── services/                      # PDF-eksport, farveværktøjer og Cloudflare AI integration
+│   ├── types/                         # TypeScript interfaces
+│   └── App.tsx                        # Hovedapplikation
+├── index.html                         # HTML template
+├── package.json                       # Afhængigheder og scripts
+├── vite.config.ts                     # Vite konfiguration
+└── vitest.config.ts                   # Vitest enhedstests
 ```
+
+Se den komplette oversigt over alle avatarer og scener i [reference/README.md](reference/README.md).
 
 ---
 

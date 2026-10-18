@@ -162,6 +162,28 @@ describe('Prompt optimering og scene-beskrivelser', () => {
     expect(enPrompt).not.toContain('hoodie');
     expect(enPrompt).not.toContain('ponytail');
   });
+
+  it('genererer præcise Flux-1-Schnell scener med karakter og aktivitet til Cloudflare AI', async () => {
+    const { buildCloudflareAiPrompt } = await import('../data/scenePrompts');
+
+    const promptManSengetid = buildCloudflareAiPrompt({
+      sceneDescription: 'sengetid',
+      personaId: 'man_k',
+    });
+    expect(promptManSengetid).toContain('buzzcut');
+    expect(promptManSengetid).toContain('pillow');
+    expect(promptManSengetid).toContain('ZZZ');
+    expect(promptManSengetid).toContain('Clean 2D cartoon pictogram vector illustration');
+
+    const promptWomanLaundry = buildCloudflareAiPrompt({
+      sceneDescription: 'vasketøj',
+      personaId: 'woman_a',
+    });
+    expect(promptWomanLaundry).toContain('ponytail');
+    expect(promptWomanLaundry).toContain('turquoise teal hoodie');
+    expect(promptWomanLaundry).toContain('laundry basket');
+    expect(promptWomanLaundry).toContain('washing machine');
+  });
 });
 
 describe('Uafhængig skriftstørrelse (enkelte kort vs. global værktøjslinje)', () => {

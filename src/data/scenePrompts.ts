@@ -339,6 +339,108 @@ export const PRESET_SCENE_PROMPTS: ScenePromptItem[] = [
   },
 ];
 
+function translateActivityToEnglish(input: string): string {
+  const clean = input.trim();
+  if (!clean) return 'performing daily routine happily';
+
+  const lower = clean.toLowerCase();
+
+  // If input is already English or descriptive English phrase:
+  if (
+    /^(sleeping|sitting|holding|walking|reading|cooking|eating|drinking|standing|playing|working|cleaning|drawing|riding|taking|watering)/i.test(
+      clean
+    )
+  ) {
+    return clean;
+  }
+
+  if (lower.includes('seng') || lower.includes('sove') || lower.includes('godnat')) {
+    return 'sleeping peacefully sideways on a fluffy white pillow under a blue duvet, smiling with closed eyes, blue ZZZ letters floating above';
+  }
+  if (lower.includes('vaske tøj') || lower.includes('vasketøj') || lower.includes('vaskemaskine') || lower.includes('hænge vasketøj')) {
+    return 'happily holding a white laundry basket full of colorful folded clothes in front of a modern front-loading washing machine, green plant in pot on the side, detergent bottle';
+  }
+  if (lower.includes('kaffe') || lower.includes('the') || lower.includes('te') || lower.includes('drikke')) {
+    return 'sitting happily at a cozy table holding a steaming warm mug of coffee with both hands, friendly smile';
+  }
+  if (lower.includes('børste tænder') || lower.includes('tandbørst') || lower.includes('tænder')) {
+    return 'standing by a bathroom mirror brushing teeth with a blue toothbrush and foaming white toothpaste, smiling';
+  }
+  if (lower.includes('spise') || lower.includes('morgenmad') || lower.includes('frokost') || lower.includes('aftensmad') || lower.includes('mad')) {
+    return 'sitting happily at a dining table with a plate of delicious food, fork and knife, and a glass of water, smiling';
+  }
+  if (lower.includes('opvask') || lower.includes('vaske op')) {
+    return 'happily washing dishes at a kitchen sink with bubbly soap suds, yellow sponge and clean plates drying';
+  }
+  if (lower.includes('rydde op') || lower.includes('rydder op')) {
+    return 'happily tidying and organizing the room, putting items in neat order, cheerful smile';
+  }
+  if (lower.includes('fodre') || lower.includes('kæledyr') || lower.includes('kat') || lower.includes('hund')) {
+    return 'happily feeding a friendly pet with a small bowl of food, smiling';
+  }
+  if (lower.includes('toilet') || lower.includes('vaske hænder')) {
+    return 'washing hands cleanly at a bathroom washbasin with bubbly soap and water, smiling';
+  }
+  if (lower.includes('gåtur') || lower.includes('gå tur') || lower.includes('spadsere')) {
+    return 'walking happily outdoors on a sunny day along a path in a green park with lush trees, smiling';
+  }
+  if (lower.includes('støvsuge') || lower.includes('støvsug')) {
+    return 'happily vacuuming the living room floor with a modern vacuum cleaner, cheerful smile';
+  }
+  if (lower.includes('pause') || lower.includes('sofa') || lower.includes('slappe af')) {
+    return 'sitting comfortably relaxed on a cozy soft living room sofa, warm friendly smile';
+  }
+  if (lower.includes('rede seng')) {
+    return 'happily making a neat bed with fluffy white pillows and smooth tidy blanket';
+  }
+  if (lower.includes('skrald') || lower.includes('skraldespand')) {
+    return 'carrying a green trash bag to throw into a tidy wheelie dustbin outside, smiling';
+  }
+  if (lower.includes('handle') || lower.includes('indkøb')) {
+    return 'pushing a colorful shopping basket with groceries happily down a tidy supermarket aisle';
+  }
+  if (lower.includes('bad') || lower.includes('bade') || lower.includes('brusebad')) {
+    return 'taking a warm cozy shower with bubbly soap suds and shampoo, smiling';
+  }
+  if (lower.includes('medicin') || lower.includes('pille')) {
+    return 'sitting by a clean table with a small daily medicine organizer box and a glass of water, smiling';
+  }
+  if (lower.includes('brætspil') || lower.includes('spil')) {
+    return 'sitting at a table playing a colorful board game, smiling and focused';
+  }
+  if (lower.includes('bog') || lower.includes('læse')) {
+    return 'sitting comfortably in a soft armchair reading an interesting book with a warm smile';
+  }
+  if (lower.includes('cykel') || lower.includes('cykle')) {
+    return 'riding a bicycle happily on a bike path on a sunny day with a bicycle helmet';
+  }
+  if (lower.includes('have') || lower.includes('plante') || lower.includes('blomst') || lower.includes('vande')) {
+    return 'in a green garden watering potted plants with a small watering can, smiling';
+  }
+  if (lower.includes('bage') || lower.includes('kage') || lower.includes('bolle')) {
+    return 'standing in the kitchen wearing an apron baking delicious cakes at the kitchen counter';
+  }
+  if (lower.includes('musik') || lower.includes('høretelefon') || lower.includes('headset')) {
+    return 'sitting relaxed wearing large over-ear headphones and happily listening to music';
+  }
+  if (lower.includes('tegne') || lower.includes('male') || lower.includes('kreativ')) {
+    return 'sitting at a desk drawing a colorful picture with marker pens and paper, smiling proudly';
+  }
+  if (lower.includes('computer') || lower.includes('gamer') || lower.includes('pc')) {
+    return 'sitting at a computer desk in front of a monitor with mouse and keyboard, focused and happy';
+  }
+  if (lower.includes('tv') || lower.includes('fjernsyn')) {
+    return 'sitting on a comfortable couch watching television happily with a remote control';
+  }
+
+  // Strip generic Danish subject if user started with "Figuren..."
+  const englishActivity = clean
+    .replace(/^figuren\s+(er\s+i\s+gang\s+med\s+at\s+|skal\s+|er\s+ved\s+at\s+|sidder\s+og\s+|)/i, '')
+    .trim();
+
+  return `happily doing: ${englishActivity}`;
+}
+
 /**
  * Generates an optimized prompt for Cloudflare Workers AI text-to-image models
  * (Flux-1-Schnell or SD-XL Lightning). Maintains exact persona characteristics,
@@ -347,11 +449,30 @@ export const PRESET_SCENE_PROMPTS: ScenePromptItem[] = [
 export function buildCloudflareAiPrompt(options: {
   sceneDescription: string;
   personaName?: string;
+  personaId?: string;
+  personaDescription?: string;
   isWoman?: boolean;
 }): string {
-  const activity = options.sceneDescription.trim() || 'performing daily task happily';
+  const isWoman =
+    options.isWoman ||
+    options.personaId === 'woman_a' ||
+    (options.personaName ? /kvinde/i.test(options.personaName) : false);
 
-  return `Clean 2D cartoon pictogram vector illustration of the character from Reference Image 1 (Ref 1), keeping the appearance, hairstyle, face, and clothing 100% consistent with the avatar, ${activity}. Exact style matching autism schedule cards: flat cel-shaded vector art style, thick soft black outlines, bright clean solid colors, isolated on pure white background, friendly autism visual schedule icon, no text, no frame, high quality.`;
+  let characterDesc: string;
+  if (isWoman) {
+    characterDesc =
+      'A cheerful friendly cartoon woman with brown hair tied in a neat ponytail, round friendly face, rosy cheeks, warm smile, wearing a turquoise teal hoodie jacket over a t-shirt';
+  } else if (options.personaDescription && options.personaId !== 'man_k') {
+    characterDesc = `A cheerful friendly cartoon character, ${options.personaDescription}`;
+  } else {
+    // Default man (man_k) matching persona_man_avatar.webp
+    characterDesc =
+      'A cheerful friendly cartoon man with closely shaved buzzcut hair, round friendly face, rosy cheeks, warm open smile, wearing a grey hoodie jacket over a white t-shirt';
+  }
+
+  const activity = translateActivityToEnglish(options.sceneDescription);
+
+  return `Clean 2D cartoon pictogram vector illustration, horizontal aspect ratio. ${characterDesc}, ${activity}. Bold thick smooth black outlines, simple flat cel-shading, colorful and cheerful, isolated on pure white background, cute autism schedule pictogram, no text, no frame, wide horizontal composition.`;
 }
 
 /**
