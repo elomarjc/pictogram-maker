@@ -128,6 +128,35 @@ describe('Prompt optimering og scene-beskrivelser', () => {
     expect(optimizeScenePrompt('gå en tur')).toContain('gåtur');
     expect(optimizeScenePrompt('fodre katten')).toContain('Figuren');
   });
+
+  it('bygger masterprompt med de 4 elementer: masterprompt + figur (Ref 1) + scenebeskrivelse + piktogram ref (Ref 2)', async () => {
+    const { buildDanishMasterPrompt, buildEnglishMasterPrompt } = await import('../data/scenePrompts');
+
+    const daPrompt = buildDanishMasterPrompt({
+      sceneDescription: 'Figuren lægger et farverigt puslespil ved bordet.',
+      personaName: 'Mand',
+      isWoman: false,
+    });
+
+    expect(daPrompt).toContain('Master Prompt');
+    expect(daPrompt).toContain('Billede 1 — Figur / Avatar (Ref 1)');
+    expect(daPrompt).toContain('Billede 2 — Eksempel / Tegnestil (Ref 2)');
+    expect(daPrompt).toContain('Figuren lægger et farverigt puslespil ved bordet.');
+    expect(daPrompt).toContain('100% Gennemsigtig Baggrund');
+    expect(daPrompt).toContain('buzzcut');
+
+    const enPrompt = buildEnglishMasterPrompt({
+      sceneDescription: 'The character is baking cookies in the kitchen.',
+      personaName: 'Woman',
+      isWoman: true,
+    });
+
+    expect(enPrompt).toContain('Master Prompt');
+    expect(enPrompt).toContain('Image 1 — Avatar (Ref 1)');
+    expect(enPrompt).toContain('Image 2 — Example (Ref 2)');
+    expect(enPrompt).toContain('The character is baking cookies in the kitchen.');
+    expect(enPrompt).toContain('Transparent Background');
+  });
 });
 
 describe('Uafhængig skriftstørrelse (enkelte kort vs. global værktøjslinje)', () => {

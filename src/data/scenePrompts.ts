@@ -16,29 +16,28 @@ export function buildDanishMasterPrompt(options: {
 }): string {
   const charSubject = options.isWoman
     ? 'kvinden fra Referencebillede 1 (kvindelig figur med hestehale og turkis hættetrøje)'
-    : 'manden fra Referencebillede 1 (mandlig figur med kort hår og grå hættetrøje)';
+    : 'manden fra Referencebillede 1 (mandlig figur med kort mørkt hår / buzzcut og grå hættetrøje)';
 
   return `# Master Prompt — Piktogram Generator (Dansk)
 
-## Referencebilleder
+## Referencebilleder der SKAL vedhæftes i ChatGPT / DALL-E:
 - **Billede 1 — Figur / Avatar (Ref 1):** Brug dette billede som den præcise figur-reference. Bevar personens udseende, ansigt, hudtone, frisure, ansigtstræk, tøj, kropsproportioner og genkendelige identitet nøjagtigt.
-- **Billede 2 — Eksempel / Tegnestil (Ref 2):** Brug dette billede som den visuelle stilart-reference for tegneserie-illustrationen: linjetykkelse, farvemætning, cel-shading og venlig, pædagogisk piktogram-æstetik. Lav IKKE en hel tavle, kun selve illustrationen.
+- **Billede 2 — Eksempel / Tegnestil (Ref 2):** Brug dette billede som den visuelle stilart-reference for tegneserie-illustrationen: linjetykkelse, farvemætning, cel-shading og venlig, pædagogisk piktogram-æstetik. Lav IKKE en hel tavle eller ramme, kun selve illustrationen.
 
 ## Scene der skal genereres:
 ${options.sceneDescription.trim() || 'Personen udfører aktiviteten glad og naturligt.'}
 
 ## Instruktioner til ChatGPT / DALL-E:
-
 Skab **én enkeltstående 2D cartoon illustration** af den angivne scene. Resultatet skal indsættes direkte på et piktogramkort i en visuel dagsplan.
 
 ### 1. Karakter-konsistens
 - Hovedpersonen er ${charSubject}.
-- Personen skal være 100% genkendelig og visuelt konsistent med Referencebillede 1.
-- Tilpas personens kropsstilling, ansigtsudtryk og håndstillinger naturligt til den ønskede aktivitet.
+- Figuren skal være 100% genkendelig og visuelt konsistent med Referencebillede 1.
+- Tilpas figurens kropsstilling, ansigtsudtryk og håndstillinger naturligt til den ønskede aktivitet.
 - Udtrykket skal være venligt, glad, imødekommende og let at afkode med et enkelt blik.
 
 ### 2. Tegnestil
-- Ren, skarp 2D tegneseriestil.
+- Ren, skarp 2D tegneseriestil som i Referencebillede 2.
 - Tydelige, tykke og bløde sorte omrids (outlines) rundt om figuren og genstande.
 - Klare, mættede farver med enkel cel-shading (skygger uden fotorealisme).
 - Runde former, klare silhuetter og venlige proportioner (som i Referencebillede 2).
@@ -46,8 +45,8 @@ Skab **én enkeltstående 2D cartoon illustration** af den angivne scene. Result
 
 ### 3. Komposition & Rekvisitter
 - Vis kun figuren i gang med aktiviteten sammen med de relevante rekvisitter (f.eks. bord, kaffekop, vasketøjskurv, tandbørste).
-- Vandret, balanceret komposition der passer i et aflangt piktogram-felt.
-- Hold figuren i centrum som det primære fokuspunkt.
+- Vandret, balanceret komposition (16:9 format) der passer i et aflangt piktogram-felt.
+- Hold figuren i centrum som det primære fokuspunkt uden at skære hoved eller hænder af.
 
 ### 4. 100% Gennemsigtig Baggrund (Kritisk krav — Transparent PNG)
 - Hele baggrunden rundt om figuren og rekvisitterne SKAL være ægte gennemsigtig (transparent PNG med alpha-kanal).
@@ -59,6 +58,53 @@ Skab **én enkeltstående 2D cartoon illustration** af den angivne scene. Result
 ### 5. Aflevering
 - Kun ét enkelt billede.
 - Ingen tekst, ingen bogstaver, ingen tal og ingen vandmærker i billedet.`;
+}
+
+export function buildEnglishMasterPrompt(options: {
+  sceneDescription: string;
+  personaName?: string;
+  isWoman?: boolean;
+}): string {
+  const charSubject = options.isWoman
+    ? 'the woman from Reference Image 1 (female character with dark hair in a ponytail wearing a teal hoodie)'
+    : 'the man from Reference Image 1 (male character with short dark buzzcut hair wearing a grey hoodie)';
+
+  return `# Master Prompt — Transparent Cartoon Pictogram Generator
+
+## Reference Images
+- **Image 1 — Avatar (Ref 1):** Use this image as the exact character reference. Preserve the character's facial features, skin tone, hairstyle, clothing, body proportions, and recognizable identity exactly.
+- **Image 2 — Example (Ref 2):** Use this image as the visual style reference for the 2D cartoon illustration: linework, saturated colors, cel shading, and friendly educational pictogram aesthetic. Do not reproduce the full chart or card frame.
+
+## Scene to Generate:
+${options.sceneDescription.trim() || 'The character performs the requested activity cheerfully and naturally.'}
+
+## Instructions for ChatGPT / DALL-E:
+Create ONE standalone 2D cartoon illustration of the specified scene for a visual autism schedule pictogram card.
+
+### 1. Character Consistency
+- Main character is ${charSubject}.
+- The character must be 100% recognizable and visually consistent with Reference Image 1.
+- Adapt body posture, facial expression, and hands naturally to the activity.
+- Expression must be warm, friendly, smiling, and easy to understand at a glance.
+
+### 2. Illustration Style
+- Clean, crisp 2D cartoon style matching Reference Image 2.
+- Bold, thick, smooth black outlines around the character and objects.
+- Clean flat saturated colors with simple subtle cel shading.
+- Rounded friendly shapes, clear silhouettes. No 3D, no photorealism.
+
+### 3. Composition & Props
+- Show only the character performing the activity with essential props (e.g., table, cup, books).
+- Balanced horizontal 16:9 composition fitting a pictogram card. Character centered as the main focus.
+
+### 4. 100% Transparent Background (Critical — Transparent PNG)
+- Entire background around character and props MUST be genuinely transparent (alpha channel PNG).
+- NO white background, NO colored walls or floors, NO card frames or borders, NO fake checkerboard pattern.
+- Only the character and immediate scene objects should be visible.
+
+### 5. Final Requirements
+- One image only.
+- No text, no letters, no numbers, no watermarks.`;
 }
 
 export const PRESET_SCENE_PROMPTS: ScenePromptItem[] = [
@@ -313,11 +359,11 @@ export function buildCloudflareAiPrompt(options: {
 }): string {
   const character = options.isWoman
     ? 'friendly young woman with dark hair in a ponytail wearing a teal hoodie'
-    : 'friendly young man with short dark hair wearing a grey hoodie';
+    : 'friendly young man with short buzzcut dark hair wearing a grey hoodie';
 
   const activity = options.sceneDescription.trim() || 'performing daily task happily';
 
-  return `Clean 2D cartoon pictogram vector illustration of a ${character}, ${activity}. Cute flat cel-shaded vector art style, thick soft black outlines, bright clean solid colors, isolated on pure white background, friendly autism visual schedule icon, no text, no frame, high quality.`;
+  return `Clean 2D cartoon pictogram vector illustration of a ${character}, ${activity}. Exact style matching autism schedule cards: flat cel-shaded vector art style, thick soft black outlines, bright clean solid colors, isolated on pure white background, friendly autism visual schedule icon, no text, no frame, high quality.`;
 }
 
 /**

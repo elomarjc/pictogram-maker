@@ -14,9 +14,11 @@ export const REFERENCE_PALETTE = {
 };
 
 // Base URL helper to ensure assets load properly on GitHub Pages and local Vite preview
-const BASE = import.meta.env.BASE_URL.endsWith('/')
+export const BASE = import.meta.env.BASE_URL.endsWith('/')
   ? import.meta.env.BASE_URL
   : `${import.meta.env.BASE_URL}/`;
+
+export const PICTO_STYLE_REF_URL = `${BASE}reference/ref2_example.jpg`;
 
 export const DEFAULT_PERSONAS: Persona[] = [
   {
