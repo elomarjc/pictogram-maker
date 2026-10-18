@@ -280,8 +280,8 @@ export async function createAvatarFromPhoto(
   personaName?: string,
   options?: { workerUrl?: string }
 ): Promise<string> {
-  const subject = personaName && personaName.trim() ? personaName.trim() : 'a person';
-  const prompt = `A cute 2D cartoon pictogram avatar sticker of ${subject}, friendly round head, big happy open smile, simple black cartoon eyes, bold thick black vector outline, flat vibrant colors, clean cel-shading, modern pictogram sticker illustration style, isolated on solid white background`;
+  const subject = personaName && personaName.trim() ? personaName.trim() : 'the person in the photo';
+  const prompt = `Clean 2D vector cartoon sticker bust portrait of ${subject}, relaxed natural head-and-shoulders pose, no hands, no gestures, preserving their exact clothing, hairstyle, facial hair, glasses, and friendly smile. Modern 2D cartoon avatar clipart style matching visual schedule pictogram stickers, bold clean black outlines, flat solid vibrant colors, smooth cel-shading, rosy peach cheek blush, isolated on pure solid white background, die-cut sticker graphic, no thumbs up, no hands, no 3D`;
 
   const rawGeneratedUrl = await generateSceneImage(prompt, {
     workerUrl: options?.workerUrl,
