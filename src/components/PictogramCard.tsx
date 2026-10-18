@@ -187,14 +187,14 @@ export const PictogramCard: React.FC<PictogramCardProps> = ({
       onDragOver={(e) => !isPreview && onDragOver && onDragOver(e, index)}
       onDrop={(e) => !isPreview && onDrop && onDrop(e, index)}
       style={{ backgroundColor: pictogram.bgColor || '#FFFFFF' }}
-      className={`group relative flex items-center justify-between w-full min-h-[72px] sm:min-h-[82px] rounded-xl border-3 border-slate-900 shadow-sm transition-all select-none overflow-hidden my-1.5 ${
+      className={`group relative flex items-stretch justify-between w-full min-h-[72px] sm:min-h-[82px] rounded-xl border-3 border-slate-900 shadow-sm transition-all select-none overflow-hidden my-1.5 ${
         isPreview ? 'cursor-default pointer-events-none' : 'hover:shadow-md'
       }`}
     >
-      {/* Left section: Graphic illustration / Photo (figure fills more space) */}
+      {/* Left section: Graphic illustration / Scene photo - always exactly 50% width */}
       <div
         style={{ backgroundColor: sceneBgColor }}
-        className="w-40 sm:w-56 md:w-64 h-full min-h-[84px] sm:min-h-[96px] flex items-center justify-center shrink-0 overflow-hidden relative"
+        className="w-1/2 min-h-[84px] sm:min-h-[96px] flex items-center justify-center shrink-0 overflow-hidden relative"
       >
         {sceneImageUrl ? (
           <img
@@ -218,11 +218,11 @@ export const PictogramCard: React.FC<PictogramCardProps> = ({
         )}
       </div>
 
-      {/* Middle/Main section: Activity Title & optional Time (centered title, round font) */}
+      {/* Right section: Activity Title & optional Time - always exactly 50% width */}
       <div
-        className={`flex-1 px-4 ${
-          pictogram.time ? 'pr-24 sm:pr-28' : 'sm:px-8'
-        } py-2 min-w-0 flex items-center justify-center relative`}
+        className={`w-1/2 px-3 sm:px-6 ${
+          pictogram.time ? 'pr-18 sm:pr-22' : ''
+        } py-2 min-w-0 flex items-center justify-center relative shrink-0`}
       >
         <h3
           style={customTitleStyle}
@@ -231,7 +231,7 @@ export const PictogramCard: React.FC<PictogramCardProps> = ({
           {pictogram.title}
         </h3>
         {pictogram.time && (
-          <span className="absolute top-2 right-2.5 sm:right-3 inline-flex items-center gap-1 text-[11px] font-bold bg-white border-2 border-slate-900 px-2.5 py-0.5 rounded-full text-slate-900 shadow-2xs shrink-0 z-1 pointer-events-none">
+          <span className="absolute top-2 right-2 sm:right-2.5 inline-flex items-center gap-1 text-[11px] font-bold bg-white border-2 border-slate-900 px-2 py-0.5 rounded-full text-slate-900 shadow-2xs shrink-0 z-1 pointer-events-none">
             <Clock size={11} className="stroke-[2.5] text-slate-700" />
             {pictogram.time}
           </span>

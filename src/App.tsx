@@ -330,6 +330,21 @@ export const App: React.FC = () => {
     }));
   };
 
+  const handleUpdateHeaderFontSize = (newSize: number) => {
+    const activeDay = selectedDayId === 'week' ? 'mandag' : selectedDayId;
+    updateCurrentPlan((prev) => ({
+      ...prev,
+      headerFontSize: newSize,
+      days: {
+        ...prev.days,
+        [activeDay]: {
+          ...prev.days[activeDay],
+          headerFontSize: newSize,
+        },
+      },
+    }));
+  };
+
   const handleApplyFontSizeToAll = (size: number | string) => {
     const numSize = typeof size === 'number' ? size : Number(size) || 22;
     updateCurrentPlan((prev) => {
@@ -480,6 +495,8 @@ export const App: React.FC = () => {
             onUpdateDayName={handleUpdateDayName}
             onUpdateHeaderIcons={handleUpdateHeaderIcons}
             onUpdateAllCardsFontSize={handleApplyFontSizeToAll}
+            headerFontSize={activeDaySchedule?.headerFontSize || currentPlan.headerFontSize || 28}
+            onUpdateHeaderFontSize={handleUpdateHeaderFontSize}
           />
         )}
       </main>

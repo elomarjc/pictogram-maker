@@ -752,24 +752,70 @@ export async function autoFitSceneToStandardFormat(
           }
         }
 
-        // If less than 2% of pixels are transparent, it is a complete scene illustration.
-        // Scale and center directly onto target format (2126 x 740) without destroying background art!
-        if (transparentPixelCount < (srcW * srcH) * 0.02) {
-          const outCanvas = document.createElement('canvas');
-          outCanvas.width = targetWidth;
-          outCanvas.height = targetHeight;
-          const outCtx = outCanvas.getContext('2d');
-          if (!outCtx) {
-            resolve(imageDataUrl);
-            return;
+        const outCanvas = document.createElement('canvas');
+        outCanvas.width = targetWidth;
+        outCanvas.height = targetHeight;
+        const outCtx = outCanvas.getContext('2d');
+        if (!outCtx) {
+          resolve(imageDataUrl);
+          return;
+        }
+        outCtx.imageSmoothingEnabled = true;
+        outCtx.imageSmoothingQuality = 'high';
+
+        // CASE 1: Image already has transparent background (> 2% transparent pixels)
+        if (transparentPixelCount >= (srcW * srcH) * 0.02) {
+          let minX = srcW;
+          let minY = srcH;
+          let maxX = -1;
+          let maxY = -1;
+
+          // Scan pixels for non-transparent content (alpha > 20)
+          for (let y = 0; y < srcH; y++) {
+            for (let x = 0; x < srcW; x++) {
+              const idx = (y * srcW + x) * 4;
+              if (data[idx + 3] > 20) {
+                if (x < minX) minX = x;
+                if (x > maxX) maxX = x;
+                if (y < minY) minY = y;
+                if (y > maxY) maxY = y;
+              }
+            }
           }
 
-          const scale = Math.max(targetWidth / srcW, targetHeight / srcH);
-          const drawW = Math.round(srcW * scale);
-          const drawH = Math.round(srcH * scale);
-          const drawX = Math.round((targetWidth - drawW) / 2);
-          const drawY = Math.round((targetHeight - drawH) / 2);
-          outCtx.drawImage(img, drawX, drawY, drawW, drawH);
+          if (maxX < minX || maxY < minY) {
+            minX = 0;
+            minY = 0;
+            maxX = srcW - 1;
+            maxY = srcH - 1;
+          }
+
+          const cropW = maxX - minX + 1;
+          const cropH = maxY - minY + 1;
+
+          const padTop = Math.round(targetHeight * 0.035);
+          const padBottom = Math.round(targetHeight * 0.015);
+          const availH = targetHeight - padTop - padBottom;
+          const availW = Math.round(targetWidth * 0.94);
+
+          const scale = Math.min(availW / cropW, availH / cropH);
+          const destW = Math.round(cropW * scale);
+          const destH = Math.round(cropH * scale);
+          const destX = Math.round((targetWidth - destW) / 2);
+          const destY = Math.round(targetHeight - destH - padBottom);
+
+          outCtx.clearRect(0, 0, targetWidth, targetHeight);
+          outCtx.drawImage(
+            img,
+            minX,
+            minY,
+            cropW,
+            cropH,
+            destX,
+            destY,
+            destW,
+            destH
+          );
 
           let finalDataUrl = outCanvas.toDataURL('image/webp', 0.92);
           if (!finalDataUrl.startsWith('data:image/webp')) {
@@ -779,16 +825,50 @@ export async function autoFitSceneToStandardFormat(
           return;
         }
 
+        // CASE 2: Solid background (e.g. 1024x1024 square from Cloudflare Workers AI / FLUX)
+        // Sample edge corners & midpoints to determine the ambient background color
+        const sampleColors: [number, number, number][] = [];
+        const samplePoints = [
+          [0, 0],
+          [srcW - 1, 0],
+          [0, srcH - 1],
+          [srcW - 1, srcH - 1],
+          [Math.floor(srcW / 2), 0],
+          [Math.floor(srcW / 2), srcH - 1],
+          [0, Math.floor(srcH / 2)],
+          [srcW - 1, Math.floor(srcH / 2)],
+        ];
+        for (const [cx, cy] of samplePoints) {
+          const idx = (cy * srcW + cx) * 4;
+          sampleColors.push([data[idx], data[idx + 1], data[idx + 2]]);
+        }
+
+        const getMedianChan = (cIdx: number) => {
+          const sorted = sampleColors.map((c) => c[cIdx]).sort((a, b) => a - b);
+          return sorted[Math.floor(sorted.length / 2)] ?? 255;
+        };
+        const bgR = getMedianChan(0);
+        const bgG = getMedianChan(1);
+        const bgB = getMedianChan(2);
+
+        // Scan for subject bounding box by difference from background color
         let minX = srcW;
         let minY = srcH;
         let maxX = -1;
         let maxY = -1;
+        let nonBgCount = 0;
+        const colorThreshold = 22;
 
-        // Scan pixels for non-transparent content (alpha > 20)
         for (let y = 0; y < srcH; y++) {
           for (let x = 0; x < srcW; x++) {
             const idx = (y * srcW + x) * 4;
-            if (data[idx + 3] > 20) {
+            const diff = Math.max(
+              Math.abs(data[idx] - bgR),
+              Math.abs(data[idx + 1] - bgG),
+              Math.abs(data[idx + 2] - bgB)
+            );
+            if (diff > colorThreshold) {
+              nonBgCount++;
               if (x < minX) minX = x;
               if (x > maxX) maxX = x;
               if (y < minY) minY = y;
@@ -797,58 +877,50 @@ export async function autoFitSceneToStandardFormat(
           }
         }
 
-        // If no transparent bounds detected, use whole image
-        if (maxX < minX || maxY < minY) {
-          minX = 0;
-          minY = 0;
-          maxX = srcW - 1;
-          maxY = srcH - 1;
+        const hasDistinctSubject =
+          maxX > minX &&
+          maxY > minY &&
+          nonBgCount > 100 &&
+          (minX > 10 || maxX < srcW - 10 || minY > 10);
+
+        if (hasDistinctSubject) {
+          const pad = 12;
+          const x0 = Math.max(0, minX - pad);
+          const y0 = Math.max(0, minY - pad);
+          const x1 = Math.min(srcW, maxX + pad);
+          const y1 = Math.min(srcH, maxY + pad);
+          const cropW = x1 - x0;
+          const cropH = y1 - y0;
+
+          // Fill wide canvas with sampled background color
+          const isNearWhite = bgR >= 244 && bgG >= 244 && bgB >= 244;
+          outCtx.fillStyle = isNearWhite ? '#FFFFFF' : `rgb(${bgR}, ${bgG}, ${bgB})`;
+          outCtx.fillRect(0, 0, targetWidth, targetHeight);
+
+          // Fit comfortably inside 740 height with proper headroom & grounding
+          const padTop = Math.round(targetHeight * 0.04);
+          const padBottom = Math.round(targetHeight * 0.02);
+          const availH = targetHeight - padTop - padBottom;
+          const availW = Math.round(targetWidth * 0.92);
+
+          const scale = Math.min(availW / cropW, availH / cropH);
+          const destW = Math.round(cropW * scale);
+          const destH = Math.round(cropH * scale);
+          const destX = Math.round((targetWidth - destW) / 2);
+          const destY = Math.round(targetHeight - destH - padBottom);
+
+          outCtx.drawImage(img, x0, y0, cropW, cropH, destX, destY, destW, destH);
+        } else {
+          // Full-bleed scenery with no uniform border: cover with upper-biased framing to preserve headroom
+          const scale = Math.max(targetWidth / srcW, targetHeight / srcH);
+          const drawW = Math.round(srcW * scale);
+          const drawH = Math.round(srcH * scale);
+          const drawX = Math.round((targetWidth - drawW) / 2);
+          const drawY = Math.round((targetHeight - drawH) * 0.24);
+          outCtx.drawImage(img, drawX, drawY, drawW, drawH);
         }
 
-        const cropW = maxX - minX + 1;
-        const cropH = maxY - minY + 1;
-
-        // Output canvas: standard reference format (2126 x 740)
-        const outCanvas = document.createElement('canvas');
-        outCanvas.width = targetWidth;
-        outCanvas.height = targetHeight;
-        const outCtx = outCanvas.getContext('2d');
-        if (!outCtx) {
-          resolve(imageDataUrl);
-          return;
-        }
-
-        // Available dimensions within canvas
-        // Headroom: ~3.5% padding at top, ~1.2% padding at bottom
-        const padTop = Math.round(targetHeight * 0.035);
-        const padBottom = Math.round(targetHeight * 0.012);
-        const availH = targetHeight - padTop - padBottom;
-        const availW = Math.round(targetWidth * 0.95);
-
-        const scale = Math.min(availW / cropW, availH / cropH);
-        const destW = Math.round(cropW * scale);
-        const destH = Math.round(cropH * scale);
-
-        // Center horizontally
-        const destX = Math.round((targetWidth - destW) / 2);
-        // Ground near bottom (like vaesketoeg.webp where feet/machines sit flush at bottom)
-        const destY = Math.round(targetHeight - destH - padBottom);
-
-        outCtx.imageSmoothingEnabled = true;
-        outCtx.imageSmoothingQuality = 'high';
-        outCtx.drawImage(
-          img,
-          minX,
-          minY,
-          cropW,
-          cropH,
-          destX,
-          destY,
-          destW,
-          destH
-        );
-
-        let finalDataUrl = outCanvas.toDataURL('image/webp', 0.88);
+        let finalDataUrl = outCanvas.toDataURL('image/webp', 0.92);
         if (!finalDataUrl.startsWith('data:image/webp')) {
           finalDataUrl = outCanvas.toDataURL('image/png');
         }

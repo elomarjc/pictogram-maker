@@ -35,6 +35,8 @@ interface DailyBoardProps {
   onUpdateHeaderIcons?: (leftIcon: string, rightIcon: string) => void;
   globalFontSize?: number;
   onUpdateAllCardsFontSize?: (size: number) => void;
+  headerFontSize?: number;
+  onUpdateHeaderFontSize?: (size: number) => void;
 }
 
 export const DailyBoard: React.FC<DailyBoardProps> = ({
@@ -42,6 +44,7 @@ export const DailyBoard: React.FC<DailyBoardProps> = ({
   persona,
   viewMode,
   globalFontSize,
+  headerFontSize,
   onChangeViewMode,
   onOpenPersonaModal,
   onAddPictogram,
@@ -57,6 +60,7 @@ export const DailyBoard: React.FC<DailyBoardProps> = ({
   onUpdateDayName,
   onUpdateHeaderIcons,
   onUpdateAllCardsFontSize,
+  onUpdateHeaderFontSize,
 }) => {
   const [draggedIdx, setDraggedIdx] = useState<number | null>(null);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -73,6 +77,7 @@ export const DailyBoard: React.FC<DailyBoardProps> = ({
   const fontSizeMenuRef = useRef<HTMLDivElement>(null);
 
   const currentGlobalFontSize = globalFontSize ?? 22;
+  const currentHeaderFontSize = headerFontSize ?? schedule.headerFontSize ?? 28;
 
   const currentLeftIcon = schedule.headerLeftIcon || 'sun';
   const currentRightIcon = schedule.headerRightIcon || 'cloud';
@@ -257,6 +262,56 @@ export const DailyBoard: React.FC<DailyBoardProps> = ({
                   <p className="text-[10px] text-slate-500 font-semibold text-center">
                     Gælder alle kort i planen
                   </p>
+
+                  {onUpdateHeaderFontSize && (
+                    <div className="border-t border-slate-200 pt-2.5 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-slate-700">Overskrift</span>
+                        <div className="flex items-center gap-1 bg-slate-100 border border-slate-300 rounded-lg px-1.5 py-0.5">
+                          <button
+                            type="button"
+                            onClick={() => onUpdateHeaderFontSize(Math.max(12, currentHeaderFontSize - 2))}
+                            className="w-5 h-6 rounded hover:bg-slate-200 font-black text-sm text-slate-700 cursor-pointer"
+                          >
+                            -
+                          </button>
+                          <span className="w-7 text-center font-bold text-xs text-slate-900">{currentHeaderFontSize}</span>
+                          <button
+                            type="button"
+                            onClick={() => onUpdateHeaderFontSize(Math.min(48, currentHeaderFontSize + 2))}
+                            className="w-5 h-6 rounded hover:bg-slate-200 font-black text-sm text-slate-700 cursor-pointer"
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-4 gap-1">
+                        {[
+                          { label: 'S', size: 20 },
+                          { label: 'M', size: 24 },
+                          { label: 'L', size: 28 },
+                          { label: 'XL', size: 34 },
+                        ].map((chip) => (
+                          <button
+                            key={chip.size}
+                            type="button"
+                            onClick={() => onUpdateHeaderFontSize(chip.size)}
+                            className={`py-1 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
+                              currentHeaderFontSize === chip.size
+                                ? 'bg-slate-900 text-white'
+                                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                            }`}
+                          >
+                            {chip.label}
+                          </button>
+                        ))}
+                      </div>
+                      <p className="text-[10px] text-slate-500 font-semibold text-center">
+                        Gælder dagens overskrift
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -325,30 +380,56 @@ export const DailyBoard: React.FC<DailyBoardProps> = ({
           {/* Central Title: Clean day name with rounded font, directly editable when clicked */}
           <div className="text-center px-2 flex-1">
             {isEditingTitle ? (
-              <input
-                type="text"
-                value={tempTitle}
-                autoFocus
-                onChange={(e) => setTempTitle(e.target.value)}
-                onBlur={() => {
-                  setIsEditingTitle(false);
-                  if (tempTitle.trim() && onUpdateDayName) {
-                    onUpdateDayName(tempTitle.trim());
-                  }
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
+              <div className="flex flex-col items-center gap-1.5">
+                <input
+                  type="text"
+                  value={tempTitle}
+                  autoFocus
+                  style={{ fontSize: `${currentHeaderFontSize}px` }}
+                  onChange={(e) => setTempTitle(e.target.value)}
+                  onBlur={() => {
                     setIsEditingTitle(false);
                     if (tempTitle.trim() && onUpdateDayName) {
                       onUpdateDayName(tempTitle.trim());
                     }
-                  } else if (e.key === 'Escape') {
-                    setIsEditingTitle(false);
-                    setTempTitle(schedule.dayName);
-                  }
-                }}
-                className="w-full max-w-xs text-center text-2xl sm:text-3xl font-black text-slate-900 tracking-tight font-rounded bg-white/95 border-2 border-slate-900 rounded-xl px-2 py-0.5 outline-none shadow-sm"
-              />
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      setIsEditingTitle(false);
+                      if (tempTitle.trim() && onUpdateDayName) {
+                        onUpdateDayName(tempTitle.trim());
+                      }
+                    } else if (e.key === 'Escape') {
+                      setIsEditingTitle(false);
+                      setTempTitle(schedule.dayName);
+                    }
+                  }}
+                  className="w-full max-w-sm text-center font-black text-slate-900 tracking-tight font-rounded bg-white/95 border-2 border-slate-900 rounded-xl px-2 py-0.5 outline-none shadow-sm leading-tight"
+                />
+                {onUpdateHeaderFontSize && (
+                  <div
+                    onMouseDown={(e) => e.preventDefault()}
+                    className="flex items-center gap-1.5 bg-white/95 border border-slate-900/40 rounded-lg px-2 py-0.5 shadow-2xs text-xs font-bold text-slate-800"
+                  >
+                    <span className="text-[10px] text-slate-600">Tekst:</span>
+                    <button
+                      type="button"
+                      onClick={() => onUpdateHeaderFontSize(Math.max(12, currentHeaderFontSize - 2))}
+                      className="w-5 h-5 rounded hover:bg-slate-200 font-black cursor-pointer"
+                    >
+                      -
+                    </button>
+                    <span className="tabular-nums text-xs">{currentHeaderFontSize}px</span>
+                    <button
+                      type="button"
+                      onClick={() => onUpdateHeaderFontSize(Math.min(48, currentHeaderFontSize + 2))}
+                      className="w-5 h-5 rounded hover:bg-slate-200 font-black cursor-pointer"
+                    >
+                      +
+                    </button>
+                  </div>
+                )}
+              </div>
             ) : (
               <div
                 onClick={() => {
@@ -358,7 +439,10 @@ export const DailyBoard: React.FC<DailyBoardProps> = ({
                 title="Klik for at redigere overskriften direkte"
                 className="group/title inline-flex items-center justify-center gap-1.5 cursor-pointer py-1 px-3 rounded-xl hover:bg-black/10 transition-colors"
               >
-                <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight font-rounded">
+                <h1
+                  style={{ fontSize: `${currentHeaderFontSize}px` }}
+                  className="font-black text-slate-900 tracking-tight font-rounded leading-tight"
+                >
                   {schedule.dayName}
                 </h1>
                 <Pencil size={16} className="text-slate-800 opacity-40 group-hover/title:opacity-100 transition-opacity shrink-0 print:hidden" data-html2canvas-ignore="true" />

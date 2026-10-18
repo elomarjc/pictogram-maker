@@ -55,6 +55,7 @@ export interface DaySchedule {
   dayId: DayOfWeek;
   dayName: string;
   headerSubtitle?: string; // e.g. "K." or "AV" or "Aften" or "Dag"
+  headerFontSize?: number; // Custom font size for day header banner (e.g. 28)
   headerLeftIcon?: string; // e.g. 'sun', 'moon', 'coffee', 'home', 'none'
   headerRightIcon?: string; // e.g. 'cloud', 'star', 'bed', 'heart', 'none'
   pictograms: Pictogram[];
@@ -68,6 +69,7 @@ export interface WeekPlan {
   shortCode?: string; // Short code/abbreviation e.g. 'K.'
   avatarUrl?: string; // Custom avatar URL if uploaded
   globalFontSize?: number; // Global text font size for cards (default 22)
+  headerFontSize?: number; // Global text font size for day headers (default 28)
   days: Record<DayOfWeek, DaySchedule>;
   createdAt: string;
   updatedAt: string;

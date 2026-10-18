@@ -515,19 +515,12 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
         },
       });
 
-      // Automatically remove solid background to make it transparent
+      // Automatically fit and format to exact 2126x740 wide rectangle (matching reference/scenes/vaesketoeg.webp)
       let finalDataUrl = generatedDataUrl;
       try {
-        finalDataUrl = await removeImageBackground(generatedDataUrl);
+        finalDataUrl = await autoFitSceneToStandardFormat(generatedDataUrl);
       } catch {
-        // keep generatedDataUrl if background removal fails
-      }
-
-      // Automatically fit and format to exact 2126x740 ratio (matching reference/scenes/vaesketoeg.webp)
-      try {
-        finalDataUrl = await autoFitSceneToStandardFormat(finalDataUrl);
-      } catch {
-        // keep finalDataUrl if auto-fit fails
+        // keep generatedDataUrl if auto-fit fails
       }
 
       const sceneTitle = getShortSceneTitle(inlineSceneText, title);
@@ -969,7 +962,7 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
 
             {/* TAB 1: Icons & Scenes grid */}
             {activeTab === 'illustrations' && (
-              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 max-h-56 overflow-y-auto p-1">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-64 overflow-y-auto p-1">
                 {/* Missing scenes banner for current persona */}
                 {(() => {
                   const { ready, total } = getReadyScenesCount(activePersona);
@@ -995,13 +988,11 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
                 })()}
 
                 {/* Upload tile */}
-                <label className="flex flex-col items-center justify-center p-1.5 rounded-xl border-2 border-dashed border-slate-300 hover:border-slate-900 bg-white hover:bg-amber-50 cursor-pointer transition-all group h-22">
-                  <div className="w-7 h-7 rounded-lg bg-amber-100 group-hover:bg-amber-400 flex items-center justify-center text-slate-900 transition-colors mb-1">
-                    <Upload size={14} />
+                <label className="flex flex-col items-center justify-center p-2 rounded-xl border-2 border-dashed border-slate-300 hover:border-slate-900 bg-white hover:bg-amber-50 cursor-pointer transition-all group aspect-[2126/740]">
+                  <div className="flex items-center gap-1.5 text-slate-700 group-hover:text-slate-900 font-bold text-xs">
+                    <Upload size={14} className="text-amber-600" />
+                    <span>Upload foto</span>
                   </div>
-                  <span className="text-[10.5px] font-bold text-slate-700 group-hover:text-slate-900 text-center leading-tight">
-                    Upload eget foto
-                  </span>
                   <input
                     type="file"
                     accept="image/*"
@@ -1014,14 +1005,12 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setActiveTab('upload')}
-                  className="flex flex-col items-center justify-center p-1.5 rounded-xl border-2 border-dashed border-amber-400 hover:border-amber-600 bg-amber-50/60 hover:bg-amber-100/80 cursor-pointer transition-all group h-22"
+                  className="flex flex-col items-center justify-center p-2 rounded-xl border-2 border-dashed border-amber-400 hover:border-amber-600 bg-amber-50/60 hover:bg-amber-100/80 cursor-pointer transition-all group aspect-[2126/740]"
                 >
-                  <div className="w-7 h-7 rounded-lg bg-amber-300 group-hover:bg-amber-400 flex items-center justify-center text-slate-900 transition-colors mb-1">
-                    <Plus size={14} className="text-slate-900 stroke-[2.5]" />
+                  <div className="flex items-center gap-1.5 text-amber-950 font-black text-xs">
+                    <Plus size={14} className="stroke-[2.5]" />
+                    <span>Opret ny scene</span>
                   </div>
-                  <span className="text-[10.5px] font-black text-amber-950 text-center leading-tight">
-                    Opret en ny scene
-                  </span>
                 </button>
 
                 {/* Custom uploaded & generated scenes (with custom names, cropping & delete) */}
@@ -1035,21 +1024,21 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
                         setIllustrationId('');
                         setSceneImageUrl('');
                       }}
-                      className={`relative group flex flex-col items-center justify-between p-1.5 rounded-xl border-2 transition-all cursor-pointer h-22 ${
+                      className={`relative group flex flex-col items-center justify-between p-1 rounded-xl border-2 transition-all cursor-pointer aspect-[2126/740] ${
                         isSelected
                           ? 'bg-amber-100 border-slate-900 ring-2 ring-amber-400 shadow-xs'
                           : 'bg-slate-50 border-slate-300 hover:border-slate-500 hover:bg-white'
                       }`}
                     >
-                      <div className="w-full flex-1 rounded-lg border border-slate-900/20 overflow-hidden bg-white mb-1 flex items-center justify-center">
-                        <img src={scene.url} alt={scene.name} className="w-full h-full object-contain" />
+                      <div className="w-full h-full rounded-lg border border-slate-900/20 overflow-hidden bg-white relative flex items-center justify-center">
+                        <img src={scene.url} alt={scene.name} className="w-full h-full object-cover object-center" />
+                        <span className="absolute bottom-0 inset-x-0 bg-slate-900/75 text-white text-[9.5px] font-bold text-center py-0.5 px-1 truncate backdrop-blur-xs">
+                          {scene.name}
+                        </span>
                       </div>
-                      <span className="text-[10px] font-bold text-slate-800 text-center line-clamp-1 w-full px-1">
-                        {scene.name}
-                      </span>
 
                       {isSelected && (
-                        <span className="absolute top-1 right-1 w-4 h-4 rounded-full bg-slate-900 text-white flex items-center justify-center shadow-xs z-10 pointer-events-none">
+                        <span className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-slate-900 text-white flex items-center justify-center shadow-xs z-10 pointer-events-none">
                           <Check size={10} className="stroke-[3]" />
                         </span>
                       )}
@@ -1064,7 +1053,7 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
                           setCropModalOpen(true);
                         }}
                         title="Beskær og tilpas scene"
-                        className="absolute top-1 left-6 w-5 h-5 rounded-md bg-black/50 hover:bg-amber-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-20 cursor-pointer"
+                        className="absolute top-1.5 left-7 w-5 h-5 rounded-md bg-black/60 hover:bg-amber-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-20 cursor-pointer"
                       >
                         <Crop size={11} className="stroke-[2.5]" />
                       </button>
@@ -1074,15 +1063,17 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
-                          const updated = deleteCustomScene(scene.id);
-                          setCustomScenes(updated);
-                          if (customImageUrl === scene.url) {
-                            setCustomImageUrl('');
-                            setIllustrationId('spisetid');
+                          if (window.confirm(`Er du sikker på, at du vil slette scenen "${scene.name}"?`)) {
+                            const updated = deleteCustomScene(scene.id);
+                            setCustomScenes(updated);
+                            if (customImageUrl === scene.url) {
+                              setCustomImageUrl('');
+                              setIllustrationId('spisetid');
+                            }
                           }
                         }}
                         title="Fjern scene"
-                        className="absolute top-1 left-1 w-5 h-5 rounded-md bg-black/50 hover:bg-rose-600 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-20 cursor-pointer"
+                        className="absolute top-1.5 left-1.5 w-5 h-5 rounded-md bg-black/60 hover:bg-rose-600 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-20 cursor-pointer"
                       >
                         <Trash2 size={11} className="stroke-[2.5]" />
                       </button>
@@ -1103,18 +1094,23 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
                         setSceneImageUrl('');
                         setCustomImageUrl('');
                       }}
-                      className={`flex flex-col items-center justify-between p-1.5 rounded-xl border-2 transition-all cursor-pointer h-22 ${
+                      className={`relative group flex flex-col items-center justify-between p-1 rounded-xl border-2 transition-all cursor-pointer aspect-[2126/740] ${
                         isSelected
                           ? 'bg-amber-100 border-slate-900 ring-2 ring-amber-400 shadow-xs'
                           : 'bg-slate-50 border-slate-300 hover:border-slate-500 hover:bg-white'
                       }`}
                     >
-                      <div className="w-full flex-1 rounded-lg border border-slate-900/30 overflow-hidden bg-white mb-1">
+                      <div className="w-full h-full rounded-lg border border-slate-900/30 overflow-hidden bg-white relative flex items-center justify-center">
                         <img src={imgUrl} alt={label} className="w-full h-full object-cover object-center" />
+                        <span className="absolute bottom-0 inset-x-0 bg-slate-900/75 text-white text-[9.5px] font-bold text-center py-0.5 px-1 truncate backdrop-blur-xs">
+                          {label}
+                        </span>
                       </div>
-                      <span className="text-[10px] font-bold text-slate-900 text-center line-clamp-1">
-                        {label}
-                      </span>
+                      {isSelected && (
+                        <span className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-slate-900 text-white flex items-center justify-center shadow-xs z-10 pointer-events-none">
+                          <Check size={10} className="stroke-[3]" />
+                        </span>
+                      )}
                     </button>
                   );
                 })}

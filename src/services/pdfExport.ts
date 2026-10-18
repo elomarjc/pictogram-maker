@@ -36,7 +36,8 @@ function drawDayHeader(
   showIcons: boolean,
   colorMode: 'color' | 'grayscale',
   leftIcon: string = 'sun',
-  rightIcon: string = 'cloud'
+  rightIcon: string = 'cloud',
+  headerFontSize?: number
 ) {
   // Background rectangle with rounded top corners (Authentic Sky Blue #7ECBFC)
   const [bgR, bgG, bgB] = colorMode === 'color' ? hexToRgb('#7ECBFC') : [230, 230, 230];
@@ -102,10 +103,13 @@ function drawDayHeader(
     drawIcon(rightIcon, x + width - 18, y + height / 2);
   }
 
-  // Header Title: e.g. "Mandag"
+  // Header Title: e.g. "Mandag - AV"
   doc.setTextColor(15, 23, 42);
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(16);
+  const computedFontSize = headerFontSize
+    ? Math.max(10, Math.min(32, Math.round(headerFontSize * 0.58)))
+    : 16;
+  doc.setFontSize(computedFontSize);
 
   doc.text(title, x + width / 2, y + height / 2 + 2, { align: 'center' });
 }
@@ -134,21 +138,19 @@ function drawBoardStrip(
   doc.setLineWidth(0.7);
   doc.roundedRect(x, y, width, height, 3, 3, 'FD');
 
-  // Left side: Illustration indicator box with slightly darker shade of card color
-  const leftBoxW = Math.round(width * 0.48);
-  const darkR = Math.max(0, Math.round(r * 0.86));
-  const darkG = Math.max(0, Math.round(g * 0.86));
-  const darkB = Math.max(0, Math.round(b * 0.86));
+  // Left side: Illustration indicator box with slightly darker shade (4% darker) - always exactly 50% width
+  const leftBoxW = width * 0.5;
+  const darkR = Math.max(0, Math.round(r * 0.96));
+  const darkG = Math.max(0, Math.round(g * 0.96));
+  const darkB = Math.max(0, Math.round(b * 0.96));
   doc.setFillColor(darkR, darkG, darkB);
   doc.roundedRect(x, y, leftBoxW, height, 3, 3, 'F');
   doc.rect(x + leftBoxW - 3, y, 3, height, 'F');
 
-  // Stroke border and divider line
+  // Stroke border (no dividing line)
   doc.setDrawColor(30, 41, 59);
   doc.setLineWidth(0.7);
   doc.roundedRect(x, y, width, height, 3, 3, 'D');
-  doc.setLineWidth(0.5);
-  doc.line(x + leftBoxW, y, x + leftBoxW, y + height);
 
   const sceneUrl = resolveSceneImage(pic, persona);
   if (sceneUrl && sceneUrl.startsWith('data:image')) {
@@ -373,7 +375,8 @@ export async function generatePdf(
           settings.showHeaderIcons,
           settings.colorMode,
           day.headerLeftIcon || 'sun',
-          day.headerRightIcon || 'cloud'
+          day.headerRightIcon || 'cloud',
+          day.headerFontSize
         );
         currentY += headerHeight + headerGap;
       }
