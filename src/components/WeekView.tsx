@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import type { WeekPlan, DayOfWeek, Pictogram } from '../types';
 import { DAYS_OF_WEEK } from '../types';
 import { ICONS } from '../data/icons';
@@ -9,12 +9,8 @@ import {
   Pencil,
   Trash2,
   Copy,
-  ChevronUp,
-  ChevronDown,
   Check,
   X,
-  GripVertical,
-  ArrowRightLeft,
 } from 'lucide-react';
 
 interface WeekViewProps {
@@ -45,7 +41,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
   onQuickUpdateCardTitle,
   onQuickDeleteCard,
   onQuickDuplicateCard,
-  onQuickMoveCard,
+  onQuickMoveCard: _onQuickMoveCard,
   onQuickMoveCardBetweenDays,
   onQuickReorderCards,
 }) => {
@@ -55,12 +51,6 @@ export const WeekView: React.FC<WeekViewProps> = ({
   // Inline editing state for title
   const [editingCard, setEditingCard] = useState<{ dayId: DayOfWeek; cardId: string } | null>(null);
   const [editingText, setEditingText] = useState('');
-
-  // Selected card for quick toolbar (especially helpful on mobile touchscreens)
-  const [selectedCard, setSelectedCard] = useState<{ dayId: DayOfWeek; cardId: string } | null>(null);
-
-  // Day picker popover state
-  const [dayPickerCardId, setDayPickerCardId] = useState<string | null>(null);
 
   // Drag and drop state
   const [draggedState, setDraggedState] = useState<{
@@ -75,22 +65,9 @@ export const WeekView: React.FC<WeekViewProps> = ({
 
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Close day picker when clicking outside
-  useEffect(() => {
-    const handleDocumentClick = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      if (!target.closest('[data-day-picker="true"]')) {
-        setDayPickerCardId(null);
-      }
-    };
-    document.addEventListener('click', handleDocumentClick);
-    return () => document.removeEventListener('click', handleDocumentClick);
-  }, []);
-
   const handleStartEditing = (dayId: DayOfWeek, pic: Pictogram) => {
     setEditingCard({ dayId, cardId: pic.id });
     setEditingText(pic.title);
-    setSelectedCard({ dayId, cardId: pic.id });
   };
 
   const handleSaveTitle = (dayId: DayOfWeek, cardId: string) => {
@@ -185,7 +162,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
               Ugeoversigt – {plan.name}
             </h2>
             <p className="text-xs font-semibold text-slate-500">
-              Hurtig redigering: Opret, omdøb, flyt, kopiér og slet kort direkte her på ugen.
+              Hurtig redigering: Opret, omdøb, kopiér og slet kort direkte her på ugen.
             </p>
           </div>
         </div>
@@ -207,7 +184,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
               key={day.id}
               onDragOver={(e) => handleColumnDragOver(e, day.id)}
               onDrop={(e) => handleColumnDrop(e, day.id)}
-              className={`flex flex-col bg-white rounded-2xl border-3 transition-all overflow-visible shadow-xs ${
+              className={`flex flex-col bg-white rounded-2xl border-3 transition-all overflow-hidden shadow-xs ${
                 isSelectedDay
                   ? 'border-slate-900 ring-2 ring-amber-400'
                   : 'border-slate-800 hover:border-slate-900'
@@ -216,7 +193,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
               {/* Day column header */}
               <div
                 onClick={() => onSelectDay(day.id)}
-                className="bg-[#BAE6FD] border-b-2 border-slate-900 p-2.5 text-center cursor-pointer hover:bg-sky-200 transition-colors rounded-t-[13px]"
+                className="bg-[#BAE6FD] border-b-2 border-slate-900 p-2.5 text-center cursor-pointer hover:bg-sky-200 transition-colors"
                 title="Klik for at åbne dagsplanen"
               >
                 <span className="text-sm font-black text-slate-900 block truncate font-rounded">
@@ -237,8 +214,6 @@ export const WeekView: React.FC<WeekViewProps> = ({
                 ) : (
                   pictograms.map((pic, idx) => {
                     const IconComp = ICONS[pic.iconId]?.icon;
-                    const isCardSelected =
-                      selectedCard?.dayId === day.id && selectedCard?.cardId === pic.id;
                     const isEditing =
                       editingCard?.dayId === day.id && editingCard?.cardId === pic.id;
                     const isDragOver =
@@ -252,22 +227,10 @@ export const WeekView: React.FC<WeekViewProps> = ({
                         onDragOver={(e) => handleCardDragOver(e, day.id, idx)}
                         onDrop={(e) => handleCardDrop(e, day.id, idx)}
                         onDragEnd={handleDragEnd}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedCard((prev) =>
-                            prev?.cardId === pic.id && prev?.dayId === day.id
-                              ? null
-                              : { dayId: day.id, cardId: pic.id }
-                          );
-                        }}
                         style={{ backgroundColor: pic.bgColor || '#FFFFFF' }}
-                        className={`group relative flex flex-col p-1.5 rounded-xl border text-left transition-all select-none cursor-pointer ${
+                        className={`group relative flex items-center justify-between p-1.5 rounded-xl border text-left transition-all select-none ${
                           isDragOver ? 'border-t-4 border-t-amber-500' : ''
-                        } ${
-                          isCardSelected
-                            ? 'ring-2 ring-amber-400 border-slate-900 shadow-md'
-                            : 'border-slate-900/60 hover:border-slate-900 shadow-2xs'
-                        }`}
+                        } border-slate-900/60 hover:border-slate-900 shadow-2xs`}
                       >
                         {/* Title or inline edit mode */}
                         {isEditing ? (
@@ -288,7 +251,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
                                 if (e.key === 'Escape') handleCancelEditing();
                               }}
                               onBlur={() => handleSaveTitle(day.id, pic.id)}
-                              className="w-full text-xs font-bold px-1.5 py-1 rounded-lg border-2 border-slate-900 bg-white text-slate-900 focus:outline-none focus:ring-1 focus:ring-amber-400 font-rounded"
+                              className="w-full text-xs font-bold px-1.5 py-0.5 rounded-lg border-2 border-slate-900 bg-white text-slate-900 focus:outline-none focus:ring-1 focus:ring-amber-400 font-rounded"
                             />
                             <button
                               type="submit"
@@ -310,34 +273,26 @@ export const WeekView: React.FC<WeekViewProps> = ({
                             </button>
                           </form>
                         ) : (
-                          <div className="flex items-center gap-1.5 min-w-0">
-                            {/* Drag handle */}
+                          <>
+                            {/* Card content: Icon + Title */}
                             <div
-                              className="text-slate-400 group-hover:text-slate-800 cursor-grab active:cursor-grabbing shrink-0"
-                              title="Træk for at flytte kort"
-                            >
-                              <GripVertical size={13} />
-                            </div>
-
-                            {/* Icon */}
-                            {IconComp && (
-                              <IconComp size={14} className="text-slate-800 shrink-0" />
-                            )}
-
-                            {/* Card Title */}
-                            <span
-                              onDoubleClick={(e) => {
+                              onClick={(e) => {
                                 e.stopPropagation();
                                 handleStartEditing(day.id, pic);
                               }}
-                              title="Dobbeltklik for at redigere tekst"
-                              className="text-xs font-bold text-slate-900 truncate font-rounded flex-1"
+                              className="flex items-center gap-1.5 min-w-0 flex-1 cursor-text"
+                              title="Klik for at redigere tekst"
                             >
-                              {pic.title}
-                            </span>
+                              {IconComp && (
+                                <IconComp size={14} className="text-slate-800 shrink-0" />
+                              )}
+                              <span className="text-xs font-bold text-slate-900 truncate font-rounded flex-1">
+                                {pic.title}
+                              </span>
+                            </div>
 
-                            {/* Fast hover buttons for desktop */}
-                            <div className="hidden sm:group-hover:flex items-center gap-0.5 shrink-0">
+                            {/* 3 action buttons: Edit, Kopi, Delet */}
+                            <div className="flex items-center gap-0.5 shrink-0 opacity-80 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                               <button
                                 type="button"
                                 onClick={(e) => {
@@ -346,9 +301,9 @@ export const WeekView: React.FC<WeekViewProps> = ({
                                 }}
                                 title="Rediger tekst"
                                 aria-label="Rediger tekst"
-                                className="p-1 hover:bg-black/10 rounded text-slate-700 hover:text-slate-900 cursor-pointer"
+                                className="p-1 hover:bg-black/10 active:bg-black/20 rounded text-slate-700 hover:text-slate-900 cursor-pointer"
                               >
-                                <Pencil size={11} />
+                                <Pencil size={12} />
                               </button>
                               <button
                                 type="button"
@@ -358,9 +313,9 @@ export const WeekView: React.FC<WeekViewProps> = ({
                                 }}
                                 title="Kopiér kort"
                                 aria-label="Kopiér kort"
-                                className="p-1 hover:bg-black/10 rounded text-slate-700 hover:text-slate-900 cursor-pointer"
+                                className="p-1 hover:bg-black/10 active:bg-black/20 rounded text-slate-700 hover:text-slate-900 cursor-pointer"
                               >
-                                <Copy size={11} />
+                                <Copy size={12} />
                               </button>
                               <button
                                 type="button"
@@ -372,114 +327,10 @@ export const WeekView: React.FC<WeekViewProps> = ({
                                 aria-label="Slet kort"
                                 className="p-1 hover:bg-rose-500 hover:text-white rounded text-slate-700 cursor-pointer"
                               >
-                                <Trash2 size={11} />
-                              </button>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Selected card action bar (visible on mobile tap or when selected) */}
-                        {isCardSelected && !isEditing && (
-                          <div
-                            className="flex items-center justify-between gap-1 pt-1.5 mt-1 border-t border-slate-900/15"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            {/* Move Up / Down */}
-                            <div className="flex items-center gap-0.5">
-                              <button
-                                type="button"
-                                disabled={idx === 0}
-                                onClick={() => onQuickMoveCard(day.id, pic.id, 'up')}
-                                title="Flyt op"
-                                aria-label="Flyt op"
-                                className="p-1 rounded hover:bg-black/10 disabled:opacity-20 text-slate-800 cursor-pointer"
-                              >
-                                <ChevronUp size={13} />
-                              </button>
-                              <button
-                                type="button"
-                                disabled={idx === count - 1}
-                                onClick={() => onQuickMoveCard(day.id, pic.id, 'down')}
-                                title="Flyt ned"
-                                aria-label="Flyt ned"
-                                className="p-1 rounded hover:bg-black/10 disabled:opacity-20 text-slate-800 cursor-pointer"
-                              >
-                                <ChevronDown size={13} />
-                              </button>
-                            </div>
-
-                            <div className="flex items-center gap-0.5">
-                              {/* Move to another day popover */}
-                              <div className="relative" data-day-picker="true">
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    setDayPickerCardId((prev) => (prev === pic.id ? null : pic.id))
-                                  }
-                                  title="Flyt til en anden dag"
-                                  className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-white/90 hover:bg-white text-slate-800 border border-slate-900/25 flex items-center gap-0.5 cursor-pointer shadow-2xs"
-                                >
-                                  <ArrowRightLeft size={10} />
-                                  Flyt
-                                </button>
-
-                                {dayPickerCardId === pic.id && (
-                                  <div className="absolute right-0 bottom-full mb-1.5 z-40 bg-white rounded-xl shadow-xl border-2 border-slate-900 p-1.5 flex flex-col gap-1 min-w-[105px]">
-                                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider px-1">
-                                      Flyt til:
-                                    </span>
-                                    {DAYS_OF_WEEK.map((d) => (
-                                      <button
-                                        key={d.id}
-                                        type="button"
-                                        disabled={d.id === day.id}
-                                        onClick={() => {
-                                          onQuickMoveCardBetweenDays(day.id, d.id, pic.id);
-                                          setDayPickerCardId(null);
-                                        }}
-                                        className="text-left px-2 py-1 rounded text-xs font-bold hover:bg-amber-100 disabled:opacity-25 disabled:hover:bg-transparent cursor-pointer"
-                                      >
-                                        {d.name}
-                                      </button>
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
-
-                              {/* Edit Text */}
-                              <button
-                                type="button"
-                                onClick={() => handleStartEditing(day.id, pic)}
-                                title="Rediger tekst"
-                                aria-label="Rediger tekst"
-                                className="p-1 rounded hover:bg-black/10 text-slate-800 cursor-pointer"
-                              >
-                                <Pencil size={12} />
-                              </button>
-
-                              {/* Copy Card */}
-                              <button
-                                type="button"
-                                onClick={() => onQuickDuplicateCard(day.id, pic.id)}
-                                title="Kopiér kort"
-                                aria-label="Kopiér kort"
-                                className="p-1 rounded hover:bg-black/10 text-slate-800 cursor-pointer"
-                              >
-                                <Copy size={12} />
-                              </button>
-
-                              {/* Delete Card */}
-                              <button
-                                type="button"
-                                onClick={() => onQuickDeleteCard(day.id, pic.id)}
-                                title="Slet kort"
-                                aria-label="Slet kort"
-                                className="p-1 rounded hover:bg-rose-500 hover:text-white text-slate-800 cursor-pointer"
-                              >
                                 <Trash2 size={12} />
                               </button>
                             </div>
-                          </div>
+                          </>
                         )}
                       </div>
                     );
@@ -521,7 +372,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
               <button
                 type="button"
                 onClick={() => onSelectDay(day.id)}
-                className="w-full p-2 border-t border-slate-200 bg-slate-50 hover:bg-amber-50 flex items-center justify-between text-xs font-bold text-slate-700 transition-colors cursor-pointer rounded-b-[13px]"
+                className="w-full p-2 border-t border-slate-200 bg-slate-50 hover:bg-amber-50 flex items-center justify-between text-xs font-bold text-slate-700 transition-colors cursor-pointer"
               >
                 <span>Åbn dagsplan</span>
                 <ArrowRight size={14} className="text-slate-900" />
