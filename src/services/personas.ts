@@ -109,9 +109,59 @@ export const ACTIVITY_DEFAULT_ICONS: Record<string, string> = {
 
 import { getDbItem, setDbItem } from './storageDb';
 
+export interface DeletedPersona extends Persona {
+  deletedAt: string;
+}
+
 const STORAGE_KEY_CUSTOM_PERSONAS = 'pictogram_custom_personas';
+const STORAGE_KEY_DELETED_PERSONAS = 'pictogram_deleted_personas';
 
 let memoryCustomPersonas: Persona[] | null = null;
+let memoryDeletedPersonas: DeletedPersona[] | null = null;
+
+export function resolveAssetUrl(url?: string): string {
+  if (!url) return '';
+  if (
+    url.startsWith('data:') ||
+    url.startsWith('blob:') ||
+    url.startsWith('http:') ||
+    url.startsWith('https:')
+  ) {
+    return url;
+  }
+  if (url.startsWith(BASE)) {
+    return url;
+  }
+  const clean = url.startsWith('/') ? url.slice(1) : url;
+  return `${BASE}${clean}`;
+}
+
+export async function syncPersonasFromManifest(): Promise<void> {
+  try {
+    const res = await fetch(`${BASE}reference/personas/personas_manifest.json`);
+    if (!res.ok) return;
+    const manifest: Persona[] = await res.json();
+    if (!Array.isArray(manifest) || manifest.length === 0) return;
+
+    const current = getCustomPersonas();
+    let changed = false;
+    for (const item of manifest) {
+      if (!item || !item.id) continue;
+      const existingIndex = current.findIndex((p) => p.id === item.id);
+      if (existingIndex === -1) {
+        current.push(item);
+        changed = true;
+      }
+    }
+    if (changed) {
+      memoryCustomPersonas = current;
+      setDbItem(STORAGE_KEY_CUSTOM_PERSONAS, current);
+      try {
+        localStorage.setItem(STORAGE_KEY_CUSTOM_PERSONAS, JSON.stringify(current));
+      } catch {}
+    }
+  } catch {}
+}
 
 // Background hydration from IndexedDB for large assets
 if (typeof window !== 'undefined') {
@@ -122,6 +172,16 @@ if (typeof window !== 'undefined') {
       }
     })
     .catch(() => {});
+
+  getDbItem<DeletedPersona[]>(STORAGE_KEY_DELETED_PERSONAS)
+    .then((idbDeleted) => {
+      if (idbDeleted && Array.isArray(idbDeleted) && idbDeleted.length > 0) {
+        memoryDeletedPersonas = idbDeleted;
+      }
+    })
+    .catch(() => {});
+
+  syncPersonasFromManifest();
 }
 
 export function getCustomPersonas(): Persona[] {
@@ -134,6 +194,24 @@ export function getCustomPersonas(): Persona[] {
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed)) {
       memoryCustomPersonas = parsed;
+      return parsed;
+    }
+    return [];
+  } catch {
+    return [];
+  }
+}
+
+export function getDeletedPersonas(): DeletedPersona[] {
+  if (memoryDeletedPersonas) {
+    return memoryDeletedPersonas;
+  }
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_DELETED_PERSONAS);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      memoryDeletedPersonas = parsed;
       return parsed;
     }
     return [];
@@ -161,10 +239,41 @@ export function saveCustomPersona(newPersona: Persona): void {
   } catch (quotaErr) {
     console.warn('[personas] localStorage kvote overskredet, gemt sikkert i IndexedDB:', quotaErr);
   }
+
+  // 3. Sync to local disk / GitHub directory if dev server is running
+  if (typeof window !== 'undefined') {
+    fetch('/api/personas/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newPersona),
+    })
+      .then(async (res) => {
+        if (res.ok) {
+          const data = await res.json();
+          if (data?.persona) {
+            const diskPersona: Persona = data.persona;
+            const updated = [...getCustomPersonas()];
+            const idx = updated.findIndex((p) => p.id === diskPersona.id);
+            if (idx >= 0) {
+              updated[idx] = diskPersona;
+              memoryCustomPersonas = updated;
+              setDbItem(STORAGE_KEY_CUSTOM_PERSONAS, updated);
+              try {
+                localStorage.setItem(STORAGE_KEY_CUSTOM_PERSONAS, JSON.stringify(updated));
+              } catch {}
+            }
+          }
+        }
+      })
+      .catch(() => {});
+  }
 }
 
-export function deleteCustomPersona(id: string): void {
+export function deleteCustomPersona(id: string): Persona | null {
   const current = getCustomPersonas();
+  const target = current.find((p) => p.id === id);
+  if (!target) return null;
+
   const filtered = current.filter((p) => p.id !== id);
   memoryCustomPersonas = filtered;
 
@@ -175,6 +284,68 @@ export function deleteCustomPersona(id: string): void {
   } catch (quotaErr) {
     console.warn('[personas] Fejl ved sletning i localStorage:', quotaErr);
   }
+
+  // Soft-delete to deleted list for undo and recovery
+  const deletedList = [...getDeletedPersonas().filter((p) => p.id !== id)];
+  const archivedItem: DeletedPersona = {
+    ...target,
+    deletedAt: new Date().toISOString(),
+  };
+  deletedList.unshift(archivedItem);
+  memoryDeletedPersonas = deletedList;
+  setDbItem(STORAGE_KEY_DELETED_PERSONAS, deletedList);
+  try {
+    localStorage.setItem(STORAGE_KEY_DELETED_PERSONAS, JSON.stringify(deletedList));
+  } catch {}
+
+  // Sync to disk archive (.archive/<id>)
+  if (typeof window !== 'undefined') {
+    fetch('/api/personas/delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    }).catch(() => {});
+  }
+
+  return target;
+}
+
+export function restoreCustomPersona(id: string): Persona | null {
+  const deletedList = getDeletedPersonas();
+  const target = deletedList.find((p) => p.id === id);
+  if (!target) return null;
+
+  // Remove from deleted list
+  const updatedDeleted = deletedList.filter((p) => p.id !== id);
+  memoryDeletedPersonas = updatedDeleted;
+  setDbItem(STORAGE_KEY_DELETED_PERSONAS, updatedDeleted);
+  try {
+    localStorage.setItem(STORAGE_KEY_DELETED_PERSONAS, JSON.stringify(updatedDeleted));
+  } catch {}
+
+  // Add back to active personas
+  const { deletedAt: _deletedAt, ...restoredPersona } = target;
+  saveCustomPersona(restoredPersona);
+
+  // Sync restore on disk
+  if (typeof window !== 'undefined') {
+    fetch('/api/personas/restore', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    }).catch(() => {});
+  }
+
+  return restoredPersona;
+}
+
+export function permanentlyDeletePersona(id: string): void {
+  const deletedList = getDeletedPersonas().filter((p) => p.id !== id);
+  memoryDeletedPersonas = deletedList;
+  setDbItem(STORAGE_KEY_DELETED_PERSONAS, deletedList);
+  try {
+    localStorage.setItem(STORAGE_KEY_DELETED_PERSONAS, JSON.stringify(deletedList));
+  } catch {}
 }
 
 export function isDefaultPersona(id: string): boolean {
@@ -185,9 +356,18 @@ export function getAllPersonas(): Persona[] {
   const custom = getCustomPersonas();
   const defaultList = DEFAULT_PERSONAS.map((def) => {
     const override = custom.find((c) => c.id === def.id);
-    return override || def;
+    const p = override || def;
+    return {
+      ...p,
+      avatarUrl: resolveAssetUrl(p.avatarUrl),
+    };
   });
-  const purelyCustom = custom.filter((c) => !DEFAULT_PERSONAS.some((d) => d.id === c.id));
+  const purelyCustom = custom
+    .filter((c) => !DEFAULT_PERSONAS.some((d) => d.id === c.id))
+    .map((p) => ({
+      ...p,
+      avatarUrl: resolveAssetUrl(p.avatarUrl),
+    }));
   return [...defaultList, ...purelyCustom];
 }
 
@@ -198,21 +378,22 @@ export function getPersona(id?: string): Persona {
 }
 
 export function resolveSceneImage(pic: Pictogram, persona: Persona): string | null {
-  if (pic.customImageUrl) return pic.customImageUrl;
-  if (pic.sceneImageUrl) return pic.sceneImageUrl;
+  if (pic.customImageUrl) return resolveAssetUrl(pic.customImageUrl);
+  if (pic.sceneImageUrl) return resolveAssetUrl(pic.sceneImageUrl);
 
   const key = pic.illustrationId;
   if (key && persona.activityScenes[key]) {
-    return persona.activityScenes[key];
+    return resolveAssetUrl(persona.activityScenes[key]);
   }
   return null;
 }
 
 export function resolveRightIcon(pic: Pictogram): string | null {
-  if (pic.rightIconUrl) return pic.rightIconUrl;
+  if (pic.rightIconUrl) return resolveAssetUrl(pic.rightIconUrl);
   const key = pic.illustrationId;
   if (key && ACTIVITY_DEFAULT_ICONS[key]) {
-    return ACTIVITY_DEFAULT_ICONS[key];
+    return resolveAssetUrl(ACTIVITY_DEFAULT_ICONS[key]);
   }
   return null;
 }
+

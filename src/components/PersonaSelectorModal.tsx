@@ -1,7 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import type { Persona } from '../types';
-import { getAllPersonas, saveCustomPersona, deleteCustomPersona, isDefaultPersona, DEFAULT_PERSONAS } from '../services/personas';
-import { X, Check, User, Upload, Camera, Trash2, Clock, CheckCircle2, Images, AlertTriangle } from 'lucide-react';
+import {
+  getAllPersonas,
+  saveCustomPersona,
+  deleteCustomPersona,
+  restoreCustomPersona,
+  getDeletedPersonas,
+  isDefaultPersona,
+  DEFAULT_PERSONAS,
+  type DeletedPersona,
+} from '../services/personas';
+import {
+  X,
+  Check,
+  User,
+  Upload,
+  Camera,
+  Trash2,
+  Clock,
+  CheckCircle2,
+  Images,
+  AlertTriangle,
+  RotateCcw,
+} from 'lucide-react';
 import { CreateAvatarModal } from './CreateAvatarModal';
 import { getReadyScenesCount } from '../services/characterSceneGenerator';
 
@@ -26,6 +47,9 @@ export const PersonaSelectorModal: React.FC<PersonaSelectorModalProps> = ({
 }) => {
   const [selectedId, setSelectedId] = useState(currentPersona.id);
   const [personas, setPersonas] = useState<Persona[]>(() => getAllPersonas());
+  const [deletedPersonas, setDeletedPersonas] = useState<DeletedPersona[]>(() => getDeletedPersonas());
+  const [recentlyDeleted, setRecentlyDeleted] = useState<Persona | null>(null);
+  const [isTrashOpen, setIsTrashOpen] = useState(false);
   const [avatarToDelete, setAvatarToDelete] = useState<Persona | null>(null);
   const [isCreatePhotoModalOpen, setIsCreatePhotoModalOpen] = useState(false);
 
@@ -33,6 +57,7 @@ export const PersonaSelectorModal: React.FC<PersonaSelectorModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       setPersonas(getAllPersonas());
+      setDeletedPersonas(getDeletedPersonas());
       setSelectedId(currentPersona.id);
       setAvatarToDelete(null);
     }
@@ -81,18 +106,36 @@ export const PersonaSelectorModal: React.FC<PersonaSelectorModalProps> = ({
   const handleConfirmDelete = () => {
     if (!avatarToDelete) return;
 
-    deleteCustomPersona(avatarToDelete.id);
+    const target = avatarToDelete;
+    deleteCustomPersona(target.id);
     const updated = getAllPersonas();
     setPersonas(updated);
+    setDeletedPersonas(getDeletedPersonas());
+    setRecentlyDeleted(target);
 
     // If the deleted avatar was selected, fall back to default persona
-    if (selectedId === avatarToDelete.id) {
+    if (selectedId === target.id) {
       const fallback = DEFAULT_PERSONAS[0];
       setSelectedId(fallback.id);
       onSelectPersona(fallback.id, fallback.shortCode || '', fallback.avatarUrl);
     }
 
     setAvatarToDelete(null);
+  };
+
+  const handleUndoDelete = (idToRestore?: string) => {
+    const targetId = idToRestore || recentlyDeleted?.id;
+    if (!targetId) return;
+
+    const restored = restoreCustomPersona(targetId);
+    if (restored) {
+      const updated = getAllPersonas();
+      setPersonas(updated);
+      setDeletedPersonas(getDeletedPersonas());
+      setSelectedId(restored.id);
+      onSelectPersona(restored.id, restored.shortCode || '', restored.avatarUrl);
+    }
+    setRecentlyDeleted(null);
   };
 
   return (
@@ -119,7 +162,7 @@ export const PersonaSelectorModal: React.FC<PersonaSelectorModalProps> = ({
 
         {/* Modal Body */}
         <div className="p-4 sm:p-5 overflow-y-auto space-y-3.5">
-          {/* Top action section: Opret figur ud fra foto + diskret upload for eksisterende avatar */}
+          {/* Top action section: Opret figur ud fra foto + diskret upload for eksisterende avatar + Papirkurv */}
           <div className="space-y-1.5">
             <button
               type="button"
@@ -130,19 +173,59 @@ export const PersonaSelectorModal: React.FC<PersonaSelectorModalProps> = ({
               <span>Opret ny figur ud fra foto (AI)</span>
             </button>
 
-            <div className="flex items-center justify-center gap-1.5 text-[11px] text-slate-500 font-semibold">
-              <span>Har du allerede en færdig avatar?</span>
-              <label className="text-slate-800 hover:text-amber-600 font-bold underline cursor-pointer inline-flex items-center gap-1 transition-colors">
-                <Upload size={12} />
-                <span>Upload den her</span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileUpload}
-                  className="hidden"
-                />
-              </label>
+            <div className="flex items-center justify-center gap-3 text-[11px] text-slate-500 font-semibold flex-wrap">
+              <div className="flex items-center gap-1">
+                <span>Har du allerede en færdig avatar?</span>
+                <label className="text-slate-800 hover:text-amber-600 font-bold underline cursor-pointer inline-flex items-center gap-1 transition-colors">
+                  <Upload size={12} />
+                  <span>Upload den her</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+
+              {deletedPersonas.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setIsTrashOpen(true)}
+                  className="text-slate-700 hover:text-slate-900 font-bold underline cursor-pointer inline-flex items-center gap-1 transition-colors"
+                >
+                  <RotateCcw size={12} />
+                  <span>Papirkurv ({deletedPersonas.length})</span>
+                </button>
+              )}
             </div>
+
+            {/* Undo notification banner after deleting */}
+            {recentlyDeleted && (
+              <div className="flex items-center justify-between p-2.5 rounded-2xl bg-slate-900 text-white text-xs font-bold animate-in fade-in slide-in-from-top-1 shadow-md">
+                <div className="flex items-center gap-2 min-w-0">
+                  <CheckCircle2 size={15} className="text-emerald-400 shrink-0" />
+                  <span className="truncate">Figuren blev slettet og gemt i papirkurven.</span>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => handleUndoDelete(recentlyDeleted.id)}
+                    className="px-2.5 py-1 bg-amber-400 hover:bg-amber-500 text-slate-900 rounded-lg font-black text-xs flex items-center gap-1 cursor-pointer transition-colors"
+                  >
+                    <RotateCcw size={12} className="stroke-[2.5]" />
+                    <span>Fortryd</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRecentlyDeleted(null)}
+                    className="p-1 text-slate-400 hover:text-white rounded cursor-pointer"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Grid of Figures */}
@@ -177,7 +260,7 @@ export const PersonaSelectorModal: React.FC<PersonaSelectorModalProps> = ({
                       </span>
                     )}
 
-                    {/* Discreet delete button for custom avatars (appears on hover) */}
+                    {/* Discreet delete button for custom avatars (appears on hover or when selected) */}
                     {isCustom && (
                       <button
                         type="button"
@@ -186,7 +269,9 @@ export const PersonaSelectorModal: React.FC<PersonaSelectorModalProps> = ({
                           setAvatarToDelete(p);
                         }}
                         title="Slet figur"
-                        className="absolute top-0 left-0 w-5 h-5 rounded-md bg-black/40 hover:bg-rose-600 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-20 cursor-pointer"
+                        className={`absolute top-0 left-0 w-5 h-5 rounded-md bg-black/50 hover:bg-rose-600 text-white flex items-center justify-center transition-opacity z-20 cursor-pointer ${
+                          isSelected ? 'opacity-90 hover:opacity-100' : 'opacity-0 group-hover:opacity-100'
+                        }`}
                       >
                         <Trash2 size={11} className="stroke-[2.5]" />
                       </button>
@@ -273,7 +358,7 @@ export const PersonaSelectorModal: React.FC<PersonaSelectorModalProps> = ({
               </div>
               <div>
                 <h3 className="text-base font-black text-slate-900">Slet figur?</h3>
-                <p className="text-xs text-slate-500 font-semibold">Handlingen kan ikke fortrydes</p>
+                <p className="text-xs text-slate-500 font-semibold">Figuren gemmes i papirkurven og kan gendannes</p>
               </div>
             </div>
 
@@ -306,6 +391,84 @@ export const PersonaSelectorModal: React.FC<PersonaSelectorModalProps> = ({
               >
                 <Trash2 size={14} className="stroke-[2.5]" />
                 <span>Ja, slet figur</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Trash / Papirkurv Modal */}
+      {isTrashOpen && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl border-3 border-slate-900 shadow-2xl max-w-md w-full p-5 space-y-4 animate-in zoom-in-95 flex flex-col max-h-[85vh]">
+            <div className="flex items-center justify-between border-b-2 border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-slate-100 border border-slate-300 flex items-center justify-center text-slate-700">
+                  <Trash2 size={16} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-slate-900 leading-none">Papirkurv</h3>
+                  <p className="text-[11px] text-slate-500 font-semibold mt-1">Slettede figurer kan gendannes her</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsTrashOpen(false)}
+                className="p-1 rounded-lg hover:bg-slate-100 text-slate-700 cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="overflow-y-auto space-y-2 flex-1 pr-1">
+              {deletedPersonas.length === 0 ? (
+                <p className="text-xs text-slate-400 font-semibold text-center py-8">
+                  Papirkurven er tom
+                </p>
+              ) : (
+                deletedPersonas.map((del) => (
+                  <div
+                    key={del.id}
+                    className="flex items-center justify-between p-2.5 rounded-2xl border-2 border-slate-200 bg-slate-50 hover:bg-white transition-colors"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-12 h-12 rounded-xl bg-white border border-slate-300 overflow-hidden flex items-center justify-center shrink-0">
+                        <img
+                          src={del.avatarUrl}
+                          alt={del.name || 'Figur'}
+                          className="w-full h-full object-contain"
+                        />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-xs font-black text-slate-900 truncate">
+                          {del.name || 'Min figur'}
+                        </div>
+                        <div className="text-[10px] text-slate-500 font-semibold truncate">
+                          ID: {del.id}
+                        </div>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => handleUndoDelete(del.id)}
+                      className="px-3 py-1.5 rounded-xl border-2 border-slate-900 bg-amber-400 hover:bg-amber-500 text-slate-900 font-black text-xs shadow-xs transition-colors cursor-pointer flex items-center gap-1.5 shrink-0"
+                    >
+                      <RotateCcw size={12} className="stroke-[2.5]" />
+                      <span>Gendan</span>
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="pt-2 border-t-2 border-slate-100 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setIsTrashOpen(false)}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl border border-slate-300 text-xs transition-colors cursor-pointer"
+              >
+                Luk
               </button>
             </div>
           </div>
