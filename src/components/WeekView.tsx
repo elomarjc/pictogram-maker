@@ -19,10 +19,10 @@ export const WeekView: React.FC<WeekViewProps> = ({
 }) => {
   return (
     <div className="w-full max-w-7xl mx-auto space-y-4">
-      <div className="flex items-center justify-between bg-white p-4 rounded-2xl border-2 border-slate-900 shadow-sm">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1.5 bg-white p-3.5 sm:p-4 rounded-2xl border-2 border-slate-900 shadow-sm">
         <div className="flex items-center gap-2">
           <Calendar size={20} className="text-amber-500" />
-          <h2 className="text-lg font-black text-slate-900">
+          <h2 className="text-base sm:text-lg font-black text-slate-900">
             Ugeoversigt – {plan.name}
           </h2>
         </div>
@@ -31,7 +31,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-3">
         {DAYS_OF_WEEK.map((day) => {
           const schedule = plan.days[day.id];
           const count = schedule?.pictograms.length || 0;

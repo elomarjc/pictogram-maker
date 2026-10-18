@@ -51,6 +51,17 @@ export const CropSceneModal: React.FC<CropSceneModalProps> = ({
     };
   };
 
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (fitMode !== 'cover' || e.touches.length === 0) return;
+    setIsDragging(true);
+    dragStartRef.current = {
+      x: e.touches[0].clientX,
+      y: e.touches[0].clientY,
+      startX: offsetX,
+      startY: offsetY,
+    };
+  };
+
   const handleMouseMove = useCallback((e: MouseEvent) => {
     if (!isDragging || !dragStartRef.current) return;
     const dx = e.clientX - dragStartRef.current.x;
@@ -60,7 +71,15 @@ export const CropSceneModal: React.FC<CropSceneModalProps> = ({
     setOffsetY(Math.max(-50, Math.min(50, dragStartRef.current.startY + dy * 0.25)));
   }, [isDragging]);
 
-  const handleMouseUp = useCallback(() => {
+  const handleTouchMove = useCallback((e: TouchEvent) => {
+    if (!isDragging || !dragStartRef.current || e.touches.length === 0) return;
+    const dx = e.touches[0].clientX - dragStartRef.current.x;
+    const dy = e.touches[0].clientY - dragStartRef.current.y;
+    setOffsetX(Math.max(-50, Math.min(50, dragStartRef.current.startX + dx * 0.25)));
+    setOffsetY(Math.max(-50, Math.min(50, dragStartRef.current.startY + dy * 0.25)));
+  }, [isDragging]);
+
+  const handleDragEnd = useCallback(() => {
     setIsDragging(false);
     dragStartRef.current = null;
   }, []);
@@ -68,13 +87,19 @@ export const CropSceneModal: React.FC<CropSceneModalProps> = ({
   useEffect(() => {
     if (isDragging) {
       window.addEventListener('mousemove', handleMouseMove);
-      window.addEventListener('mouseup', handleMouseUp);
+      window.addEventListener('mouseup', handleDragEnd);
+      window.addEventListener('touchmove', handleTouchMove, { passive: true });
+      window.addEventListener('touchend', handleDragEnd);
+      window.addEventListener('touchcancel', handleDragEnd);
       return () => {
         window.removeEventListener('mousemove', handleMouseMove);
-        window.removeEventListener('mouseup', handleMouseUp);
+        window.removeEventListener('mouseup', handleDragEnd);
+        window.removeEventListener('touchmove', handleTouchMove);
+        window.removeEventListener('touchend', handleDragEnd);
+        window.removeEventListener('touchcancel', handleDragEnd);
       };
     }
-  }, [isDragging, handleMouseMove, handleMouseUp]);
+  }, [isDragging, handleMouseMove, handleTouchMove, handleDragEnd]);
 
   if (!isOpen || !imageSource) return null;
 
@@ -226,8 +251,9 @@ export const CropSceneModal: React.FC<CropSceneModalProps> = ({
 
             <div
               onMouseDown={handleMouseDown}
+              onTouchStart={handleTouchStart}
               className={`w-full aspect-[2126/740] rounded-2xl border-3 border-slate-900 overflow-hidden relative shadow-md bg-slate-100/60 select-none ${
-                fitMode === 'cover' ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'
+                fitMode === 'cover' ? 'cursor-grab active:cursor-grabbing touch-none' : 'cursor-default'
               }`}
             >
               <img

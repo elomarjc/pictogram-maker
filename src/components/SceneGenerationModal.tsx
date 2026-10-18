@@ -255,7 +255,7 @@ export const SceneGenerationModal: React.FC<SceneGenerationModalProps> = ({
   // Minimized floating banner at bottom-right
   if (isMinimized) {
     return (
-      <div className="fixed bottom-4 right-4 z-[100] bg-white border-3 border-slate-900 rounded-2xl shadow-2xl p-3 flex items-center gap-3 animate-in slide-in-from-bottom-3 duration-200">
+      <div className="fixed bottom-3 inset-x-3 sm:inset-x-auto sm:right-4 sm:bottom-4 z-[100] bg-white border-3 border-slate-900 rounded-2xl shadow-2xl p-2.5 sm:p-3 flex items-center justify-between sm:justify-start gap-2.5 sm:gap-3 animate-in slide-in-from-bottom-3 duration-200">
         <div className="w-10 h-10 rounded-xl border-2 border-slate-900 overflow-hidden bg-slate-100 flex-shrink-0">
           <img
             src={currentPersona.avatarUrl}
@@ -506,12 +506,12 @@ export const SceneGenerationModal: React.FC<SceneGenerationModalProps> = ({
                   </div>
 
                   {/* Delete & Re-generate buttons for completed scenes (visible on hover or when card is selected) */}
-                  {isDone && !isGenerating && (
+                    {isDone && !isGenerating && (
                     <div
                       className={`absolute top-1.5 left-1.5 z-10 flex items-center gap-1 transition-opacity duration-150 ${
                         isSelected
                           ? 'opacity-100 pointer-events-auto'
-                          : 'opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto'
+                          : 'opacity-70 sm:opacity-0 sm:pointer-events-none sm:group-hover:opacity-100 sm:group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto'
                       }`}
                     >
                       <button
@@ -521,9 +521,10 @@ export const SceneGenerationModal: React.FC<SceneGenerationModalProps> = ({
                           handleDeleteScene(sceneDef.key, sceneDef.title);
                         }}
                         title="Slet denne scene"
-                        className="w-5 h-5 rounded-md bg-white/95 hover:bg-rose-600 text-slate-600 hover:text-white border border-slate-300 hover:border-rose-600 flex items-center justify-center shadow-2xs transition-colors cursor-pointer"
+                        aria-label="Slet denne scene"
+                        className="w-7 h-7 sm:w-6 sm:h-6 rounded-lg bg-white/95 hover:bg-rose-600 text-slate-700 hover:text-white border border-slate-300 hover:border-rose-600 flex items-center justify-center shadow-xs transition-colors cursor-pointer"
                       >
-                        <Trash2 size={11} className="stroke-[2.5]" />
+                        <Trash2 size={13} className="stroke-[2.5]" />
                       </button>
                       <button
                         type="button"
@@ -532,9 +533,10 @@ export const SceneGenerationModal: React.FC<SceneGenerationModalProps> = ({
                           handleGenerateSingleCard(sceneDef);
                         }}
                         title="Gen-generer denne scene"
-                        className="w-5 h-5 rounded-md bg-white/95 hover:bg-amber-400 text-slate-600 hover:text-slate-900 border border-slate-300 hover:border-slate-900 flex items-center justify-center shadow-2xs transition-colors cursor-pointer"
+                        aria-label="Gen-generer denne scene"
+                        className="w-7 h-7 sm:w-6 sm:h-6 rounded-lg bg-white/95 hover:bg-amber-400 text-slate-700 hover:text-slate-900 border border-slate-300 hover:border-slate-900 flex items-center justify-center shadow-xs transition-colors cursor-pointer"
                       >
-                        <RotateCw size={11} className="stroke-[2.5]" />
+                        <RotateCw size={13} className="stroke-[2.5]" />
                       </button>
                     </div>
                   )}
@@ -584,7 +586,7 @@ export const SceneGenerationModal: React.FC<SceneGenerationModalProps> = ({
         </div>
 
         {/* Footer controls */}
-        <div className="px-5 py-3.5 border-t-2 border-slate-900 bg-white flex items-center justify-between gap-3">
+        <div className="px-4 py-3 sm:px-5 sm:py-3.5 border-t-2 border-slate-900 bg-white flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
           <div className="text-xs font-bold text-slate-600">
             {isGenerating ? (
               <span className="flex items-center gap-1.5 text-amber-700">
@@ -607,14 +609,14 @@ export const SceneGenerationModal: React.FC<SceneGenerationModalProps> = ({
                 <button
                   type="button"
                   onClick={handleStop}
-                  className="px-4 py-2 rounded-xl border-2 border-slate-300 font-bold text-slate-700 hover:bg-slate-100 text-xs transition-colors cursor-pointer"
+                  className="flex-1 sm:flex-none px-4 py-2.5 sm:py-2 rounded-xl border-2 border-slate-300 font-bold text-slate-700 hover:bg-slate-100 text-xs transition-colors cursor-pointer min-h-[38px]"
                 >
                   Afbryd
                 </button>
                 <button
                   type="button"
                   onClick={() => setIsMinimized(true)}
-                  className="px-4 py-2 rounded-xl border-2 border-slate-900 bg-amber-400 hover:bg-amber-500 text-slate-900 font-black text-xs shadow-xs transition-colors cursor-pointer flex items-center gap-1.5"
+                  className="flex-1 sm:flex-none px-4 py-2.5 sm:py-2 rounded-xl border-2 border-slate-900 bg-amber-400 hover:bg-amber-500 text-slate-900 font-black text-xs shadow-xs transition-colors cursor-pointer flex items-center justify-center gap-1.5 min-h-[38px]"
                 >
                   <Minimize2 size={14} />
                   <span>Kør i baggrunden</span>
@@ -624,7 +626,7 @@ export const SceneGenerationModal: React.FC<SceneGenerationModalProps> = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="px-5 py-2 rounded-xl border-2 border-slate-900 bg-emerald-500 hover:bg-emerald-600 text-white font-black text-xs shadow-xs transition-colors cursor-pointer flex items-center gap-1.5"
+                className="w-full sm:w-auto px-5 py-2.5 sm:py-2 rounded-xl border-2 border-slate-900 bg-emerald-500 hover:bg-emerald-600 text-white font-black text-xs shadow-xs transition-colors cursor-pointer flex items-center justify-center gap-1.5 min-h-[38px]"
               >
                 <CheckCircle2 size={14} />
                 <span>Luk og se tavle</span>
@@ -634,14 +636,14 @@ export const SceneGenerationModal: React.FC<SceneGenerationModalProps> = ({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="px-4 py-2 rounded-xl border-2 border-slate-300 font-bold text-slate-700 hover:bg-slate-100 text-xs transition-colors cursor-pointer"
+                  className="flex-1 sm:flex-none px-4 py-2.5 sm:py-2 rounded-xl border-2 border-slate-300 font-bold text-slate-700 hover:bg-slate-100 text-xs transition-colors cursor-pointer min-h-[38px]"
                 >
                   Luk
                 </button>
                 <button
                   type="button"
                   onClick={() => startGeneration(currentPersona)}
-                  className="px-5 py-2 rounded-xl border-2 border-slate-900 bg-amber-400 hover:bg-amber-500 text-slate-900 font-black text-xs shadow-xs transition-colors cursor-pointer flex items-center gap-1.5"
+                  className="flex-1 sm:flex-none px-5 py-2.5 sm:py-2 rounded-xl border-2 border-slate-900 bg-amber-400 hover:bg-amber-500 text-slate-900 font-black text-xs shadow-xs transition-colors cursor-pointer flex items-center justify-center gap-1.5 min-h-[38px]"
                 >
                   <Play size={14} className="fill-current" />
                   <span>Generer manglende scener</span>

@@ -182,22 +182,23 @@ export const CreateAvatarModal: React.FC<CreateAvatarModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
-      <div className="bg-white rounded-3xl border-4 border-slate-900 shadow-2xl max-w-lg w-full overflow-hidden flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
+      <div className="bg-white rounded-3xl border-3 sm:border-4 border-slate-900 shadow-2xl max-w-lg w-full overflow-hidden flex flex-col max-h-[94vh] sm:max-h-[90vh]">
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3.5 border-b-2 border-slate-900 bg-amber-400">
+        <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-3.5 border-b-2 border-slate-900 bg-amber-400">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-xl bg-white border-2 border-slate-900 flex items-center justify-center text-slate-900 shadow-xs">
               <Camera size={18} />
             </div>
-            <h2 className="text-lg font-black text-slate-900 tracking-tight leading-none">
+            <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight leading-none">
               Opret figur ud fra foto
             </h2>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="p-1 rounded-xl hover:bg-black/10 text-slate-900 transition-colors cursor-pointer"
+            aria-label="Luk"
+            className="p-1.5 rounded-xl hover:bg-black/10 text-slate-900 transition-colors cursor-pointer"
           >
             <X size={20} />
           </button>
@@ -314,12 +315,12 @@ export const CreateAvatarModal: React.FC<CreateAvatarModalProps> = ({
                 </button>
 
                 {/* Secondary Actions: Regenerate, New Photo, Discard */}
-                <div className="flex gap-2">
+                <div className="flex flex-wrap sm:flex-nowrap gap-2">
                   <button
                     type="button"
                     onClick={handleTransform}
                     title="Prøv igen med samme foto"
-                    className="flex-1 py-2 px-2 rounded-xl border-2 border-slate-900 bg-white hover:bg-slate-100 font-bold text-slate-900 text-xs shadow-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                    className="flex-1 min-w-[105px] py-2 px-2.5 rounded-xl border-2 border-slate-900 bg-white hover:bg-slate-100 font-bold text-slate-900 text-xs shadow-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer min-h-[38px]"
                   >
                     <RotateCcw size={13} className="stroke-[2.5]" />
                     <span>Generer igen</span>
@@ -329,7 +330,7 @@ export const CreateAvatarModal: React.FC<CreateAvatarModalProps> = ({
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
                     title="Vælg et andet foto"
-                    className="flex-1 py-2 px-2 rounded-xl border-2 border-slate-900 bg-white hover:bg-slate-100 font-bold text-slate-900 text-xs shadow-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                    className="flex-1 min-w-[105px] py-2 px-2.5 rounded-xl border-2 border-slate-900 bg-white hover:bg-slate-100 font-bold text-slate-900 text-xs shadow-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer min-h-[38px]"
                   >
                     <Upload size={13} className="stroke-[2.5]" />
                     <span>Nyt foto</span>
@@ -339,7 +340,7 @@ export const CreateAvatarModal: React.FC<CreateAvatarModalProps> = ({
                     type="button"
                     onClick={handleReset}
                     title="Kassér figur"
-                    className="py-2 px-3 rounded-xl border-2 border-slate-300 hover:border-rose-400 hover:bg-rose-50 text-slate-600 hover:text-rose-700 font-bold text-xs transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                    className="py-2 px-3.5 rounded-xl border-2 border-slate-300 hover:border-rose-400 hover:bg-rose-50 text-slate-600 hover:text-rose-700 font-bold text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer min-h-[38px]"
                   >
                     <Trash2 size={13} className="stroke-[2.5]" />
                     <span>Kassér</span>

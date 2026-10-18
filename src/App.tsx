@@ -466,7 +466,7 @@ export const App: React.FC = () => {
       />
 
       {/* Main Workspace Body */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-6 print-container">
+      <main className="flex-1 max-w-7xl w-full mx-auto p-2.5 sm:p-6 print-container">
         {selectedDayId === 'week' ? (
           <WeekView
             plan={currentPlan}
@@ -502,7 +502,7 @@ export const App: React.FC = () => {
       </main>
 
       {/* Footer */}
-      <footer className="mt-auto py-6 px-4 bg-white border-t border-slate-200 text-center text-xs font-semibold text-slate-500 print:hidden">
+      <footer className="mt-auto py-5 sm:py-6 px-4 bg-white border-t border-slate-200 text-center text-xs font-semibold text-slate-500 print:hidden">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
           <p>
             Piktogram Maker – 100% lokal kørsel i browseren uden backend eller sporing.
@@ -510,14 +510,14 @@ export const App: React.FC = () => {
           <div className="flex items-center gap-4">
             <button
               onClick={() => setIsPrivacyModalOpen(true)}
-              className="hover:text-slate-800 transition-colors"
+              className="hover:text-slate-800 transition-colors cursor-pointer py-1"
             >
               Privatlivspolitik
             </button>
             <span>•</span>
             <button
               onClick={handleExportBackup}
-              className="hover:text-slate-800 transition-colors"
+              className="hover:text-slate-800 transition-colors cursor-pointer py-1"
             >
               Tag backup
             </button>

@@ -621,21 +621,22 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto animate-in fade-in">
-      <div className="bg-white rounded-3xl border-4 border-slate-900 shadow-2xl max-w-2xl w-full max-h-[92vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-150">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto animate-in fade-in">
+      <div className="bg-white rounded-3xl border-3 sm:border-4 border-slate-900 shadow-2xl max-w-2xl w-full max-h-[94vh] sm:max-h-[92vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-150">
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3.5 border-b-2 border-slate-900 bg-amber-400">
+        <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-3.5 border-b-2 border-slate-900 bg-amber-400">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-xl bg-white border-2 border-slate-900 flex items-center justify-center shadow-xs">
               <Edit3 size={18} className="text-slate-900" />
             </div>
-            <h2 className="text-lg font-black text-slate-900 tracking-tight leading-none">
+            <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight leading-none">
               Rediger piktogram
             </h2>
           </div>
           <button
             type="button"
             onClick={onClose}
+            aria-label="Luk"
             className="p-1 rounded-xl hover:bg-black/10 text-slate-900 transition-colors cursor-pointer"
           >
             <X size={20} />
@@ -643,7 +644,7 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSave} className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-3">
+        <form onSubmit={handleSave} className="flex-1 overflow-y-auto p-3.5 sm:p-5 space-y-3">
           {/* Live Preview card - snug, full-width, zero wasted gaps */}
           <div className="w-full">
             <PictogramCard
@@ -693,7 +694,7 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
               </button>
 
               {isTimeOpen && (
-                <div className="absolute left-0 sm:right-0 sm:left-auto top-full mt-1.5 z-40 p-3 bg-white border-2 border-slate-900 rounded-2xl shadow-xl w-64 space-y-2.5 animate-in fade-in zoom-in-95">
+                <div className="absolute left-0 sm:right-0 sm:left-auto top-full mt-1.5 z-40 p-3 bg-white border-2 border-slate-900 rounded-2xl shadow-xl w-64 max-w-[calc(100vw-32px)] space-y-2.5 animate-in fade-in zoom-in-95">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-slate-700">Vælg klokkeslæt</span>
                     {time && (
@@ -798,7 +799,7 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
               </button>
 
               {isColorOpen && (
-                <div className="absolute right-0 top-full mt-1.5 z-40 p-2.5 bg-white border-2 border-slate-900 rounded-2xl shadow-xl w-60 animate-in fade-in zoom-in-95">
+                <div className="absolute right-0 top-full mt-1.5 z-40 p-2.5 bg-white border-2 border-slate-900 rounded-2xl shadow-xl w-60 max-w-[calc(100vw-32px)] animate-in fade-in zoom-in-95">
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2 px-0.5">
                     Vælg kortfarve
                   </span>
@@ -847,7 +848,7 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
               </button>
 
               {isFontSizeOpen && (
-                <div className="absolute right-0 top-full mt-1.5 z-40 p-3 bg-white border-2 border-slate-900 rounded-2xl shadow-xl w-56 space-y-2.5 animate-in fade-in zoom-in-95">
+                <div className="absolute right-0 top-full mt-1.5 z-40 p-3 bg-white border-2 border-slate-900 rounded-2xl shadow-xl w-56 max-w-[calc(100vw-32px)] space-y-2.5 animate-in fade-in zoom-in-95">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-slate-700">Tekststørrelse</span>
                     <div className="flex items-center gap-1 bg-slate-100 border border-slate-300 rounded-lg px-1.5 py-0.5">
@@ -1053,9 +1054,10 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
                           setCropModalOpen(true);
                         }}
                         title="Beskær og tilpas scene"
-                        className="absolute top-1.5 left-7 w-5 h-5 rounded-md bg-black/60 hover:bg-amber-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-20 cursor-pointer"
+                        aria-label="Beskær og tilpas scene"
+                        className="absolute top-1.5 left-9 sm:left-8 w-7 h-7 sm:w-6 sm:h-6 rounded-lg bg-black/70 hover:bg-amber-500 text-white flex items-center justify-center opacity-90 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity z-20 cursor-pointer shadow-xs"
                       >
-                        <Crop size={11} className="stroke-[2.5]" />
+                        <Crop size={13} className="stroke-[2.5]" />
                       </button>
 
                       {/* Delete scene button */}
@@ -1073,9 +1075,10 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
                           }
                         }}
                         title="Fjern scene"
-                        className="absolute top-1.5 left-1.5 w-5 h-5 rounded-md bg-black/60 hover:bg-rose-600 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-20 cursor-pointer"
+                        aria-label="Fjern scene"
+                        className="absolute top-1.5 left-1.5 w-7 h-7 sm:w-6 sm:h-6 rounded-lg bg-black/70 hover:bg-rose-600 text-white flex items-center justify-center opacity-90 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity z-20 cursor-pointer shadow-xs"
                       >
-                        <Trash2 size={11} className="stroke-[2.5]" />
+                        <Trash2 size={13} className="stroke-[2.5]" />
                       </button>
                     </div>
                   );

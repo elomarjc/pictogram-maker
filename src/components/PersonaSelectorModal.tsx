@@ -269,11 +269,12 @@ export const PersonaSelectorModal: React.FC<PersonaSelectorModalProps> = ({
                           setAvatarToDelete(p);
                         }}
                         title="Slet figur"
-                        className={`absolute top-0 left-0 w-5 h-5 rounded-md bg-black/50 hover:bg-rose-600 text-white flex items-center justify-center transition-opacity z-20 cursor-pointer ${
-                          isSelected ? 'opacity-90 hover:opacity-100' : 'opacity-0 group-hover:opacity-100'
+                        aria-label="Slet figur"
+                        className={`absolute top-0 left-0 w-7 h-7 sm:w-6 sm:h-6 rounded-lg bg-black/60 hover:bg-rose-600 text-white flex items-center justify-center transition-opacity z-20 cursor-pointer shadow-xs ${
+                          isSelected ? 'opacity-90 hover:opacity-100' : 'opacity-70 sm:opacity-0 sm:group-hover:opacity-100'
                         }`}
                       >
-                        <Trash2 size={11} className="stroke-[2.5]" />
+                        <Trash2 size={13} className="stroke-[2.5]" />
                       </button>
                     )}
                   </div>
@@ -287,7 +288,7 @@ export const PersonaSelectorModal: React.FC<PersonaSelectorModalProps> = ({
                         onOpenSceneGen?.(p, false);
                       }}
                       title="Klik for at se figurens scener"
-                      className={`inline-flex items-center justify-center gap-1 px-2.5 h-6 rounded-full text-[10px] font-black whitespace-nowrap transition-all cursor-pointer shadow-2xs hover:scale-105 active:scale-95 ${
+                      className={`inline-flex items-center justify-center gap-1 px-2.5 min-h-[28px] rounded-full text-[10px] font-black whitespace-nowrap transition-all cursor-pointer shadow-2xs hover:scale-105 active:scale-95 ${
                         isAllReady
                           ? 'text-emerald-800 bg-emerald-100/90 hover:bg-emerald-200 border border-emerald-300'
                           : 'text-amber-900 bg-amber-100 hover:bg-amber-200 border border-amber-300'
@@ -313,7 +314,7 @@ export const PersonaSelectorModal: React.FC<PersonaSelectorModalProps> = ({
         </div>
 
         {/* Modal Footer */}
-        <div className="p-3 bg-slate-100 border-t-2 border-slate-200 flex items-center justify-between gap-2.5">
+        <div className="p-3 sm:p-3.5 bg-slate-100 border-t-2 border-slate-200 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 sm:gap-2.5">
           <button
             type="button"
             onClick={() => {
@@ -322,7 +323,7 @@ export const PersonaSelectorModal: React.FC<PersonaSelectorModalProps> = ({
                 onOpenSceneGen?.(selected, false);
               }
             }}
-            className="px-3.5 py-2 rounded-xl border-2 border-slate-900 bg-amber-400 hover:bg-amber-500 text-slate-900 font-black text-xs shadow-xs transition-colors cursor-pointer flex items-center gap-1.5"
+            className="px-3.5 py-2.5 sm:py-2 rounded-xl border-2 border-slate-900 bg-amber-400 hover:bg-amber-500 text-slate-900 font-black text-xs shadow-xs transition-colors cursor-pointer flex items-center justify-center gap-1.5 min-h-[38px]"
           >
             <Images size={14} />
             <span>Tjek / generer scener</span>
@@ -332,14 +333,14 @@ export const PersonaSelectorModal: React.FC<PersonaSelectorModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 bg-white hover:bg-slate-200 text-slate-800 font-bold rounded-xl border-2 border-slate-300 text-xs transition-colors cursor-pointer"
+              className="flex-1 sm:flex-none px-4 py-2.5 sm:py-2 bg-white hover:bg-slate-200 text-slate-800 font-bold rounded-xl border-2 border-slate-300 text-xs transition-colors cursor-pointer min-h-[38px]"
             >
               Annuller
             </button>
             <button
               type="button"
               onClick={handleSave}
-              className="px-5 py-2 bg-amber-400 hover:bg-amber-500 text-slate-900 font-black rounded-xl border-2 border-slate-900 text-xs shadow-xs hover:shadow transition-all flex items-center gap-1.5 cursor-pointer"
+              className="flex-1 sm:flex-none px-5 py-2.5 sm:py-2 bg-amber-400 hover:bg-amber-500 text-slate-900 font-black rounded-xl border-2 border-slate-900 text-xs shadow-xs hover:shadow transition-all flex items-center justify-center gap-1.5 cursor-pointer min-h-[38px]"
             >
               <Check size={16} className="stroke-[3]" />
               Vælg figur

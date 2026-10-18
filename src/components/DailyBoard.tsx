@@ -157,10 +157,10 @@ export const DailyBoard: React.FC<DailyBoardProps> = ({
     <div className="w-full max-w-4xl mx-auto space-y-4">
       {/* Top Action Toolbar for the Day */}
       <div className="flex flex-wrap items-center justify-between gap-2.5 bg-white p-3 sm:p-4 rounded-2xl border-2 border-slate-900 shadow-sm">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
           <button
             onClick={onAddPictogram}
-            className="inline-flex items-center gap-1.5 px-4 py-2 bg-amber-400 hover:bg-amber-500 text-slate-900 font-black rounded-xl border-2 border-slate-900 shadow-sm hover:shadow transition-all text-sm"
+            className="inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-2 bg-amber-400 hover:bg-amber-500 text-slate-900 font-black rounded-xl border-2 border-slate-900 shadow-sm hover:shadow transition-all text-xs sm:text-sm cursor-pointer min-h-[36px]"
           >
             <Plus size={18} className="stroke-[3]" />
             Tilføj piktogram
@@ -170,7 +170,7 @@ export const DailyBoard: React.FC<DailyBoardProps> = ({
           <button
             onClick={onOpenPersonaModal}
             title="Vælg figur"
-            className="inline-flex items-center gap-2 px-3 py-1.5 bg-white hover:bg-amber-50 text-slate-900 font-black rounded-xl border-2 border-slate-900 shadow-xs hover:shadow transition-all text-xs cursor-pointer"
+            className="inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 bg-white hover:bg-amber-50 text-slate-900 font-black rounded-xl border-2 border-slate-900 shadow-xs hover:shadow transition-all text-xs cursor-pointer min-h-[36px]"
           >
             <div className="w-5 h-5 rounded-md border border-slate-900 overflow-hidden shrink-0 bg-amber-100">
               <img src={persona.avatarUrl} alt="" className="w-full h-full object-cover" />
@@ -178,31 +178,33 @@ export const DailyBoard: React.FC<DailyBoardProps> = ({
             <span>Vælg figur</span>
           </button>
 
-          {/* View mode toggle */}
-          <div className="hidden sm:flex items-center bg-slate-100 p-1 rounded-xl border border-slate-300">
+          {/* View mode toggle - accessible on both mobile and desktop */}
+          <div className="flex items-center bg-slate-100 p-0.5 sm:p-1 rounded-xl border border-slate-300">
             <button
               onClick={() => onChangeViewMode('board')}
-              title="Tavle-visning (som på billedet)"
-              className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+              title="Tavle-visning"
+              aria-label="Tavle-visning"
+              className={`flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 viewMode === 'board'
                   ? 'bg-white text-slate-900 border border-slate-900 shadow-xs'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               <LayoutList size={14} />
-              Tavle
+              <span className="hidden sm:inline">Tavle</span>
             </button>
             <button
               onClick={() => onChangeViewMode('cards')}
-              title="Kort-visning (6.5 x 10 cm kort)"
-              className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+              title="Kort-visning"
+              aria-label="Kort-visning"
+              className={`flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 viewMode === 'cards'
                   ? 'bg-white text-slate-900 border border-slate-900 shadow-xs'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               <Grid size={14} />
-              Kort
+              <span className="hidden sm:inline">Kort</span>
             </button>
           </div>
 
@@ -213,7 +215,7 @@ export const DailyBoard: React.FC<DailyBoardProps> = ({
                 type="button"
                 onClick={() => setIsFontSizeMenuOpen((prev) => !prev)}
                 title="Skift tekststørrelse for alle kort"
-                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white hover:bg-slate-50 text-slate-900 font-bold rounded-xl border-2 border-slate-900 shadow-xs text-xs cursor-pointer transition-all"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white hover:bg-slate-50 text-slate-900 font-bold rounded-xl border-2 border-slate-900 shadow-xs text-xs cursor-pointer transition-all min-h-[36px]"
               >
                 <Type size={13} className="text-slate-700" />
                 <span className="hidden sm:inline">Tekst</span>
@@ -224,7 +226,7 @@ export const DailyBoard: React.FC<DailyBoardProps> = ({
               </button>
 
               {isFontSizeMenuOpen && (
-                <div className="absolute left-0 top-full mt-1.5 z-40 p-3 bg-white border-2 border-slate-900 rounded-2xl shadow-xl w-56 space-y-2.5 animate-in fade-in zoom-in-95">
+                <div className="absolute left-0 sm:left-auto sm:right-0 top-full mt-1.5 z-40 p-3 bg-white border-2 border-slate-900 rounded-2xl shadow-xl w-56 max-w-[calc(100vw-32px)] space-y-2.5 animate-in fade-in zoom-in-95">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-slate-700">Tekststørrelse</span>
                     <div className="flex items-center gap-1 bg-slate-100 border border-slate-300 rounded-lg px-1.5 py-0.5">
@@ -332,7 +334,8 @@ export const DailyBoard: React.FC<DailyBoardProps> = ({
           <button
             onClick={onCopyDay}
             title="Kopiér denne dagsplan til en anden ugedag"
-            className="inline-flex items-center gap-1 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl border border-slate-300 transition-colors"
+            aria-label="Kopiér denne dagsplan"
+            className="inline-flex items-center justify-center gap-1 px-2.5 sm:px-3 py-1.5 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 text-xs font-bold rounded-xl border border-slate-300 transition-colors cursor-pointer min-h-[34px] min-w-[34px]"
           >
             <Copy size={14} />
             <span className="hidden md:inline">Kopiér dag</span>
@@ -340,7 +343,8 @@ export const DailyBoard: React.FC<DailyBoardProps> = ({
           <button
             onClick={onResetDay}
             title="Nulstil denne dag til standardskabelonen"
-            className="inline-flex items-center gap-1 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl border border-slate-300 transition-colors"
+            aria-label="Nulstil denne dag"
+            className="inline-flex items-center justify-center gap-1 px-2.5 sm:px-3 py-1.5 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 text-xs font-bold rounded-xl border border-slate-300 transition-colors cursor-pointer min-h-[34px] min-w-[34px]"
           >
             <RotateCcw size={14} />
             <span className="hidden md:inline">Nulstil dag</span>
@@ -348,7 +352,8 @@ export const DailyBoard: React.FC<DailyBoardProps> = ({
           <button
             onClick={onClearDay}
             title="Tøm alle piktogrammer for denne dag"
-            className="inline-flex items-center gap-1 px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold rounded-xl border border-rose-300 transition-colors"
+            aria-label="Tøm denne dag"
+            className="inline-flex items-center justify-center gap-1 px-2.5 sm:px-3 py-1.5 bg-rose-50 hover:bg-rose-100 active:bg-rose-200 text-rose-700 text-xs font-bold rounded-xl border border-rose-300 transition-colors cursor-pointer min-h-[34px] min-w-[34px]"
           >
             <Trash2 size={14} />
             <span className="hidden md:inline">Tøm dag</span>
@@ -380,9 +385,9 @@ export const DailyBoard: React.FC<DailyBoardProps> = ({
               {/* Subtle hover edit badge */}
               <span
                 data-html2canvas-ignore="true"
-                className="print:hidden absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-white border border-slate-900 text-slate-800 shadow-xs flex items-center justify-center opacity-0 group-hover/icon:opacity-100 transition-opacity"
+                className="print:hidden absolute -bottom-1 -right-1 w-6 h-6 sm:w-5 sm:h-5 rounded-full bg-white border border-slate-900 text-slate-800 shadow-xs flex items-center justify-center opacity-70 sm:opacity-0 sm:group-hover/icon:opacity-100 transition-opacity"
               >
-                <Pencil size={10} className="stroke-[2.5]" />
+                <Pencil size={11} className="stroke-[2.5]" />
               </span>
             </button>
           </div>
@@ -425,7 +430,7 @@ export const DailyBoard: React.FC<DailyBoardProps> = ({
                     <button
                       type="button"
                       onClick={() => onUpdateHeaderFontSize(Math.max(12, currentHeaderFontSize - 2))}
-                      className="w-5 h-5 rounded hover:bg-slate-200 font-black cursor-pointer"
+                      className="w-7 h-7 sm:w-5 sm:h-5 rounded hover:bg-slate-200 font-black cursor-pointer flex items-center justify-center text-sm"
                     >
                       -
                     </button>
@@ -433,7 +438,7 @@ export const DailyBoard: React.FC<DailyBoardProps> = ({
                     <button
                       type="button"
                       onClick={() => onUpdateHeaderFontSize(Math.min(48, currentHeaderFontSize + 2))}
-                      className="w-5 h-5 rounded hover:bg-slate-200 font-black cursor-pointer"
+                      className="w-7 h-7 sm:w-5 sm:h-5 rounded hover:bg-slate-200 font-black cursor-pointer flex items-center justify-center text-sm"
                     >
                       +
                     </button>
@@ -455,7 +460,7 @@ export const DailyBoard: React.FC<DailyBoardProps> = ({
                 >
                   {schedule.dayName}
                 </h1>
-                <Pencil size={16} className="text-slate-800 opacity-40 group-hover/title:opacity-100 transition-opacity shrink-0 print:hidden" data-html2canvas-ignore="true" />
+                <Pencil size={16} className="text-slate-800 opacity-70 sm:opacity-40 sm:group-hover/title:opacity-100 transition-opacity shrink-0 print:hidden" data-html2canvas-ignore="true" />
               </div>
             )}
           </div>
@@ -480,9 +485,9 @@ export const DailyBoard: React.FC<DailyBoardProps> = ({
               {/* Subtle hover edit badge */}
               <span
                 data-html2canvas-ignore="true"
-                className="print:hidden absolute -bottom-1 -left-1 w-5 h-5 rounded-full bg-white border border-slate-900 text-slate-800 shadow-xs flex items-center justify-center opacity-0 group-hover/icon:opacity-100 transition-opacity"
+                className="print:hidden absolute -bottom-1 -left-1 w-6 h-6 sm:w-5 sm:h-5 rounded-full bg-white border border-slate-900 text-slate-800 shadow-xs flex items-center justify-center opacity-70 sm:opacity-0 sm:group-hover/icon:opacity-100 transition-opacity"
               >
-                <Pencil size={10} className="stroke-[2.5]" />
+                <Pencil size={11} className="stroke-[2.5]" />
               </span>
             </button>
           </div>
@@ -493,8 +498,8 @@ export const DailyBoard: React.FC<DailyBoardProps> = ({
               ref={iconPickerRef}
               data-html2canvas-ignore="true"
               className={`print:hidden absolute ${
-                activeIconPicker === 'left' ? 'left-2' : 'right-2'
-              } top-full mt-2 z-50 bg-white border-3 border-slate-900 rounded-3xl p-3.5 shadow-2xl w-72 sm:w-80 space-y-3 animate-in fade-in zoom-in-95 text-left`}
+                activeIconPicker === 'left' ? 'left-0 sm:left-2' : 'right-0 sm:right-2'
+              } top-full mt-2 z-50 bg-white border-3 border-slate-900 rounded-3xl p-3 sm:p-3.5 shadow-2xl w-72 sm:w-80 max-w-[calc(100vw-24px)] space-y-3 animate-in fade-in zoom-in-95 text-left`}
             >
               {/* Popover Header */}
               <div className="flex items-center justify-between border-b border-slate-200 pb-2">
