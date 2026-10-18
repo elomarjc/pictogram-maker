@@ -26,7 +26,6 @@ export const PersonaSelectorModal: React.FC<PersonaSelectorModalProps> = ({
   if (!isOpen) return null;
 
   const allPersonas = getAllPersonas();
-  const selectedPersonaObj = allPersonas.find((p) => p.id === selectedId) || allPersonas[0];
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -46,7 +45,8 @@ export const PersonaSelectorModal: React.FC<PersonaSelectorModalProps> = ({
   };
 
   const handleSave = () => {
-    onSelectPersona(selectedId, currentShortCode || 'K.', customAvatar);
+    const selected = allPersonas.find((p) => p.id === selectedId) || allPersonas[0];
+    onSelectPersona(selected.id, selected.shortCode || currentShortCode || '', customAvatar || selected.avatarUrl);
     onClose();
   };
 
@@ -90,44 +90,31 @@ export const PersonaSelectorModal: React.FC<PersonaSelectorModalProps> = ({
           </button>
 
           {/* Grid of Figures */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3.5">
             {allPersonas.map((p) => {
               const isSelected = selectedId === p.id;
               return (
-                <div
+                <button
                   key={p.id}
+                  type="button"
                   onClick={() => setSelectedId(p.id)}
-                  className={`cursor-pointer rounded-2xl border-3 p-4 transition-all flex flex-col justify-between ${
+                  className={`relative aspect-square rounded-2xl border-3 p-3 transition-all flex items-center justify-center cursor-pointer group bg-white ${
                     isSelected
-                      ? 'border-slate-900 bg-amber-50 shadow-md ring-3 ring-amber-400'
-                      : 'border-slate-300 hover:border-slate-600 bg-white hover:bg-slate-50'
+                      ? 'border-slate-900 bg-amber-50 shadow-md ring-4 ring-amber-400'
+                      : 'border-slate-300 hover:border-slate-600 hover:bg-slate-50'
                   }`}
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="w-16 h-16 rounded-2xl border-2 border-slate-900 overflow-hidden bg-white shrink-0 shadow-xs">
-                      <img
-                        src={p.avatarUrl}
-                        alt={p.name}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center justify-between">
-                        <h3 className="text-lg font-black text-slate-900">
-                          {p.name}
-                        </h3>
-                        {isSelected && (
-                          <span className="w-6 h-6 rounded-full bg-slate-900 text-white flex items-center justify-center shrink-0">
-                            <Check size={14} className="stroke-[3]" />
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-xs text-slate-600 mt-1 leading-snug">
-                        {p.description}
-                      </p>
-                    </div>
-                  </div>
-                </div>
+                  <img
+                    src={p.avatarUrl}
+                    alt="Figur"
+                    className="w-full h-full object-contain filter drop-shadow-xs group-hover:scale-105 transition-transform"
+                  />
+                  {isSelected && (
+                    <span className="absolute top-2 right-2 w-6 h-6 rounded-full bg-slate-900 text-white flex items-center justify-center shadow-md">
+                      <Check size={14} className="stroke-[3]" />
+                    </span>
+                  )}
+                </button>
               );
             })}
           </div>
@@ -187,10 +174,10 @@ export const PersonaSelectorModal: React.FC<PersonaSelectorModalProps> = ({
           <button
             type="button"
             onClick={handleSave}
-            className="px-6 py-2.5 bg-amber-400 hover:bg-amber-500 text-slate-900 font-black rounded-xl border-2 border-slate-900 text-sm shadow-sm hover:shadow transition-all flex items-center gap-2"
+            className="px-6 py-2.5 bg-amber-400 hover:bg-amber-500 text-slate-900 font-black rounded-xl border-2 border-slate-900 text-sm shadow-sm hover:shadow transition-all flex items-center gap-2 cursor-pointer"
           >
             <Check size={16} className="stroke-[3]" />
-            Vælg figur ({selectedPersonaObj.name})
+            Vælg figur
           </button>
         </div>
       </div>

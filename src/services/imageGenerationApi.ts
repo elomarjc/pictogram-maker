@@ -277,10 +277,11 @@ export async function removeImageBackground(imageDataUrl: string): Promise<strin
  */
 export async function createAvatarFromPhoto(
   photoDataUrl: string,
-  personaName: string,
+  personaName?: string,
   options?: { workerUrl?: string }
 ): Promise<string> {
-  const prompt = `A cute 2D cartoon pictogram avatar sticker of ${personaName || 'a person'}, friendly round head, big happy open smile, simple black cartoon eyes, bold thick black vector outline, flat vibrant colors, clean cel-shading, modern pictogram sticker illustration style, isolated on solid white background`;
+  const subject = personaName && personaName.trim() ? personaName.trim() : 'a person';
+  const prompt = `A cute 2D cartoon pictogram avatar sticker of ${subject}, friendly round head, big happy open smile, simple black cartoon eyes, bold thick black vector outline, flat vibrant colors, clean cel-shading, modern pictogram sticker illustration style, isolated on solid white background`;
 
   const rawGeneratedUrl = await generateSceneImage(prompt, {
     workerUrl: options?.workerUrl,
@@ -292,3 +293,4 @@ export async function createAvatarFromPhoto(
 
   return removeImageBackground(rawGeneratedUrl);
 }
+

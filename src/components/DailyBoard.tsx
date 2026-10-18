@@ -109,13 +109,13 @@ export const DailyBoard: React.FC<DailyBoardProps> = ({
           {/* Persona / Figure selector button */}
           <button
             onClick={onOpenPersonaModal}
-            title="Vælg figur (Mand eller Kvinde)"
-            className="inline-flex items-center gap-2 px-3 py-1.5 bg-white hover:bg-amber-50 text-slate-900 font-black rounded-xl border-2 border-slate-900 shadow-xs hover:shadow transition-all text-xs"
+            title="Vælg figur"
+            className="inline-flex items-center gap-2 px-3 py-1.5 bg-white hover:bg-amber-50 text-slate-900 font-black rounded-xl border-2 border-slate-900 shadow-xs hover:shadow transition-all text-xs cursor-pointer"
           >
             <div className="w-5 h-5 rounded-md border border-slate-900 overflow-hidden shrink-0 bg-amber-100">
               <img src={persona.avatarUrl} alt="" className="w-full h-full object-cover" />
             </div>
-            <span>Figur: <strong>{persona.id === 'woman_a' ? 'Kvinde' : 'Mand'}</strong></span>
+            <span>Vælg figur</span>
           </button>
 
           {/* View mode toggle */}

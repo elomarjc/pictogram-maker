@@ -393,7 +393,7 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
                     : 'border-transparent text-slate-500 hover:text-slate-800'
                 }`}
               >
-                Figur-scene ({activePersona.name.split(' (')[0]})
+                Figur-scener
               </button>
               <button
                 type="button"
@@ -412,7 +412,7 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
             {activeTab === 'illustrations' && (
               <div className="space-y-3">
                 <p className="text-xs text-slate-600">
-                  Vælg aktiviteten for {activePersona.name}. Figuren i venstre side opdateres automatisk:
+                  Vælg en aktivitet for figuren. Figuren i venstre side opdateres automatisk:
                 </p>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-56 overflow-y-auto p-1">
                   {Object.entries(activePersona.activityScenes).map(([key, imgUrl]) => {
@@ -461,7 +461,7 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
                         Skab nyt billede med 1 klik
                       </h4>
                       <p className="text-xs font-semibold text-slate-700">
-                        Vælg en aktivitet nedenfor og tryk på knappen. Så tegnes {activePersona.name} automatisk i scenen.
+                        Vælg en aktivitet nedenfor og tryk på knappen. Så tegnes figuren automatisk i scenen.
                       </p>
                     </div>
                   </div>
@@ -469,10 +469,11 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-black text-slate-800">
-                        Vælg hurtig scene eller skriv hvad {activePersona.name} skal lave:
+                        Vælg hurtig scene eller skriv hvad figuren skal lave:
                       </span>
-                      <span className="text-[11px] font-bold text-amber-900 bg-amber-200/80 px-2 py-0.5 rounded-full border border-amber-300">
-                        Figur: {activePersona.name}
+                      <span className="text-[11px] font-bold text-amber-900 bg-amber-200/80 px-2 py-0.5 rounded-full border border-amber-300 flex items-center gap-1.5">
+                        <img src={activePersona.avatarUrl} alt="" className="w-3.5 h-3.5 rounded-full object-cover" />
+                        <span>Valgt figur</span>
                       </span>
                     </div>
 

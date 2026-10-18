@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { X, Sparkles, Loader2, Check, ShieldCheck, Upload, Trash2, AlertCircle } from 'lucide-react';
 import { createAvatarFromPhoto } from '../services/imageGenerationApi';
-import { saveCustomPersona } from '../services/personas';
+import { saveCustomPersona, getCustomPersonas } from '../services/personas';
 import type { Persona } from '../types';
 
 interface CreateAvatarModalProps {
@@ -16,7 +16,6 @@ export const CreateAvatarModal: React.FC<CreateAvatarModalProps> = ({
   onAvatarCreated,
 }) => {
   const [photoDataUrl, setPhotoDataUrl] = useState<string | null>(null);
-  const [personaName, setPersonaName] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedAvatarUrl, setGeneratedAvatarUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -75,16 +74,12 @@ export const CreateAvatarModal: React.FC<CreateAvatarModalProps> = ({
       setError('Vælg venligst et foto først.');
       return;
     }
-    if (!personaName.trim()) {
-      setError('Indtast venligst et navn til figuren.');
-      return;
-    }
 
     setError(null);
     setIsGenerating(true);
 
     try {
-      const avatarDataUrl = await createAvatarFromPhoto(photoDataUrl, personaName);
+      const avatarDataUrl = await createAvatarFromPhoto(photoDataUrl);
       setGeneratedAvatarUrl(avatarDataUrl);
       // Immediately discard the real photo to protect privacy!
       setPhotoDataUrl(null);
@@ -98,13 +93,15 @@ export const CreateAvatarModal: React.FC<CreateAvatarModalProps> = ({
   const handleSaveAndUse = () => {
     if (!generatedAvatarUrl) return;
 
-    const id = `custom_${Date.now()}`;
+    const customPersonas = getCustomPersonas();
+    const avatarNum = customPersonas.length + 1;
+    const id = `avatar_${avatarNum}`;
     const newPersona: Persona = {
       id,
-      name: personaName.trim() || 'Ny figur',
-      shortCode: (personaName.trim()[0] || 'X').toUpperCase() + '.',
+      name: id,
+      shortCode: '',
       avatarUrl: generatedAvatarUrl,
-      description: `Tilpasset figur for ${personaName.trim()}`,
+      description: '',
       activityScenes: {},
     };
 
@@ -166,25 +163,11 @@ export const CreateAvatarModal: React.FC<CreateAvatarModalProps> = ({
             </div>
           )}
 
-          {/* Step 1: Navn */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-800 block">
-              1. Hvad hedder personen?
-            </label>
-            <input
-              type="text"
-              value={personaName}
-              onChange={(e) => setPersonaName(e.target.value)}
-              placeholder="f.eks. Peter, Mette eller Kasper"
-              className="w-full px-3.5 py-2.5 rounded-xl border-2 border-slate-300 focus:border-slate-900 text-sm font-bold bg-white"
-            />
-          </div>
-
-          {/* Step 2: Vælg foto eller vis resultat */}
+          {/* Vælg foto eller vis resultat */}
           {!generatedAvatarUrl ? (
             <div className="space-y-2">
               <label className="text-xs font-bold text-slate-800 block">
-                2. Vælg foto af personen
+                Vælg foto af personen
               </label>
 
               {!photoDataUrl ? (
@@ -234,9 +217,9 @@ export const CreateAvatarModal: React.FC<CreateAvatarModalProps> = ({
 
               <button
                 type="button"
-                disabled={!photoDataUrl || !personaName.trim() || isGenerating}
+                disabled={!photoDataUrl || isGenerating}
                 onClick={handleTransform}
-                className="w-full mt-2 py-3 rounded-2xl border-2 border-slate-900 bg-amber-400 hover:bg-amber-500 disabled:opacity-50 disabled:cursor-not-allowed font-black text-slate-900 text-sm shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                className="w-full mt-2 py-3 rounded-2xl border-2 border-slate-900 bg-amber-400 hover:bg-amber-500 disabled:opacity-50 disabled:cursor-not-allowed font-black text-slate-900 text-sm shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
               >
                 {isGenerating ? (
                   <>
@@ -261,13 +244,13 @@ export const CreateAvatarModal: React.FC<CreateAvatarModalProps> = ({
                 <div className="w-28 h-28 rounded-2xl bg-white border-3 border-slate-900 p-1 shadow-md overflow-hidden flex items-center justify-center">
                   <img
                     src={generatedAvatarUrl}
-                    alt={personaName}
+                    alt="Ny figur"
                     className="w-full h-full object-contain"
                   />
                 </div>
               </div>
               <p className="text-xs font-bold text-slate-800">
-                {personaName} er nu omdannet til en 2D piktogram-figur med transparent baggrund!
+                Figuren er nu omdannet til en 2D piktogram-figur med transparent baggrund!
               </p>
               <div className="flex gap-2 justify-center pt-1">
                 <button
@@ -280,7 +263,7 @@ export const CreateAvatarModal: React.FC<CreateAvatarModalProps> = ({
                 <button
                   type="button"
                   onClick={handleSaveAndUse}
-                  className="px-5 py-2 rounded-xl border-2 border-slate-900 bg-emerald-400 hover:bg-emerald-500 font-black text-slate-900 text-xs shadow-xs hover:shadow transition-all flex items-center gap-1.5"
+                  className="px-5 py-2 rounded-xl border-2 border-slate-900 bg-emerald-400 hover:bg-emerald-500 font-black text-slate-900 text-xs shadow-xs hover:shadow transition-all flex items-center gap-1.5 cursor-pointer"
                 >
                   <Check size={16} className="stroke-[3]" />
                   <span>Gem og brug figuren nu</span>
