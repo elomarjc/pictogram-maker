@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -36,6 +36,14 @@ jobs:
 
       - name: Build static web application
         run: npm run build
+
+      - name: Deploy to gh-pages branch
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+          keep_files: false
+          enable_jekyll: false
 
       - name: Upload GitHub Pages artifact
         uses: actions/upload-pages-artifact@v3

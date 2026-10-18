@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "deploy": "gh-pages -d dist --dotfiles",
     "lint": "oxlint",
     "test": "vitest run",
     "accounts": "node scripts/manage-accounts.mjs list",
