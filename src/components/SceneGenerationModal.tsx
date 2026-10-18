@@ -41,6 +41,7 @@ export const SceneGenerationModal: React.FC<SceneGenerationModalProps> = ({
 }) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
+  const [activeCardKey, setActiveCardKey] = useState<string | null>(null);
 
   const [progress, setProgress] = useState<SceneGenProgress>({
     total: 0,
@@ -59,6 +60,7 @@ export const SceneGenerationModal: React.FC<SceneGenerationModalProps> = ({
       const all = getAllPersonas();
       const fresh = all.find((p) => p.id === persona.id) || persona;
       setCurrentPersona(fresh);
+      setActiveCardKey(null);
     }
   }, [persona, isOpen]);
 
@@ -190,8 +192,13 @@ export const SceneGenerationModal: React.FC<SceneGenerationModalProps> = ({
     }
   };
 
-  const handleDeleteScene = (sceneKey: string) => {
+  const handleDeleteScene = (sceneKey: string, sceneTitle?: string) => {
     if (!currentPersona || isGenerating) return;
+
+    const label = sceneTitle || 'denne scene';
+    if (!window.confirm(`Er du sikker på, at du vil slette scenen "${label}"?`)) {
+      return;
+    }
 
     const updatedScenes = { ...(currentPersona.activityScenes || {}) };
     delete updatedScenes[sceneKey];
@@ -421,31 +428,43 @@ export const SceneGenerationModal: React.FC<SceneGenerationModalProps> = ({
         </div>
 
         {/* 14 Scenes Grid */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-5">
+        <div
+          className="flex-1 overflow-y-auto p-4 sm:p-5"
+          onClick={() => setActiveCardKey(null)}
+        >
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
             {DEFAULT_SCENE_DEFINITIONS.map((sceneDef) => {
               const sceneUrl = scenesMap[sceneDef.key];
               const isCurrent = isGenerating && progress.currentSceneKey === sceneDef.key;
               const isDone = !!sceneUrl;
+              const isSelected = activeCardKey === sceneDef.key;
 
               return (
                 <div
                   key={sceneDef.key}
-                  onClick={() => {
-                    if (!isGenerating) {
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (isGenerating) return;
+                    if (isDone) {
+                      setActiveCardKey((prev) => (prev === sceneDef.key ? null : sceneDef.key));
+                    } else {
                       handleGenerateSingleCard(sceneDef);
                     }
                   }}
                   title={
                     isDone
-                      ? `${sceneDef.title} (klik for at gen-generere)`
+                      ? isSelected
+                        ? `${sceneDef.title} (valgt - tryk for at fravælge)`
+                        : `${sceneDef.title} (hold mus over eller tryk for at slette/gen-generere)`
                       : isGenerating
                       ? sceneDef.title
                       : `Klik for at generere ${sceneDef.title}`
                   }
-                  className={`flex flex-col rounded-2xl border-2 transition-all p-2 relative overflow-hidden group ${
+                  className={`flex flex-col rounded-2xl border-2 transition-all p-2 relative overflow-hidden group select-none ${
                     isDone
-                      ? 'border-emerald-500 bg-emerald-50/50 shadow-xs hover:border-amber-500 hover:shadow-md cursor-pointer'
+                      ? isSelected
+                        ? 'border-amber-500 bg-amber-50/60 ring-2 ring-amber-400 shadow-md cursor-pointer'
+                        : 'border-emerald-500 bg-emerald-50/50 shadow-xs hover:border-amber-500 hover:shadow-md cursor-pointer'
                       : isCurrent
                       ? 'border-amber-500 bg-amber-50 ring-2 ring-amber-400 shadow-md'
                       : !isGenerating
@@ -470,14 +489,20 @@ export const SceneGenerationModal: React.FC<SceneGenerationModalProps> = ({
                     )}
                   </div>
 
-                  {/* Delete & Re-generate buttons for completed scenes */}
+                  {/* Delete & Re-generate buttons for completed scenes (visible on hover or when card is selected) */}
                   {isDone && !isGenerating && (
-                    <div className="absolute top-1.5 left-1.5 z-10 flex items-center gap-1">
+                    <div
+                      className={`absolute top-1.5 left-1.5 z-10 flex items-center gap-1 transition-opacity duration-150 ${
+                        isSelected
+                          ? 'opacity-100 pointer-events-auto'
+                          : 'opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto'
+                      }`}
+                    >
                       <button
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleDeleteScene(sceneDef.key);
+                          handleDeleteScene(sceneDef.key, sceneDef.title);
                         }}
                         title="Slet denne scene"
                         className="w-5 h-5 rounded-md bg-white/95 hover:bg-rose-600 text-slate-600 hover:text-white border border-slate-300 hover:border-rose-600 flex items-center justify-center shadow-2xs transition-colors cursor-pointer"
@@ -530,13 +555,10 @@ export const SceneGenerationModal: React.FC<SceneGenerationModalProps> = ({
                     )}
                   </div>
 
-                  {/* Title */}
-                  <div className="text-center">
+                  {/* Title (undertitle removed) */}
+                  <div className="text-center py-0.5">
                     <span className="text-xs font-black text-slate-900 block truncate">
                       {sceneDef.title}
-                    </span>
-                    <span className="text-[10px] font-medium text-slate-500 block truncate">
-                      {sceneDef.descriptionDanish}
                     </span>
                   </div>
                 </div>
