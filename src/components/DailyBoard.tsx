@@ -66,6 +66,8 @@ export const DailyBoard: React.FC<DailyBoardProps> = ({
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [tempTitle, setTempTitle] = useState(schedule.dayName);
 
+  const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
+
   // State for header icon popover dropdown
   const [activeIconPicker, setActiveIconPicker] = useState<'left' | 'right' | null>(null);
   const leftIconRef = useRef<HTMLDivElement>(null);
@@ -83,7 +85,8 @@ export const DailyBoard: React.FC<DailyBoardProps> = ({
   const currentRightIcon = schedule.headerRightIcon || 'cloud';
 
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
+    const handleClickOutside = (e: MouseEvent | TouchEvent) => {
+      const target = e.target as HTMLElement | null;
       if (
         iconPickerRef.current &&
         !iconPickerRef.current.contains(e.target as Node) &&
@@ -98,9 +101,16 @@ export const DailyBoard: React.FC<DailyBoardProps> = ({
       ) {
         setIsFontSizeMenuOpen(false);
       }
+      if (target && !target.closest('[data-pictogram-card="true"]')) {
+        setSelectedCardId(null);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
   }, []);
 
   useEffect(() => {
@@ -627,6 +637,8 @@ export const DailyBoard: React.FC<DailyBoardProps> = ({
                 totalCount={schedule.pictograms.length}
                 persona={persona}
                 viewMode="vertical"
+                isSelected={selectedCardId === pic.id}
+                onSelect={() => setSelectedCardId((prev) => (prev === pic.id ? null : pic.id))}
                 onEdit={onEditPictogram}
                 onDuplicate={onDuplicatePictogram}
                 onDelete={onDeletePictogram}
@@ -650,6 +662,8 @@ export const DailyBoard: React.FC<DailyBoardProps> = ({
                 totalCount={schedule.pictograms.length}
                 persona={persona}
                 viewMode="strip"
+                isSelected={selectedCardId === pic.id}
+                onSelect={() => setSelectedCardId((prev) => (prev === pic.id ? null : pic.id))}
                 onEdit={onEditPictogram}
                 onDuplicate={onDuplicatePictogram}
                 onDelete={onDeletePictogram}

@@ -23,6 +23,8 @@ interface PictogramCardProps {
   persona?: Persona;
   viewMode?: 'strip' | 'vertical';
   isPreview?: boolean;
+  isSelected?: boolean;
+  onSelect?: () => void;
   onEdit?: (pic: Pictogram) => void;
   onDuplicate?: (pic: Pictogram) => void;
   onDelete?: (id: string) => void;
@@ -42,6 +44,8 @@ export const PictogramCard: React.FC<PictogramCardProps> = ({
   persona,
   viewMode = 'strip',
   isPreview = false,
+  isSelected = false,
+  onSelect,
   onEdit = () => {},
   onDuplicate = () => {},
   onDelete = () => {},
@@ -85,13 +89,23 @@ export const PictogramCard: React.FC<PictogramCardProps> = ({
     // iPhone vertical aspect ratio card (6.5 x 10 cm proportions)
     return (
       <div
+        data-pictogram-card="true"
         draggable={!isPreview}
         onDragStart={(e) => !isPreview && onDragStart && onDragStart(e, index)}
         onDragOver={(e) => !isPreview && onDragOver && onDragOver(e, index)}
         onDrop={(e) => !isPreview && onDrop && onDrop(e, index)}
+        onClick={(e) => {
+          if (isPreview) return;
+          if ((e.target as HTMLElement).closest('button')) return;
+          onSelect?.();
+        }}
         style={{ backgroundColor: pictogram.bgColor || '#FFFFFF' }}
-        className={`group relative flex flex-col justify-between w-full max-w-[240px] aspect-[6.5/10] rounded-2xl border-3 border-slate-900 shadow-md transition-all p-3 select-none ${
-          isPreview ? 'cursor-default pointer-events-none' : 'hover:shadow-xl'
+        className={`group relative flex flex-col justify-between w-full max-w-[240px] aspect-[6.5/10] rounded-2xl border-3 border-slate-900 shadow-md transition-all p-3 select-none cursor-pointer ${
+          isPreview
+            ? 'cursor-default pointer-events-none'
+            : isSelected
+            ? 'ring-3 ring-amber-400 border-slate-900 shadow-xl'
+            : 'hover:shadow-xl'
         }`}
       >
         {/* Top bar with drag handle */}
@@ -142,36 +156,92 @@ export const PictogramCard: React.FC<PictogramCardProps> = ({
           </h3>
         </div>
 
-        {/* Hover action menu buttons (hidden in preview) */}
+        {/* Action menu buttons on hover or when tapped/selected on phone */}
         {!isPreview && (
-          <div data-html2canvas-ignore="true" className="print:hidden absolute top-2 right-2 flex items-center gap-1 bg-white/95 backdrop-blur-sm p-1 rounded-lg border border-slate-900 shadow-md opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity z-10">
+          <div
+            data-html2canvas-ignore="true"
+            className={`print:hidden absolute top-2 right-2 flex items-center gap-1 bg-white/95 backdrop-blur-md p-1 rounded-xl border-2 border-slate-900 shadow-xl transition-all duration-150 z-20 ${
+              isSelected
+                ? 'opacity-100 pointer-events-auto scale-100'
+                : 'opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto scale-95 group-hover:scale-100'
+            }`}
+          >
             <button
-              onClick={() => onEdit(pictogram)}
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onMoveUp(index);
+              }}
+              disabled={index === 0}
+              title="Flyt op"
+              aria-label="Flyt op"
+              className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 active:bg-slate-200 disabled:opacity-25 disabled:pointer-events-none text-slate-700 cursor-pointer"
+            >
+              <ChevronUp size={15} />
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onMoveDown(index);
+              }}
+              disabled={index === totalCount - 1}
+              title="Flyt ned"
+              aria-label="Flyt ned"
+              className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 active:bg-slate-200 disabled:opacity-25 disabled:pointer-events-none text-slate-700 cursor-pointer"
+            >
+              <ChevronDown size={15} />
+            </button>
+            <div className="w-[1px] h-4 bg-slate-300 mx-0.5" />
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit(pictogram);
+              }}
               title="Rediger piktogram"
-              className="p-1 rounded hover:bg-slate-100 text-slate-700"
+              aria-label="Rediger"
+              className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-amber-100 active:bg-amber-200 text-slate-800 cursor-pointer"
             >
-              <Pencil size={13} />
+              <Pencil size={14} />
             </button>
             <button
-              onClick={() => onDuplicate(pictogram)}
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDuplicate(pictogram);
+              }}
               title="Kopiér piktogram"
-              className="p-1 rounded hover:bg-slate-100 text-slate-700"
+              aria-label="Kopiér"
+              className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 active:bg-slate-200 text-slate-700 cursor-pointer"
             >
-              <Copy size={13} />
+              <Copy size={14} />
             </button>
             <button
-              onClick={() => onMoveToDay(pictogram)}
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onMoveToDay(pictogram);
+              }}
               title="Flyt til anden ugedag"
-              className="p-1 rounded hover:bg-slate-100 text-slate-700"
+              aria-label="Flyt til anden dag"
+              className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 active:bg-slate-200 text-slate-700 cursor-pointer"
             >
-              <ArrowRightLeft size={13} />
+              <ArrowRightLeft size={14} />
             </button>
             <button
-              onClick={() => onDelete(pictogram.id)}
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (window.confirm(`Er du sikker på, at du vil slette "${pictogram.title}"?`)) {
+                  onDelete(pictogram.id);
+                }
+              }}
               title="Slet piktogram"
-              className="p-1 rounded hover:bg-rose-100 text-rose-600"
+              aria-label="Slet"
+              className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-rose-100 active:bg-rose-200 text-rose-600 cursor-pointer"
             >
-              <Trash2 size={13} />
+              <Trash2 size={14} />
             </button>
           </div>
         )}
@@ -182,13 +252,23 @@ export const PictogramCard: React.FC<PictogramCardProps> = ({
   // MODE: Strip (Horizontal Strip, exact match to "eksempel på pictogram.jpeg")
   return (
     <div
+      data-pictogram-card="true"
       draggable={!isPreview}
       onDragStart={(e) => !isPreview && onDragStart && onDragStart(e, index)}
       onDragOver={(e) => !isPreview && onDragOver && onDragOver(e, index)}
       onDrop={(e) => !isPreview && onDrop && onDrop(e, index)}
+      onClick={(e) => {
+        if (isPreview) return;
+        if ((e.target as HTMLElement).closest('button')) return;
+        onSelect?.();
+      }}
       style={{ backgroundColor: pictogram.bgColor || '#FFFFFF' }}
-      className={`group relative flex items-stretch justify-between w-full min-h-[72px] sm:min-h-[82px] rounded-xl border-3 border-slate-900 shadow-sm transition-all select-none overflow-hidden my-1.5 ${
-        isPreview ? 'cursor-default pointer-events-none' : 'hover:shadow-md'
+      className={`group relative flex items-stretch justify-between w-full min-h-[72px] sm:min-h-[82px] rounded-xl border-3 border-slate-900 shadow-sm transition-all select-none overflow-hidden my-1.5 cursor-pointer ${
+        isPreview
+          ? 'cursor-default pointer-events-none'
+          : isSelected
+          ? 'ring-3 ring-amber-400 border-slate-900 shadow-md'
+          : 'hover:shadow-md'
       }`}
     >
       {/* Left section: Graphic illustration / Scene photo - always exactly 50% width */}
@@ -238,51 +318,90 @@ export const PictogramCard: React.FC<PictogramCardProps> = ({
         )}
       </div>
 
-      {/* Floating Action Controls on the card (hidden in preview) */}
+      {/* Floating Action Controls on the card (shown on hover, or when card is tapped/selected on phone) */}
       {!isPreview && (
-        <div data-html2canvas-ignore="true" className="print:hidden absolute right-24 sm:right-28 top-1/2 -translate-y-1/2 flex items-center gap-1 bg-white/95 backdrop-blur-sm p-1 rounded-xl border-2 border-slate-900 shadow-md opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity z-10">
+        <div
+          data-html2canvas-ignore="true"
+          className={`print:hidden absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 flex items-center gap-1 sm:gap-1.5 bg-white/95 backdrop-blur-md px-2 py-1.5 rounded-2xl border-2 border-slate-900 shadow-2xl z-20 transition-all duration-150 ${
+            isSelected
+              ? 'opacity-100 pointer-events-auto scale-100'
+              : 'opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto scale-95 group-hover:scale-100'
+          }`}
+        >
           <button
-            onClick={() => onMoveUp(index)}
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onMoveUp(index);
+            }}
             disabled={index === 0}
             title="Flyt op"
-            className="p-1.5 rounded-lg hover:bg-slate-100 disabled:opacity-30 text-slate-700"
+            aria-label="Flyt op"
+            className="w-8 h-8 sm:w-7 sm:h-7 flex items-center justify-center rounded-xl hover:bg-slate-100 active:bg-slate-200 disabled:opacity-25 disabled:pointer-events-none text-slate-700 cursor-pointer transition-colors"
           >
-            <ChevronUp size={15} />
+            <ChevronUp size={17} className="stroke-[2.5]" />
           </button>
           <button
-            onClick={() => onMoveDown(index)}
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onMoveDown(index);
+            }}
             disabled={index === totalCount - 1}
             title="Flyt ned"
-            className="p-1.5 rounded-lg hover:bg-slate-100 disabled:opacity-30 text-slate-700"
+            aria-label="Flyt ned"
+            className="w-8 h-8 sm:w-7 sm:h-7 flex items-center justify-center rounded-xl hover:bg-slate-100 active:bg-slate-200 disabled:opacity-25 disabled:pointer-events-none text-slate-700 cursor-pointer transition-colors"
           >
-            <ChevronDown size={15} />
+            <ChevronDown size={17} className="stroke-[2.5]" />
           </button>
           <div className="w-[1px] h-4 bg-slate-300 mx-0.5" />
           <button
-            onClick={() => onEdit(pictogram)}
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit(pictogram);
+            }}
             title="Rediger"
-            className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-700"
+            aria-label="Rediger"
+            className="w-8 h-8 sm:w-7 sm:h-7 flex items-center justify-center rounded-xl hover:bg-amber-100 active:bg-amber-200 text-slate-800 cursor-pointer transition-colors"
           >
             <Pencil size={15} />
           </button>
           <button
-            onClick={() => onDuplicate(pictogram)}
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDuplicate(pictogram);
+            }}
             title="Kopiér"
-            className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-700"
+            aria-label="Kopiér"
+            className="w-8 h-8 sm:w-7 sm:h-7 flex items-center justify-center rounded-xl hover:bg-slate-100 active:bg-slate-200 text-slate-700 cursor-pointer transition-colors"
           >
             <Copy size={15} />
           </button>
           <button
-            onClick={() => onMoveToDay(pictogram)}
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onMoveToDay(pictogram);
+            }}
             title="Flyt til anden ugedag"
-            className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-700"
+            aria-label="Flyt til anden ugedag"
+            className="w-8 h-8 sm:w-7 sm:h-7 flex items-center justify-center rounded-xl hover:bg-slate-100 active:bg-slate-200 text-slate-700 cursor-pointer transition-colors"
           >
             <ArrowRightLeft size={15} />
           </button>
           <button
-            onClick={() => onDelete(pictogram.id)}
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (window.confirm(`Er du sikker på, at du vil slette "${pictogram.title}"?`)) {
+                onDelete(pictogram.id);
+              }
+            }}
             title="Slet"
-            className="p-1.5 rounded-lg hover:bg-rose-100 text-rose-600"
+            aria-label="Slet"
+            className="w-8 h-8 sm:w-7 sm:h-7 flex items-center justify-center rounded-xl hover:bg-rose-100 active:bg-rose-200 text-rose-600 cursor-pointer transition-colors"
           >
             <Trash2 size={15} />
           </button>
