@@ -113,26 +113,30 @@ export const PersonaSelectorModal: React.FC<PersonaSelectorModalProps> = ({
 
         {/* Modal Body */}
         <div className="p-4 sm:p-5 overflow-y-auto space-y-3.5">
-          {/* Top action row: Lav figur fra foto + Upload eget billede */}
-          <div className="flex gap-2">
+          {/* Top action section: Opret figur ud fra foto + diskret upload for eksisterende avatar */}
+          <div className="space-y-1.5">
             <button
               type="button"
               onClick={() => setIsCreatePhotoModalOpen(true)}
-              className="flex-1 py-2 px-3 rounded-xl border-2 border-slate-900 bg-amber-400 hover:bg-amber-500 font-bold text-slate-900 text-xs shadow-xs hover:shadow transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+              className="w-full py-2.5 px-4 rounded-xl border-2 border-slate-900 bg-amber-400 hover:bg-amber-500 font-black text-slate-900 text-xs shadow-xs hover:shadow transition-all flex items-center justify-center gap-2 cursor-pointer"
             >
-              <Camera size={15} />
-              <span>Lav figur ud fra foto (AI)</span>
+              <Camera size={16} />
+              <span>Opret ny figur ud fra foto (AI)</span>
             </button>
-            <label className="py-2 px-3.5 rounded-xl border-2 border-slate-900 bg-white hover:bg-slate-100 font-bold text-slate-900 text-xs shadow-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer">
-              <Upload size={14} />
-              <span>Upload billede</span>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleFileUpload}
-                className="hidden"
-              />
-            </label>
+
+            <div className="flex items-center justify-center gap-1.5 text-[11px] text-slate-500 font-semibold">
+              <span>Har du allerede en færdig avatar?</span>
+              <label className="text-slate-800 hover:text-amber-600 font-bold underline cursor-pointer inline-flex items-center gap-1 transition-colors">
+                <Upload size={12} />
+                <span>Upload den her</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                />
+              </label>
+            </div>
           </div>
 
           {/* Grid of Figures */}
