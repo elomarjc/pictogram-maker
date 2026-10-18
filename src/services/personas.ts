@@ -128,6 +128,16 @@ export function saveCustomPersona(newPersona: Persona): void {
   localStorage.setItem(STORAGE_KEY_CUSTOM_PERSONAS, JSON.stringify(current));
 }
 
+export function deleteCustomPersona(id: string): void {
+  const current = getCustomPersonas();
+  const filtered = current.filter((p) => p.id !== id);
+  localStorage.setItem(STORAGE_KEY_CUSTOM_PERSONAS, JSON.stringify(filtered));
+}
+
+export function isDefaultPersona(id: string): boolean {
+  return DEFAULT_PERSONAS.some((p) => p.id === id);
+}
+
 export function getAllPersonas(): Persona[] {
   const custom = getCustomPersonas();
   return [...DEFAULT_PERSONAS, ...custom];

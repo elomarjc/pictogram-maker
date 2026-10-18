@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { X, Sparkles, Loader2, Check, ShieldCheck, Upload, Trash2, AlertCircle } from 'lucide-react';
 import { createAvatarFromPhoto } from '../services/imageGenerationApi';
-import { saveCustomPersona, getCustomPersonas } from '../services/personas';
+import { saveCustomPersona } from '../services/personas';
 import type { Persona } from '../types';
 
 interface CreateAvatarModalProps {
@@ -93,9 +93,7 @@ export const CreateAvatarModal: React.FC<CreateAvatarModalProps> = ({
   const handleSaveAndUse = () => {
     if (!generatedAvatarUrl) return;
 
-    const customPersonas = getCustomPersonas();
-    const avatarNum = customPersonas.length + 1;
-    const id = `avatar_${avatarNum}`;
+    const id = `avatar_${Date.now()}`;
     const newPersona: Persona = {
       id,
       name: id,
