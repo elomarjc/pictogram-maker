@@ -2,8 +2,23 @@ import React, { useState, useRef, useEffect } from 'react';
 import type { Pictogram, Persona } from '../types';
 import { getPersona } from '../services/personas';
 import { PictogramCard } from './PictogramCard';
-import { X, Upload, Trash2, Check, Sparkles, Type, Loader2, AlertCircle, ChevronDown, Image as ImageIcon, Clock } from 'lucide-react';
-import { PRESET_SCENE_PROMPTS, buildCloudflareAiPrompt } from '../data/scenePrompts';
+import {
+  X,
+  Upload,
+  Trash2,
+  Check,
+  Sparkles,
+  Type,
+  Loader2,
+  AlertCircle,
+  ChevronDown,
+  Image as ImageIcon,
+  Clock,
+  Crop,
+  Wand2,
+} from 'lucide-react';
+import { buildCloudflareAiPrompt, optimizeScenePrompt } from '../data/scenePrompts';
+import { CropSceneModal, type CropSceneResult } from './CropSceneModal';
 import {
   generateSceneImage,
   getStoredWorkerUrl,
@@ -140,36 +155,91 @@ function findMatchingScene(text: string): string | null {
   return null;
 }
 
+export interface CustomSceneItem {
+  id: string;
+  url: string;
+  name: string;
+  originalUrl?: string;
+}
+
+const STORAGE_KEY_CUSTOM_SCENES = 'pictogram_custom_scenes';
 const STORAGE_KEY_CUSTOM_ICONS = 'pictogram_custom_icons';
 
-function getStoredCustomIcons(): string[] {
+function getStoredCustomScenes(): CustomSceneItem[] {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY_CUSTOM_ICONS);
-    return raw ? JSON.parse(raw) : [];
+    const raw = localStorage.getItem(STORAGE_KEY_CUSTOM_SCENES);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        return parsed.map((item, idx) => {
+          if (typeof item === 'string') {
+            return { id: `legacy_${idx}`, url: item, name: 'Eget billede' };
+          }
+          return item;
+        });
+      }
+    }
+    // Migration from legacy array of strings
+    const legacy = localStorage.getItem(STORAGE_KEY_CUSTOM_ICONS);
+    if (legacy) {
+      const parsed = JSON.parse(legacy);
+      if (Array.isArray(parsed)) {
+        return parsed.map((url, idx) => ({
+          id: `legacy_${idx}`,
+          url,
+          name: 'Eget billede',
+        }));
+      }
+    }
+    return [];
   } catch {
     return [];
   }
 }
 
-function saveCustomIcon(dataUrl: string): string[] {
-  const list = getStoredCustomIcons().filter((url) => url !== dataUrl);
-  list.unshift(dataUrl);
-  try {
-    localStorage.setItem(STORAGE_KEY_CUSTOM_ICONS, JSON.stringify(list));
-  } catch {
-    // quota fallback
+function saveCustomScene(item: { url: string; name: string; originalUrl?: string }): CustomSceneItem[] {
+  const current = getStoredCustomScenes();
+  const existingIdx = current.findIndex(
+    (s) => s.url === item.url || (item.originalUrl && s.originalUrl === item.originalUrl)
+  );
+  const newScene: CustomSceneItem = {
+    id: `scene_${Date.now()}`,
+    url: item.url,
+    name: item.name.trim() || 'Min scene',
+    originalUrl: item.originalUrl,
+  };
+
+  let updated: CustomSceneItem[];
+  if (existingIdx >= 0) {
+    updated = [...current];
+    updated[existingIdx] = newScene;
+  } else {
+    updated = [newScene, ...current];
   }
-  return list;
+
+  try {
+    localStorage.setItem(STORAGE_KEY_CUSTOM_SCENES, JSON.stringify(updated));
+  } catch (err) {
+    console.warn('Quota exceeded, saving slimmed custom scenes:', err);
+    try {
+      const slim = updated.map(({ id, url, name }) => ({ id, url, name }));
+      localStorage.setItem(STORAGE_KEY_CUSTOM_SCENES, JSON.stringify(slim));
+    } catch {
+      // ignore
+    }
+  }
+  return updated;
 }
 
-function deleteCustomIcon(dataUrl: string): string[] {
-  const list = getStoredCustomIcons().filter((url) => url !== dataUrl);
+function deleteCustomScene(idOrUrl: string): CustomSceneItem[] {
+  const current = getStoredCustomScenes();
+  const updated = current.filter((s) => s.id !== idOrUrl && s.url !== idOrUrl);
   try {
-    localStorage.setItem(STORAGE_KEY_CUSTOM_ICONS, JSON.stringify(list));
+    localStorage.setItem(STORAGE_KEY_CUSTOM_SCENES, JSON.stringify(updated));
   } catch {
-    // fallback
+    // ignore
   }
-  return list;
+  return updated;
 }
 
 export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
@@ -189,13 +259,26 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
   const [illustrationId, setIllustrationId] = useState(pictogram.illustrationId || 'spisetid');
   const [sceneImageUrl, setSceneImageUrl] = useState(pictogram.sceneImageUrl || '');
   const [customImageUrl, setCustomImageUrl] = useState(pictogram.customImageUrl || '');
-  const [customIcons, setCustomIcons] = useState<string[]>(() => {
-    const stored = getStoredCustomIcons();
-    if (pictogram.customImageUrl && !stored.includes(pictogram.customImageUrl)) {
-      return [pictogram.customImageUrl, ...stored];
+  const [customScenes, setCustomScenes] = useState<CustomSceneItem[]>(() => {
+    const stored = getStoredCustomScenes();
+    if (pictogram.customImageUrl && !stored.some((s) => s.url === pictogram.customImageUrl)) {
+      return [
+        {
+          id: `init_${Date.now()}`,
+          url: pictogram.customImageUrl,
+          name: pictogram.title || 'Eget billede',
+        },
+        ...stored,
+      ];
     }
     return stored;
   });
+
+  // State for crop modal
+  const [cropModalOpen, setCropModalOpen] = useState(false);
+  const [cropImageSource, setCropImageSource] = useState<string | null>(null);
+  const [cropInitialName, setCropInitialName] = useState('');
+
   const [bgColor, setBgColor] = useState(pictogram.bgColor || '#fdef8c');
   // Convert legacy presets to pixel numbers if needed, default to 20px
   const initialPixelSize =
@@ -213,8 +296,7 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
 
   const [fontSizeNum, setFontSizeNum] = useState<number>(initialPixelSize);
   const [activeTab, setActiveTab] = useState<'illustrations' | 'upload'>('illustrations');
-  const [selectedScenePromptId, setSelectedScenePromptId] = useState<string>(PRESET_SCENE_PROMPTS[0].id);
-  const [inlineSceneText, setInlineSceneText] = useState<string>(PRESET_SCENE_PROMPTS[0].prompt);
+  const [inlineSceneText, setInlineSceneText] = useState<string>('');
 
   // Dropdown states for compact time, color and font size pickers
   const [isTimeOpen, setIsTimeOpen] = useState(false);
@@ -292,11 +374,19 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
         strength: 0.7,
       });
 
-      const updated = saveCustomIcon(generatedDataUrl);
-      setCustomIcons(updated);
+      const sceneTitle = inlineSceneText.slice(0, 24).trim() || (title.trim() && title !== 'Aktivitetsnavn' ? title.trim() : 'Ny AI scene');
+      const updated = saveCustomScene({
+        url: generatedDataUrl,
+        name: sceneTitle,
+        originalUrl: generatedDataUrl,
+      });
+      setCustomScenes(updated);
       setCustomImageUrl(generatedDataUrl);
       setIllustrationId('');
       setSceneImageUrl('');
+      if (!title.trim() || title === 'Aktivitetsnavn') {
+        setTitle(sceneTitle);
+      }
       setActiveTab('illustrations');
     } catch (err) {
       setAiError(err instanceof Error ? err.message : String(err));
@@ -317,16 +407,32 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
     const reader = new FileReader();
     reader.onload = () => {
       if (typeof reader.result === 'string') {
-        const dataUrl = reader.result;
-        const updated = saveCustomIcon(dataUrl);
-        setCustomIcons(updated);
-        setCustomImageUrl(dataUrl);
-        setIllustrationId('');
-        setSceneImageUrl('');
-        setActiveTab('illustrations');
+        setCropImageSource(reader.result);
+        const baseName = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
+        setCropInitialName(title.trim() && title !== 'Aktivitetsnavn' ? title.trim() : baseName);
+        setCropModalOpen(true);
       }
     };
     reader.readAsDataURL(file);
+    if (e.target) {
+      e.target.value = '';
+    }
+  };
+
+  const handleCropSave = (result: CropSceneResult) => {
+    const updated = saveCustomScene({
+      url: result.dataUrl,
+      name: result.name,
+      originalUrl: result.originalUrl,
+    });
+    setCustomScenes(updated);
+    setCustomImageUrl(result.dataUrl);
+    setIllustrationId('');
+    setSceneImageUrl('');
+    if (!title.trim() || title === 'Aktivitetsnavn') {
+      setTitle(result.name);
+    }
+    setActiveTab('illustrations');
   };
 
   const handleSave = (e: React.FormEvent) => {
@@ -704,11 +810,6 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
                   <span>Opret en ny scene</span>
                 </button>
               </div>
-
-              <div className="text-[11px] font-bold text-slate-500 hidden sm:flex items-center gap-1.5">
-                <img src={activePersona.avatarUrl} alt="" className="w-4 h-4 rounded-full object-cover border border-slate-300" />
-                <span>{activePersona.name}</span>
-              </div>
             </div>
 
             {/* TAB 1: Icons & Scenes grid */}
@@ -744,14 +845,14 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
                   </span>
                 </button>
 
-                {/* Custom uploaded / generated images */}
-                {customIcons.map((imgUrl, idx) => {
-                  const isSelected = customImageUrl === imgUrl;
+                {/* Custom uploaded & generated scenes (with custom names, cropping & delete) */}
+                {customScenes.map((scene) => {
+                  const isSelected = customImageUrl === scene.url;
                   return (
                     <div
-                      key={`custom-${idx}`}
+                      key={scene.id}
                       onClick={() => {
-                        setCustomImageUrl(imgUrl);
+                        setCustomImageUrl(scene.url);
                         setIllustrationId('');
                         setSceneImageUrl('');
                       }}
@@ -762,10 +863,10 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
                       }`}
                     >
                       <div className="w-full flex-1 rounded-lg border border-slate-900/20 overflow-hidden bg-white mb-1 flex items-center justify-center">
-                        <img src={imgUrl} alt="Eget billede" className="w-full h-full object-contain" />
+                        <img src={scene.url} alt={scene.name} className="w-full h-full object-contain" />
                       </div>
-                      <span className="text-[10px] font-bold text-slate-800 text-center line-clamp-1">
-                        Eget billede
+                      <span className="text-[10px] font-bold text-slate-800 text-center line-clamp-1 w-full px-1">
+                        {scene.name}
                       </span>
 
                       {isSelected && (
@@ -774,21 +875,37 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
                         </span>
                       )}
 
+                      {/* Re-crop / Edit position button */}
                       <button
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
-                          const updated = deleteCustomIcon(imgUrl);
-                          setCustomIcons(updated);
-                          if (customImageUrl === imgUrl) {
+                          setCropImageSource(scene.originalUrl || scene.url);
+                          setCropInitialName(scene.name);
+                          setCropModalOpen(true);
+                        }}
+                        title="Beskær og tilpas scene"
+                        className="absolute top-1 left-6 w-5 h-5 rounded-md bg-black/50 hover:bg-amber-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-20 cursor-pointer"
+                      >
+                        <Crop size={11} className="stroke-[2.5]" />
+                      </button>
+
+                      {/* Delete scene button */}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const updated = deleteCustomScene(scene.id);
+                          setCustomScenes(updated);
+                          if (customImageUrl === scene.url) {
                             setCustomImageUrl('');
                             setIllustrationId('spisetid');
                           }
                         }}
-                        title="Fjern billede"
-                        className="absolute top-1 left-1 w-4 h-4 rounded-md bg-black/40 hover:bg-rose-600 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-20 cursor-pointer"
+                        title="Fjern scene"
+                        className="absolute top-1 left-1 w-5 h-5 rounded-md bg-black/50 hover:bg-rose-600 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-20 cursor-pointer"
                       >
-                        <Trash2 size={9} className="stroke-[2.5]" />
+                        <Trash2 size={11} className="stroke-[2.5]" />
                       </button>
                     </div>
                   );
@@ -825,48 +942,72 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
               </div>
             )}
 
-            {/* TAB 2: AI Generate scene */}
+            {/* TAB 2: AI Generate scene - Uncluttered, with format ideas & prompt optimizer */}
             {activeTab === 'upload' && (
               <div className="p-1">
-                <div className="bg-amber-50/70 border-2 border-amber-300 rounded-2xl p-3.5 space-y-2.5">
+                <div className="bg-amber-50/70 border-2 border-amber-300 rounded-2xl p-3.5 space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-black text-slate-900 flex items-center gap-1.5">
                       <Sparkles size={14} className="text-amber-600" />
                       Beskriv scenen der skal oprettes
                     </span>
-                    <span className="text-[10.5px] font-bold text-amber-900 bg-amber-200/80 px-2 py-0.5 rounded-full border border-amber-300 flex items-center gap-1">
-                      <img src={activePersona.avatarUrl} alt="" className="w-3.5 h-3.5 rounded-full object-cover" />
-                      <span>{activePersona.name}</span>
-                    </span>
                   </div>
 
-                  <div className="flex flex-wrap gap-1 max-h-18 overflow-y-auto p-1 bg-white rounded-xl border border-amber-200">
-                    {PRESET_SCENE_PROMPTS.slice(0, 8).map((preset) => (
+                  {/* Format tips & inspiring ideas (no default activities) */}
+                  <div className="p-2.5 bg-white rounded-xl border border-amber-200 space-y-1.5">
+                    <div className="text-[11px] font-bold text-slate-600">
+                      Anbefalet format: <strong className="text-slate-900">[Handling] + [Møbler / Rum] + [Stemning]</strong>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                      <span className="text-[10.5px] font-bold text-amber-900">Ideer:</span>
+                      {[
+                        { label: 'Brætspil', prompt: 'Figuren sidder ved stuebordet og spiller et farverigt brætspil, smilende og koncentreret.' },
+                        { label: 'Læse en bog', prompt: 'Figuren sidder behageligt i en blød lænestol og fordyber sig i en god bog med et varmt smil.' },
+                        { label: 'Cykeltur', prompt: 'Figuren cykler glad på en cykelsti i godt vejr med cykelhjelm på hovedet.' },
+                        { label: 'Vande blomster', prompt: 'Figuren vander grønne stueplanter med en lille vandkande, smilende og tilfreds.' },
+                        { label: 'Bage kage', prompt: 'Figuren står i køkkenet med et forklæde og bager lækre kager ved køkkenbordet.' },
+                        { label: 'Høre musik', prompt: 'Figuren sidder afslappet i sofaen med store høretelefoner på og lytter fornøjet til musik.' },
+                      ].map((idea) => (
+                        <button
+                          key={idea.label}
+                          type="button"
+                          onClick={() => setInlineSceneText(idea.prompt)}
+                          className="px-2 py-0.5 rounded-lg text-[10.5px] font-bold bg-amber-100/70 hover:bg-amber-300 border border-amber-300 text-amber-950 transition-colors cursor-pointer"
+                        >
+                          {idea.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Textarea with Optimize Prompt button */}
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between px-0.5">
+                      <label className="text-[11px] font-bold text-slate-700">
+                        Din beskrivelse:
+                      </label>
                       <button
-                        key={preset.id}
                         type="button"
                         onClick={() => {
-                          setSelectedScenePromptId(preset.id);
-                          setInlineSceneText(preset.prompt);
+                          setInlineSceneText((prev) => optimizeScenePrompt(prev));
                         }}
-                        className={`px-2 py-0.5 rounded-md text-[10.5px] font-bold border transition-colors cursor-pointer ${
-                          selectedScenePromptId === preset.id
-                            ? 'bg-amber-400 border-slate-900 text-slate-900'
-                            : 'bg-white border-slate-200 hover:border-slate-400 text-slate-700'
-                        }`}
+                        className="text-[11px] font-black text-amber-950 bg-amber-200 hover:bg-amber-300 px-2.5 py-0.5 rounded-lg border border-amber-400 flex items-center gap-1 cursor-pointer transition-colors shadow-2xs"
+                        title="Formater og optimer din tekst automatisk til tegneseriestil"
                       >
-                        {preset.title}
+                        <Wand2 size={12} className="text-amber-700" />
+                        <span>Optimer beskrivelse</span>
                       </button>
-                    ))}
-                  </div>
+                    </div>
 
-                  <textarea
-                    value={inlineSceneText}
-                    onChange={(e) => setInlineSceneText(e.target.value)}
-                    rows={2}
-                    placeholder="F.eks. Figuren børster tænder, bager en kage, sidder ved computeren..."
-                    className="w-full px-2.5 py-1.5 text-xs font-bold rounded-xl border-2 border-slate-300 focus:border-slate-900 bg-white resize-none"
-                  />
+                    <textarea
+                      value={inlineSceneText}
+                      onChange={(e) => setInlineSceneText(e.target.value)}
+                      rows={2}
+                      placeholder="Skriv hvad figuren laver, f.eks.: Figuren sidder ved bordet og lægger et puslespil..."
+                      className="w-full p-2.5 rounded-xl border-2 border-slate-900 focus:border-amber-500 font-bold text-xs text-slate-900 resize-none bg-white outline-hidden"
+                    />
+                  </div>
 
                   {aiError && (
                     <div className="p-2 rounded-xl bg-rose-50 border border-rose-300 text-xs font-bold text-rose-800 flex items-center gap-2">
@@ -877,14 +1018,14 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
 
                   <button
                     type="button"
-                    disabled={isGeneratingAi}
+                    disabled={isGeneratingAi || !inlineSceneText.trim()}
                     onClick={handleGenerateWithAi}
                     className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white font-black text-xs rounded-xl border-2 border-slate-900 flex items-center justify-center gap-2 shadow-xs transition-all cursor-pointer"
                   >
                     {isGeneratingAi ? (
                       <>
                         <Loader2 size={14} className="animate-spin text-amber-400" />
-                        <span>Opretter scene med figuren...</span>
+                        <span>Tegner ny scene med AI...</span>
                       </>
                     ) : (
                       <>
@@ -917,6 +1058,17 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
           </div>
         </form>
       </div>
+
+      <CropSceneModal
+        isOpen={cropModalOpen}
+        imageSource={cropImageSource}
+        initialName={cropInitialName}
+        onClose={() => {
+          setCropModalOpen(false);
+          setCropImageSource(null);
+        }}
+        onSave={handleCropSave}
+      />
     </div>
   );
 };

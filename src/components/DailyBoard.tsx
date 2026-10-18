@@ -33,6 +33,7 @@ interface DailyBoardProps {
   onUpdateHeaderSubtitle: (newSubtitle: string) => void;
   onUpdateDayName?: (newName: string) => void;
   onUpdateHeaderIcons?: (leftIcon: string, rightIcon: string) => void;
+  globalFontSize?: number;
   onUpdateAllCardsFontSize?: (size: number) => void;
 }
 
@@ -40,6 +41,7 @@ export const DailyBoard: React.FC<DailyBoardProps> = ({
   schedule,
   persona,
   viewMode,
+  globalFontSize,
   onChangeViewMode,
   onOpenPersonaModal,
   onAddPictogram,
@@ -70,16 +72,7 @@ export const DailyBoard: React.FC<DailyBoardProps> = ({
   const [isFontSizeMenuOpen, setIsFontSizeMenuOpen] = useState(false);
   const fontSizeMenuRef = useRef<HTMLDivElement>(null);
 
-  const currentGlobalFontSize = (() => {
-    const firstPic = schedule.pictograms.find((p) => p.fontSize);
-    if (!firstPic || !firstPic.fontSize) return 22;
-    if (typeof firstPic.fontSize === 'number') return firstPic.fontSize;
-    if (typeof firstPic.fontSize === 'string' && /^\d+$/.test(firstPic.fontSize)) return Number(firstPic.fontSize);
-    if (firstPic.fontSize === 'sm') return 14;
-    if (firstPic.fontSize === 'lg') return 24;
-    if (firstPic.fontSize === 'xl') return 28;
-    return 22;
-  })();
+  const currentGlobalFontSize = globalFontSize ?? 22;
 
   const currentLeftIcon = schedule.headerLeftIcon || 'sun';
   const currentRightIcon = schedule.headerRightIcon || 'cloud';

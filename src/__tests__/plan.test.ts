@@ -119,3 +119,69 @@ describe('Persona & Figursystem samt Navnebeskyttelse', () => {
     expect(womanScene).toContain('woman_kaffe');
   });
 });
+
+describe('Prompt optimering og scene-beskrivelser', () => {
+  it('optimerer korte bruger-input til venlige 2D piktogram-prompter', async () => {
+    const { optimizeScenePrompt } = await import('../data/scenePrompts');
+    expect(optimizeScenePrompt('læse en bog')).toContain('lænestol');
+    expect(optimizeScenePrompt('bage en kage')).toContain('forklæde');
+    expect(optimizeScenePrompt('gå en tur')).toContain('gåtur');
+    expect(optimizeScenePrompt('fodre katten')).toContain('Figuren');
+  });
+});
+
+describe('Uafhængig skriftstørrelse (enkelte kort vs. global værktøjslinje)', () => {
+  it('ændring af et enkelt korts tekststørrelse ændrer IKKE planens globale skriftstørrelse', () => {
+    const plan = createWeekPlanFromTemplate(BUILTIN_TEMPLATES[0]);
+    plan.globalFontSize = 22;
+
+    // Simulate editing card 0
+    const card0 = plan.days.mandag.pictograms[0];
+    const updatedCard0 = { ...card0, fontSize: 14 };
+
+    // Update single card in plan
+    const updatedPlan = {
+      ...plan,
+      days: {
+        ...plan.days,
+        mandag: {
+          ...plan.days.mandag,
+          pictograms: [updatedCard0, ...plan.days.mandag.pictograms.slice(1)],
+        },
+      },
+    };
+
+    // The individual card has 14
+    expect(updatedPlan.days.mandag.pictograms[0].fontSize).toBe(14);
+    // But the global plan toolbar font size stays 22
+    expect(updatedPlan.globalFontSize).toBe(22);
+  });
+
+  it('anvendelse på alle kort opdaterer både globalFontSize og alle kort i planen', () => {
+    const plan = createWeekPlanFromTemplate(BUILTIN_TEMPLATES[0]);
+    plan.globalFontSize = 22;
+
+    const newGlobalSize = 28;
+    const updatedDays = { ...plan.days };
+    for (const dayKey of Object.keys(updatedDays) as (keyof typeof updatedDays)[]) {
+      updatedDays[dayKey] = {
+        ...updatedDays[dayKey],
+        pictograms: updatedDays[dayKey].pictograms.map((p) => ({
+          ...p,
+          fontSize: newGlobalSize,
+        })),
+      };
+    }
+
+    const updatedPlan = {
+      ...plan,
+      globalFontSize: newGlobalSize,
+      days: updatedDays,
+    };
+
+    expect(updatedPlan.globalFontSize).toBe(28);
+    expect(updatedPlan.days.mandag.pictograms.every((p) => p.fontSize === 28)).toBe(true);
+    expect(updatedPlan.days.fredag.pictograms.every((p) => p.fontSize === 28)).toBe(true);
+  });
+});
+

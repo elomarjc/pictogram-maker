@@ -320,3 +320,54 @@ export function buildCloudflareAiPrompt(options: {
   return `Clean 2D cartoon pictogram vector illustration of a ${character}, ${activity}. Cute flat cel-shaded vector art style, thick soft black outlines, bright clean solid colors, isolated on pure white background, friendly autism visual schedule icon, no text, no frame, high quality.`;
 }
 
+/**
+ * Optimizes and formats a brief Danish user input into an ideal, descriptive prompt
+ * for custom pictogram scenes without default clutter.
+ */
+export function optimizeScenePrompt(input: string): string {
+  const clean = input.trim();
+  if (!clean) return 'Figuren sidder ved skrivebordet og tegner med farveblyanter, smilende og glad.';
+
+  const lower = clean.toLowerCase();
+  if (lower.includes('brætspil') || lower.includes('spil') || lower.includes('kort')) {
+    return 'Figuren sidder ved stuebordet og spiller et farverigt brætspil, smilende og koncentreret.';
+  }
+  if (lower.includes('bog') || lower.includes('læser')) {
+    return 'Figuren sidder behageligt i en blød lænestol og fordyber sig i en god bog med et varmt smil.';
+  }
+  if (lower.includes('cykel') || lower.includes('cykler')) {
+    return 'Figuren cykler glad på en cykelsti i godt vejr med cykelhjelm og hænderne solidt på styret.';
+  }
+  if (lower.includes('gå') || lower.includes('gåtur') || lower.includes('spadsere') || lower.includes('lufte')) {
+    return 'Figuren går en frisk gåtur udendørs i behageligt tøj, smilende og glad i det gode vejr.';
+  }
+  if (lower.includes('have') || lower.includes('blomst') || lower.includes('plante') || lower.includes('vande')) {
+    return 'Figuren er i haven og vander grønne planter med en lille vandkande, smilende og tilfreds.';
+  }
+  if (lower.includes('bage') || lower.includes('kage') || lower.includes('boller')) {
+    return 'Figuren står i køkkenet med et forklæde og bager lækre kager ved køkkenbordet, glad stemning.';
+  }
+  if (lower.includes('musik') || lower.includes('hovedtelefon') || lower.includes('headset')) {
+    return 'Figuren sidder afslappet i sofaen med store høretelefoner på og lytter fornøjet til musik.';
+  }
+  if (lower.includes('tegne') || lower.includes('male') || lower.includes('kreativ')) {
+    return 'Figuren sidder ved et bord og tegner en farverig tegning med tuscher og papir, smilende og stolt.';
+  }
+  if (lower.includes('computer') || lower.includes('gamer') || lower.includes('skærm')) {
+    return 'Figuren sidder ved sit computerbord foran skærmen med mus og tastatur, fokuseret og glad.';
+  }
+
+  // General formatting: ensure subject starts with "Figuren" and ends with friendly cartoon mood
+  let formatted = clean;
+  if (!/^figuren/i.test(formatted)) {
+    formatted = `Figuren ${formatted.charAt(0).toLowerCase() + formatted.slice(1)}`;
+  }
+  if (!formatted.includes('glad') && !formatted.includes('smil') && !formatted.includes('hyggelig')) {
+    formatted += ', smilende og i godt humør, hyggelig tegneseriestil.';
+  } else if (!formatted.endsWith('.')) {
+    formatted += '.';
+  }
+  return formatted;
+}
+
+

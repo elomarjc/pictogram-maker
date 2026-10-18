@@ -67,6 +67,7 @@ export interface WeekPlan {
   personaId?: string; // Active persona ID (e.g. 'man_k')
   shortCode?: string; // Short code/abbreviation e.g. 'K.'
   avatarUrl?: string; // Custom avatar URL if uploaded
+  globalFontSize?: number; // Global text font size for cards (default 22)
   days: Record<DayOfWeek, DaySchedule>;
   createdAt: string;
   updatedAt: string;

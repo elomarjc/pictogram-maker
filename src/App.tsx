@@ -327,6 +327,7 @@ export const App: React.FC = () => {
   };
 
   const handleApplyFontSizeToAll = (size: number | string) => {
+    const numSize = typeof size === 'number' ? size : Number(size) || 22;
     updateCurrentPlan((prev) => {
       const updatedDays = { ...prev.days };
       for (const dayKey of Object.keys(updatedDays) as DayOfWeek[]) {
@@ -336,13 +337,14 @@ export const App: React.FC = () => {
             ...day,
             pictograms: day.pictograms.map((p) => ({
               ...p,
-              fontSize: size,
+              fontSize: numSize,
             })),
           };
         }
       }
       return {
         ...prev,
+        globalFontSize: numSize,
         days: updatedDays,
       };
     });
@@ -459,6 +461,7 @@ export const App: React.FC = () => {
             schedule={activeDaySchedule}
             persona={activePersona}
             viewMode={viewMode}
+            globalFontSize={currentPlan.globalFontSize || 22}
             onChangeViewMode={setViewMode}
             onOpenPersonaModal={() => setIsPersonaModalOpen(true)}
             onAddPictogram={() => handleOpenAddPictogram(selectedDayId)}
