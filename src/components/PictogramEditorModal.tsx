@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import type { Pictogram, Persona } from '../types';
 import { getPersona } from '../services/personas';
 import { PictogramCard } from './PictogramCard';
-import { X, Upload, Trash2, Check, Sparkles, Type, Loader2, AlertCircle, ChevronDown, Image as ImageIcon } from 'lucide-react';
+import { X, Upload, Trash2, Check, Sparkles, Type, Loader2, AlertCircle, ChevronDown, Image as ImageIcon, Clock } from 'lucide-react';
 import { PRESET_SCENE_PROMPTS, buildCloudflareAiPrompt } from '../data/scenePrompts';
 import {
   generateSceneImage,
@@ -48,6 +48,96 @@ const SCENE_DESCRIPTIONS: Record<string, string> = {
   skraldespand: 'Skrald & Flasker',
   handle: 'Handle indkøb',
 };
+
+// Auto-match scenes based on activity title keywords (checked in priority order)
+const SCENE_MATCH_RULES: Array<{ sceneId: string; keywords: string[] }> = [
+  {
+    sceneId: 'vaske_op',
+    keywords: ['opvask', 'vaske op', 'opvaskemaskine', 'tømme opvask', 'fylde opvask'],
+  },
+  {
+    sceneId: 'vaesketoeg',
+    keywords: ['vasketøj', 'tøjvask', 'hænge tøj', 'tøj', 'vaskemaskine', 'tørretumbler', 'vask'],
+  },
+  {
+    sceneId: 'rede_seng',
+    keywords: ['rede seng', 'sengeredning', 'ordne seng', 'skifte sengetøj'],
+  },
+  {
+    sceneId: 'sengetid',
+    keywords: ['sove', 'seng', 'sengetid', 'godnat', 'putte', 'hvile', 'sovetid', 'middagslur', 'lur', 'nat'],
+  },
+  {
+    sceneId: 'kaffe',
+    keywords: ['kaffe', 'the', 'te', 'morgenkaffe', 'kop', 'formiddag'],
+  },
+  {
+    sceneId: 'medicin',
+    keywords: ['medicin', 'pille', 'piller', 'vitamin', 'læge', 'apotek', 'dråber', 'indsprøjtning'],
+  },
+  {
+    sceneId: 'badetid',
+    keywords: ['bad', 'bade', 'brusebad', 'bruse', 'karbad', 'bruser', 'vaske sig', 'tand', 'tænder', 'børste tænder', 'toilet', 'wc'],
+  },
+  {
+    sceneId: 'spisetid',
+    keywords: ['spis', 'spise', 'spisetid', 'mad', 'frokost', 'aftensmad', 'morgenmad', 'middagsmad', 'måltid', 'aftenmad', 'lave mad', 'tilberede mad', 'spisning', 'snack'],
+  },
+  {
+    sceneId: 'bolle',
+    keywords: ['bolle', 'brød', 'kage', 'mellemmåltid', 'eftermiddag', 'bageri', 'wienerbrød'],
+  },
+  {
+    sceneId: 'gatur',
+    keywords: ['gåtur', 'gå tur', 'tur', 'lufte', 'hund', 'frisk luft', 'gå', 'spadsere', 'skov', 'park', 'ud at gå'],
+  },
+  {
+    sceneId: 'pause_sofa',
+    keywords: ['sofa', 'tv', 'fjernsyn', 'film', 'serie', 'slappe af', 'afslapning', 'pause', 'læse', 'bog', 'ipad', 'computer', 'skærm', 'gaming'],
+  },
+  {
+    sceneId: 'skraldespand',
+    keywords: ['skrald', 'affald', 'skraldespand', 'tømme skrald', 'flasker', 'pant', 'sortere'],
+  },
+  {
+    sceneId: 'handle',
+    keywords: ['handle', 'indkøb', 'købe ind', 'supermarked', 'netto', 'rema', 'føtex', 'købmand', 'butik', 'handle ind'],
+  },
+  {
+    sceneId: 'aktiviteter',
+    keywords: ['aktivitet', 'hobby', 'tegne', 'male', 'puslespil', 'spil', 'krea', 'musik', 'lego', 'træning', 'motion', 'gymnastik'],
+  },
+];
+
+const SCENE_COLOR_MAP: Record<string, string> = {
+  vaesketoeg: '#fbb6db',
+  kaffe: '#fdef8c',
+  medicin: '#c1ea9a',
+  badetid: '#9adafd',
+  spisetid: '#fdc67c',
+  aktiviteter: '#ccadfb',
+  vaske_op: '#9ceacc',
+  bolle: '#cdb7f8',
+  sengetid: '#97d9fc',
+  gatur: '#9adafd',
+  rede_seng: '#97d9fc',
+  pause_sofa: '#fdef8c',
+  skraldespand: '#c1ea9a',
+  handle: '#fdc67c',
+};
+
+function findMatchingScene(text: string): string | null {
+  const normalized = text.toLowerCase().trim();
+  if (!normalized) return null;
+  for (const rule of SCENE_MATCH_RULES) {
+    for (const kw of rule.keywords) {
+      if (normalized.includes(kw)) {
+        return rule.sceneId;
+      }
+    }
+  }
+  return null;
+}
 
 const STORAGE_KEY_CUSTOM_ICONS = 'pictogram_custom_icons';
 
@@ -123,14 +213,19 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
   const [selectedScenePromptId, setSelectedScenePromptId] = useState<string>(PRESET_SCENE_PROMPTS[0].id);
   const [inlineSceneText, setInlineSceneText] = useState<string>(PRESET_SCENE_PROMPTS[0].prompt);
 
-  // Dropdown states for compact color and font size pickers
+  // Dropdown states for compact time, color and font size pickers
+  const [isTimeOpen, setIsTimeOpen] = useState(false);
   const [isColorOpen, setIsColorOpen] = useState(false);
   const [isFontSizeOpen, setIsFontSizeOpen] = useState(false);
+  const timeDropdownRef = useRef<HTMLDivElement>(null);
   const colorDropdownRef = useRef<HTMLDivElement>(null);
   const fontSizeDropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
+      if (timeDropdownRef.current && !timeDropdownRef.current.contains(e.target as Node)) {
+        setIsTimeOpen(false);
+      }
       if (colorDropdownRef.current && !colorDropdownRef.current.contains(e.target as Node)) {
         setIsColorOpen(false);
       }
@@ -141,6 +236,19 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  const handleTitleChange = (newTitle: string) => {
+    setTitle(newTitle);
+    const matched = findMatchingScene(newTitle);
+    if (matched) {
+      setIllustrationId(matched);
+      setCustomImageUrl('');
+      setSceneImageUrl('');
+      if (SCENE_COLOR_MAP[matched]) {
+        setBgColor(SCENE_COLOR_MAP[matched]);
+      }
+    }
+  };
 
   // Cloudflare Workers AI integration state
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
@@ -306,23 +414,116 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
                 type="text"
                 required
                 value={title}
-                onChange={(e) => setTitle(e.target.value)}
+                onChange={(e) => handleTitleChange(e.target.value)}
                 placeholder="F.eks. Spisetid, Morgenmad, Medicin"
                 className="w-full h-10 px-3 rounded-xl border-2 border-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-400 font-bold text-sm text-slate-900 bg-white"
               />
             </div>
 
-            <div className="w-24 shrink-0 space-y-1">
+            {/* Klokkeslæt Dropdown */}
+            <div className="relative shrink-0 space-y-1" ref={timeDropdownRef}>
               <label className="text-xs font-bold text-slate-700 block">
                 Klokkeslæt
               </label>
-              <input
-                type="text"
-                value={time}
-                onChange={(e) => setTime(e.target.value)}
-                placeholder="08:00"
-                className="w-full h-10 px-2.5 rounded-xl border-2 border-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-400 font-medium text-sm text-slate-900 bg-white text-center"
-              />
+              <button
+                type="button"
+                onClick={() => {
+                  setIsTimeOpen((prev) => !prev);
+                  setIsColorOpen(false);
+                  setIsFontSizeOpen(false);
+                }}
+                className="h-10 px-2.5 rounded-xl border-2 border-slate-900 bg-white hover:bg-slate-50 flex items-center gap-1.5 cursor-pointer transition-colors shadow-2xs min-w-[85px] justify-between"
+                title="Vælg klokkeslæt"
+              >
+                <div className="flex items-center gap-1.5 text-xs font-bold text-slate-900">
+                  <Clock size={13} className="text-slate-600 shrink-0" />
+                  <span>{time.trim() ? time : 'Ingen'}</span>
+                </div>
+                <ChevronDown size={14} className={`text-slate-600 transition-transform duration-150 ${isTimeOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {isTimeOpen && (
+                <div className="absolute left-0 sm:right-0 sm:left-auto top-full mt-1.5 z-40 p-3 bg-white border-2 border-slate-900 rounded-2xl shadow-xl w-64 space-y-2.5 animate-in fade-in zoom-in-95">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-700">Vælg klokkeslæt</span>
+                    {time && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setTime('');
+                          setIsTimeOpen(false);
+                        }}
+                        className="text-[11px] font-bold text-rose-600 hover:text-rose-700 cursor-pointer"
+                      >
+                        Fjern tid
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Valgmulighed: Ingen */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTime('');
+                      setIsTimeOpen(false);
+                    }}
+                    className={`w-full py-1.5 px-2.5 rounded-xl text-xs font-bold flex items-center justify-between border transition-colors cursor-pointer ${
+                      !time.trim()
+                        ? 'bg-amber-100 border-slate-900 text-slate-900'
+                        : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                    }`}
+                  >
+                    <span>Ingen (vis ikke klokkeslæt)</span>
+                    {!time.trim() && <Check size={14} className="stroke-[3] text-slate-900" />}
+                  </button>
+
+                  {/* Hurtigvalg af tider */}
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                      Hurtigvalg
+                    </span>
+                    <div className="grid grid-cols-4 gap-1 max-h-32 overflow-y-auto p-0.5">
+                      {[
+                        '07:00', '07:30', '08:00', '08:30',
+                        '09:00', '09:30', '10:00', '11:00',
+                        '12:00', '12:30', '13:00', '14:00',
+                        '15:00', '16:00', '17:00', '18:00',
+                        '19:00', '20:00', '21:00', '22:00',
+                      ].map((t) => (
+                        <button
+                          key={t}
+                          type="button"
+                          onClick={() => {
+                            setTime(t);
+                            setIsTimeOpen(false);
+                          }}
+                          className={`py-1 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
+                            time === t
+                              ? 'bg-slate-900 text-white'
+                              : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                          }`}
+                        >
+                          {t}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Manuel indtastning */}
+                  <div className="pt-1.5 border-t border-slate-200 space-y-1">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                      Eller skriv selv (f.eks. 13.00-14.00)
+                    </label>
+                    <input
+                      type="text"
+                      value={time}
+                      onChange={(e) => setTime(e.target.value)}
+                      placeholder="08:00 eller 13.00-14.00"
+                      className="w-full h-8 px-2.5 rounded-lg border-2 border-slate-300 focus:border-slate-900 font-bold text-xs text-slate-900"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Farve Dropdown */}
@@ -461,7 +662,7 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
                   }`}
                 >
                   <ImageIcon size={14} />
-                  <span>Vælg scene / ikon</span>
+                  <span>Scene</span>
                 </button>
                 <button
                   type="button"
@@ -473,7 +674,7 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
                   }`}
                 >
                   <Sparkles size={14} className={activeTab === 'upload' ? 'text-slate-900' : 'text-amber-600'} />
-                  <span>Tegn ny scene (AI)</span>
+                  <span>Opret en ny scene</span>
                 </button>
               </div>
 
@@ -502,7 +703,7 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
                   />
                 </label>
 
-                {/* Quick AI scene button tile in the grid */}
+                {/* Quick new scene button tile in the grid */}
                 <button
                   type="button"
                   onClick={() => setActiveTab('upload')}
@@ -512,7 +713,7 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
                     <Sparkles size={14} className="text-slate-900" />
                   </div>
                   <span className="text-[10.5px] font-black text-amber-950 text-center leading-tight">
-                    Tegn med AI
+                    Opret en ny scene
                   </span>
                 </button>
 
@@ -604,7 +805,7 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-black text-slate-900 flex items-center gap-1.5">
                       <Sparkles size={14} className="text-amber-600" />
-                      Beskriv scenen du vil have tegnet
+                      Beskriv scenen der skal oprettes
                     </span>
                     <span className="text-[10.5px] font-bold text-amber-900 bg-amber-200/80 px-2 py-0.5 rounded-full border border-amber-300 flex items-center gap-1">
                       <img src={activePersona.avatarUrl} alt="" className="w-3.5 h-3.5 rounded-full object-cover" />
@@ -656,12 +857,12 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
                     {isGeneratingAi ? (
                       <>
                         <Loader2 size={14} className="animate-spin text-amber-400" />
-                        <span>Tegner scene med figuren... (ca. 4 sekunder)</span>
+                        <span>Opretter scene med figuren...</span>
                       </>
                     ) : (
                       <>
                         <Sparkles size={14} className="text-amber-400" />
-                        <span>Tegn scene med figuren nu (1-klik)</span>
+                        <span>Opret ny scene</span>
                       </>
                     )}
                   </button>

@@ -200,7 +200,11 @@ export const PictogramCard: React.FC<PictogramCardProps> = ({
       </div>
 
       {/* Middle/Main section: Activity Title & optional Time (centered title, round font) */}
-      <div className="flex-1 px-4 sm:px-6 py-2 min-w-0 flex items-center justify-center relative">
+      <div
+        className={`flex-1 px-4 ${
+          pictogram.time ? 'pr-24 sm:pr-28' : 'sm:px-8'
+        } py-2 min-w-0 flex items-center justify-center relative`}
+      >
         <h3
           style={customTitleStyle}
           className={`${titleSizeClass} font-rounded text-slate-900 leading-tight uppercase tracking-wide text-center break-words max-w-full`}
@@ -208,8 +212,8 @@ export const PictogramCard: React.FC<PictogramCardProps> = ({
           {pictogram.title}
         </h3>
         {pictogram.time && (
-          <span className="absolute right-3 sm:right-5 top-1/2 -translate-y-1/2 inline-flex items-center gap-1 text-xs font-bold bg-white/90 border border-slate-900/30 px-2 py-0.5 rounded-full text-slate-700 shrink-0">
-            <Clock size={11} />
+          <span className="absolute top-2 right-2.5 sm:right-3 inline-flex items-center gap-1 text-[11px] font-bold bg-white border-2 border-slate-900 px-2.5 py-0.5 rounded-full text-slate-900 shadow-2xs shrink-0 z-1 pointer-events-none">
+            <Clock size={11} className="stroke-[2.5] text-slate-700" />
             {pictogram.time}
           </span>
         )}
