@@ -1,15 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import type { Pictogram, Persona } from '../types';
 import { getPersona } from '../services/personas';
 import { PictogramCard } from './PictogramCard';
-import { X, Upload, Trash2, Check, Sparkles, Type, Loader2, AlertCircle, Settings } from 'lucide-react';
+import { X, Upload, Trash2, Check, Sparkles, Type, Loader2, AlertCircle, ChevronDown, Image as ImageIcon } from 'lucide-react';
 import { PRESET_SCENE_PROMPTS, buildCloudflareAiPrompt } from '../data/scenePrompts';
 import {
   generateSceneImage,
   getStoredWorkerUrl,
-  setStoredWorkerUrl,
   getStoredApiKey,
-  setStoredApiKey,
 } from '../services/imageGenerationApi';
 import { convertImageToDataUrl } from '../services/pdfExport';
 
@@ -125,13 +123,32 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
   const [selectedScenePromptId, setSelectedScenePromptId] = useState<string>(PRESET_SCENE_PROMPTS[0].id);
   const [inlineSceneText, setInlineSceneText] = useState<string>(PRESET_SCENE_PROMPTS[0].prompt);
 
+  // Dropdown states for compact color and font size pickers
+  const [isColorOpen, setIsColorOpen] = useState(false);
+  const [isFontSizeOpen, setIsFontSizeOpen] = useState(false);
+  const colorDropdownRef = useRef<HTMLDivElement>(null);
+  const fontSizeDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (colorDropdownRef.current && !colorDropdownRef.current.contains(e.target as Node)) {
+        setIsColorOpen(false);
+      }
+      if (fontSizeDropdownRef.current && !fontSizeDropdownRef.current.contains(e.target as Node)) {
+        setIsFontSizeOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   // Cloudflare Workers AI integration state
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
-  const [workerUrl, setWorkerUrl] = useState(getStoredWorkerUrl());
-  const [workerApiKey, setWorkerApiKey] = useState(getStoredApiKey());
   const [aiError, setAiError] = useState<string | null>(null);
 
   const handleGenerateWithAi = async () => {
+    const workerUrl = getStoredWorkerUrl();
+    const workerApiKey = getStoredApiKey();
     if (!workerUrl.trim()) {
       setAiError('Ingen Cloudflare Worker adresse fundet.');
       return;
@@ -141,9 +158,6 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
     setIsGeneratingAi(true);
 
     try {
-      setStoredWorkerUrl(workerUrl);
-      setStoredApiKey(workerApiKey);
-
       const promptToUse = buildCloudflareAiPrompt({
         sceneDescription: inlineSceneText,
         personaName: activePersona.name,
@@ -264,29 +278,27 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSave} className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-3.5">
-          {/* Live Preview card */}
-          <div className="p-3 bg-slate-100 rounded-2xl border-2 border-slate-200 flex justify-center items-center">
-            <div className="w-full max-w-md">
-              <PictogramCard
-                pictogram={previewPic}
-                persona={activePersona}
-                index={0}
-                totalCount={1}
-                viewMode="strip"
-                onEdit={() => {}}
-                onDuplicate={() => {}}
-                onDelete={() => {}}
-                onMoveUp={() => {}}
-                onMoveDown={() => {}}
-                onMoveToDay={() => {}}
-              />
-            </div>
+        <form onSubmit={handleSave} className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-3">
+          {/* Live Preview card - snug, full-width, zero wasted gaps */}
+          <div className="w-full">
+            <PictogramCard
+              pictogram={previewPic}
+              persona={activePersona}
+              index={0}
+              totalCount={1}
+              viewMode="strip"
+              onEdit={() => {}}
+              onDuplicate={() => {}}
+              onDelete={() => {}}
+              onMoveUp={() => {}}
+              onMoveDown={() => {}}
+              onMoveToDay={() => {}}
+            />
           </div>
 
-          {/* Form fields: Aktivitet & Tidspunkt */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-            <div className="sm:col-span-2 space-y-1">
+          {/* Form row: Aktivitet, Tid, Farve dropdown, Tekststørrelse dropdown */}
+          <div className="flex flex-wrap sm:flex-nowrap items-end gap-2">
+            <div className="flex-1 min-w-[170px] space-y-1">
               <label className="text-xs font-bold text-slate-700 block">
                 Aktivitetens navn *
               </label>
@@ -296,11 +308,11 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="F.eks. Spisetid, Morgenmad, Medicin"
-                className="w-full px-3 py-2 rounded-xl border-2 border-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-400 font-bold text-sm text-slate-900"
+                className="w-full h-10 px-3 rounded-xl border-2 border-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-400 font-bold text-sm text-slate-900 bg-white"
               />
             </div>
 
-            <div className="space-y-1">
+            <div className="w-24 shrink-0 space-y-1">
               <label className="text-xs font-bold text-slate-700 block">
                 Klokkeslæt
               </label>
@@ -308,134 +320,179 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
                 type="text"
                 value={time}
                 onChange={(e) => setTime(e.target.value)}
-                placeholder="F.eks. 08:00"
-                className="w-full px-3 py-2 rounded-xl border-2 border-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-400 font-medium text-sm text-slate-900"
+                placeholder="08:00"
+                className="w-full h-10 px-2.5 rounded-xl border-2 border-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-400 font-medium text-sm text-slate-900 bg-white text-center"
               />
             </div>
-          </div>
 
-          {/* Form row: Tekststørrelse & Farve side-by-side */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-            {/* Tekststørrelse */}
-            <div className="p-2.5 bg-slate-50 border-2 border-slate-200 rounded-2xl space-y-1.5">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                  <Type size={14} className="text-amber-600" />
-                  Tekststørrelse
-                </span>
-                <div className="flex items-center gap-1 bg-white border border-slate-300 rounded-lg px-2 py-0.5">
-                  <button
-                    type="button"
-                    onClick={() => setFontSizeNum((prev) => Math.max(8, prev - 2))}
-                    className="w-4 h-5 rounded hover:bg-slate-100 font-bold text-xs text-slate-600 cursor-pointer"
-                  >
-                    -
-                  </button>
-                  <input
-                    type="number"
-                    min={6}
-                    max={99}
-                    value={fontSizeNum}
-                    onChange={(e) => {
-                      const val = parseInt(e.target.value, 10);
-                      if (!isNaN(val)) setFontSizeNum(Math.max(1, val));
-                    }}
-                    className="w-8 text-center font-bold text-xs text-slate-900 outline-none"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setFontSizeNum((prev) => prev + 2)}
-                    className="w-4 h-5 rounded hover:bg-slate-100 font-bold text-xs text-slate-600 cursor-pointer"
-                  >
-                    +
-                  </button>
+            {/* Farve Dropdown */}
+            <div className="relative shrink-0 space-y-1" ref={colorDropdownRef}>
+              <label className="text-xs font-bold text-slate-700 block">
+                Farve
+              </label>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsColorOpen((prev) => !prev);
+                  setIsFontSizeOpen(false);
+                }}
+                className="h-10 px-2.5 rounded-xl border-2 border-slate-900 bg-white hover:bg-slate-50 flex items-center gap-1.5 cursor-pointer transition-colors shadow-2xs"
+                title="Vælg kortfarve"
+              >
+                <span
+                  className="w-4 h-4 rounded-full border border-slate-900/40 shrink-0"
+                  style={{ backgroundColor: bgColor }}
+                />
+                <ChevronDown size={14} className={`text-slate-600 transition-transform duration-150 ${isColorOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {isColorOpen && (
+                <div className="absolute right-0 top-full mt-1.5 z-40 p-2.5 bg-white border-2 border-slate-900 rounded-2xl shadow-xl w-60 animate-in fade-in zoom-in-95">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2 px-0.5">
+                    Vælg kortfarve
+                  </span>
+                  <div className="grid grid-cols-5 gap-1.5">
+                    {REFERENCE_COLOR_PRESETS.map((preset) => (
+                      <button
+                        key={preset.id}
+                        type="button"
+                        onClick={() => {
+                          setBgColor(preset.bg);
+                          setIsColorOpen(false);
+                        }}
+                        style={{ backgroundColor: preset.bg }}
+                        className={`w-9 h-9 rounded-xl border-2 border-slate-900 flex items-center justify-center transition-transform hover:scale-110 cursor-pointer ${
+                          bgColor.toLowerCase() === preset.bg.toLowerCase() ? 'ring-3 ring-amber-400 scale-105' : ''
+                        }`}
+                        title={preset.name}
+                      >
+                        {bgColor.toLowerCase() === preset.bg.toLowerCase() && (
+                          <Check size={13} className="text-slate-900 stroke-[3]" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
-
-              <div className="flex items-center gap-1">
-                {[
-                  { label: 'S (14)', size: 14 },
-                  { label: 'M (18)', size: 18 },
-                  { label: 'L (22)', size: 22 },
-                  { label: 'XL (28)', size: 28 },
-                ].map((chip) => (
-                  <button
-                    key={chip.size}
-                    type="button"
-                    onClick={() => setFontSizeNum(chip.size)}
-                    className={`flex-1 py-1 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
-                      fontSizeNum === chip.size
-                        ? 'bg-slate-900 text-white shadow-2xs'
-                        : 'bg-white text-slate-700 hover:bg-slate-200 border border-slate-300'
-                    }`}
-                  >
-                    {chip.label}
-                  </button>
-                ))}
-              </div>
+              )}
             </div>
 
-            {/* Baggrundsfarve */}
-            <div className="p-2.5 bg-slate-50 border-2 border-slate-200 rounded-2xl space-y-1.5">
-              <span className="text-xs font-bold text-slate-700 block">Farve</span>
-              <div className="flex flex-wrap gap-1.5">
-                {REFERENCE_COLOR_PRESETS.map((preset) => (
-                  <button
-                    key={preset.id}
-                    type="button"
-                    onClick={() => setBgColor(preset.bg)}
-                    style={{ backgroundColor: preset.bg }}
-                    className={`w-7 h-7 rounded-xl border-2 border-slate-900 flex items-center justify-center transition-transform hover:scale-110 cursor-pointer ${
-                      bgColor.toLowerCase() === preset.bg.toLowerCase() ? 'ring-3 ring-amber-400 scale-105' : ''
-                    }`}
-                    title={preset.name}
-                  >
-                    {bgColor.toLowerCase() === preset.bg.toLowerCase() && (
-                      <Check size={13} className="text-slate-900 stroke-[3]" />
-                    )}
-                  </button>
-                ))}
-              </div>
+            {/* Tekststørrelse Dropdown */}
+            <div className="relative shrink-0 space-y-1" ref={fontSizeDropdownRef}>
+              <label className="text-xs font-bold text-slate-700 block">
+                Tekst
+              </label>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsFontSizeOpen((prev) => !prev);
+                  setIsColorOpen(false);
+                }}
+                className="h-10 px-2.5 rounded-xl border-2 border-slate-900 bg-white hover:bg-slate-50 flex items-center gap-1.5 cursor-pointer transition-colors shadow-2xs"
+                title="Juster tekststørrelse"
+              >
+                <Type size={14} className="text-slate-700" />
+                <span className="text-xs font-bold text-slate-900">{fontSizeNum}</span>
+                <ChevronDown size={14} className={`text-slate-600 transition-transform duration-150 ${isFontSizeOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {isFontSizeOpen && (
+                <div className="absolute right-0 top-full mt-1.5 z-40 p-3 bg-white border-2 border-slate-900 rounded-2xl shadow-xl w-56 space-y-2.5 animate-in fade-in zoom-in-95">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-700">Tekststørrelse</span>
+                    <div className="flex items-center gap-1 bg-slate-100 border border-slate-300 rounded-lg px-1.5 py-0.5">
+                      <button
+                        type="button"
+                        onClick={() => setFontSizeNum((prev) => Math.max(8, prev - 2))}
+                        className="w-5 h-6 rounded hover:bg-slate-200 font-black text-sm text-slate-700 cursor-pointer"
+                      >
+                        -
+                      </button>
+                      <span className="w-7 text-center font-bold text-xs text-slate-900">{fontSizeNum}</span>
+                      <button
+                        type="button"
+                        onClick={() => setFontSizeNum((prev) => prev + 2)}
+                        className="w-5 h-6 rounded hover:bg-slate-200 font-black text-sm text-slate-700 cursor-pointer"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-4 gap-1">
+                    {[
+                      { label: 'S', size: 14 },
+                      { label: 'M', size: 18 },
+                      { label: 'L', size: 22 },
+                      { label: 'XL', size: 28 },
+                    ].map((chip) => (
+                      <button
+                        key={chip.size}
+                        type="button"
+                        onClick={() => {
+                          setFontSizeNum(chip.size);
+                        }}
+                        className={`py-1 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
+                          fontSizeNum === chip.size
+                            ? 'bg-slate-900 text-white'
+                            : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                        }`}
+                      >
+                        {chip.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Visual asset picker tabs */}
-          <div className="space-y-2 pt-1">
-            <div className="flex border-b-2 border-slate-200">
-              <button
-                type="button"
-                onClick={() => setActiveTab('illustrations')}
-                className={`py-1 px-3 font-bold text-xs border-b-2 -mb-[2px] transition-colors cursor-pointer ${
-                  activeTab === 'illustrations'
-                    ? 'border-slate-900 text-slate-900'
-                    : 'border-transparent text-slate-500 hover:text-slate-800'
-                }`}
-              >
-                Ikoner & Scener
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab('upload')}
-                className={`py-1 px-3 font-bold text-xs border-b-2 -mb-[2px] transition-colors cursor-pointer ${
-                  activeTab === 'upload'
-                    ? 'border-slate-900 text-slate-900'
-                    : 'border-transparent text-slate-500 hover:text-slate-800'
-                }`}
-              >
-                Lav ny AI-scene
-              </button>
+          {/* Visual asset picker */}
+          <div className="space-y-2 pt-2 border-t border-slate-200">
+            {/* Prominent segmented tab bar */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-2xl border border-slate-200">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('illustrations')}
+                  className={`px-3 py-1.5 rounded-xl font-bold text-xs transition-all cursor-pointer flex items-center gap-1.5 ${
+                    activeTab === 'illustrations'
+                      ? 'bg-white text-slate-900 shadow-xs border border-slate-300'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <ImageIcon size={14} />
+                  <span>Vælg scene / ikon</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('upload')}
+                  className={`px-3 py-1.5 rounded-xl font-black text-xs transition-all cursor-pointer flex items-center gap-1.5 ${
+                    activeTab === 'upload'
+                      ? 'bg-amber-400 text-slate-900 shadow-xs border border-slate-900'
+                      : 'text-amber-800 hover:text-amber-950 hover:bg-amber-100/50'
+                  }`}
+                >
+                  <Sparkles size={14} className={activeTab === 'upload' ? 'text-slate-900' : 'text-amber-600'} />
+                  <span>Tegn ny scene (AI)</span>
+                </button>
+              </div>
+
+              <div className="text-[11px] font-bold text-slate-500 hidden sm:flex items-center gap-1.5">
+                <img src={activePersona.avatarUrl} alt="" className="w-4 h-4 rounded-full object-cover border border-slate-300" />
+                <span>{activePersona.name}</span>
+              </div>
             </div>
 
-            {/* TAB 1: Icons & Scenes grid (includes Upload button + custom uploaded images + preset scenes) */}
+            {/* TAB 1: Icons & Scenes grid */}
             {activeTab === 'illustrations' && (
               <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 max-h-56 overflow-y-auto p-1">
-                {/* Upload tile directly in the icons grid */}
+                {/* Upload tile */}
                 <label className="flex flex-col items-center justify-center p-1.5 rounded-xl border-2 border-dashed border-slate-300 hover:border-slate-900 bg-white hover:bg-amber-50 cursor-pointer transition-all group h-22">
                   <div className="w-7 h-7 rounded-lg bg-amber-100 group-hover:bg-amber-400 flex items-center justify-center text-slate-900 transition-colors mb-1">
                     <Upload size={14} />
                   </div>
                   <span className="text-[10.5px] font-bold text-slate-700 group-hover:text-slate-900 text-center leading-tight">
-                    Upload
+                    Upload eget foto
                   </span>
                   <input
                     type="file"
@@ -445,7 +502,21 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
                   />
                 </label>
 
-                {/* Custom uploaded images */}
+                {/* Quick AI scene button tile in the grid */}
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('upload')}
+                  className="flex flex-col items-center justify-center p-1.5 rounded-xl border-2 border-dashed border-amber-400 hover:border-amber-600 bg-amber-50/60 hover:bg-amber-100/80 cursor-pointer transition-all group h-22"
+                >
+                  <div className="w-7 h-7 rounded-lg bg-amber-300 group-hover:bg-amber-400 flex items-center justify-center text-slate-900 transition-colors mb-1">
+                    <Sparkles size={14} className="text-slate-900" />
+                  </div>
+                  <span className="text-[10.5px] font-black text-amber-950 text-center leading-tight">
+                    Tegn med AI
+                  </span>
+                </button>
+
+                {/* Custom uploaded / generated images */}
                 {customIcons.map((imgUrl, idx) => {
                   const isSelected = customImageUrl === imgUrl;
                   return (
@@ -469,14 +540,12 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
                         Eget billede
                       </span>
 
-                      {/* Active checkmark */}
                       {isSelected && (
                         <span className="absolute top-1 right-1 w-4 h-4 rounded-full bg-slate-900 text-white flex items-center justify-center shadow-xs z-10 pointer-events-none">
                           <Check size={10} className="stroke-[3]" />
                         </span>
                       )}
 
-                      {/* Smaller, hidden delete button (appears on hover) */}
                       <button
                         type="button"
                         onClick={(e) => {
@@ -531,13 +600,13 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
             {/* TAB 2: AI Generate scene */}
             {activeTab === 'upload' && (
               <div className="p-1">
-                <div className="bg-amber-50/70 border-2 border-amber-300 rounded-2xl p-3 space-y-2">
+                <div className="bg-amber-50/70 border-2 border-amber-300 rounded-2xl p-3.5 space-y-2.5">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-black text-slate-900 flex items-center gap-1.5">
                       <Sparkles size={14} className="text-amber-600" />
-                      Generér scene med figuren
+                      Beskriv scenen du vil have tegnet
                     </span>
-                    <span className="text-[10px] font-bold text-amber-900 bg-amber-200/80 px-2 py-0.5 rounded-full border border-amber-300 flex items-center gap-1">
+                    <span className="text-[10.5px] font-bold text-amber-900 bg-amber-200/80 px-2 py-0.5 rounded-full border border-amber-300 flex items-center gap-1">
                       <img src={activePersona.avatarUrl} alt="" className="w-3.5 h-3.5 rounded-full object-cover" />
                       <span>{activePersona.name}</span>
                     </span>
@@ -567,7 +636,7 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
                     value={inlineSceneText}
                     onChange={(e) => setInlineSceneText(e.target.value)}
                     rows={2}
-                    placeholder="Beskriv hvad figuren skal lave..."
+                    placeholder="F.eks. Figuren børster tænder, bager en kage, sidder ved computeren..."
                     className="w-full px-2.5 py-1.5 text-xs font-bold rounded-xl border-2 border-slate-300 focus:border-slate-900 bg-white resize-none"
                   />
 
@@ -582,17 +651,17 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
                     type="button"
                     disabled={isGeneratingAi}
                     onClick={handleGenerateWithAi}
-                    className="w-full py-2 bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white font-black text-xs rounded-xl border-2 border-slate-900 flex items-center justify-center gap-2 shadow-xs transition-all cursor-pointer"
+                    className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white font-black text-xs rounded-xl border-2 border-slate-900 flex items-center justify-center gap-2 shadow-xs transition-all cursor-pointer"
                   >
                     {isGeneratingAi ? (
                       <>
                         <Loader2 size={14} className="animate-spin text-amber-400" />
-                        <span>Genererer scene...</span>
+                        <span>Tegner scene med figuren... (ca. 4 sekunder)</span>
                       </>
                     ) : (
                       <>
                         <Sparkles size={14} className="text-amber-400" />
-                        <span>Generér scene nu</span>
+                        <span>Tegn scene med figuren nu (1-klik)</span>
                       </>
                     )}
                   </button>
@@ -600,42 +669,6 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
               </div>
             )}
           </div>
-
-          {/* Discreet collapsible advanced connection settings */}
-          <details className="text-[11px] text-slate-400 group px-1">
-            <summary className="cursor-pointer hover:text-slate-600 font-medium select-none list-none flex items-center gap-1.5 opacity-60 hover:opacity-100 transition-opacity">
-              <Settings size={13} />
-              <span>Avanceret forbindelse</span>
-            </summary>
-            <div className="mt-2 p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2 text-slate-700">
-              <div>
-                <label className="font-semibold block mb-0.5 text-[10.5px]">Cloudflare Worker Adresse:</label>
-                <input
-                  type="text"
-                  value={workerUrl}
-                  onChange={(e) => {
-                    setWorkerUrl(e.target.value);
-                    setStoredWorkerUrl(e.target.value);
-                  }}
-                  placeholder="https://..."
-                  className="w-full px-2.5 py-1 rounded-lg border border-slate-300 text-xs font-mono bg-white"
-                />
-              </div>
-              <div>
-                <label className="font-semibold block mb-0.5 text-[10.5px]">API Nøgle (valgfri):</label>
-                <input
-                  type="password"
-                  value={workerApiKey}
-                  onChange={(e) => {
-                    setWorkerApiKey(e.target.value);
-                    setStoredApiKey(e.target.value);
-                  }}
-                  placeholder="Bearer nøgle"
-                  className="w-full px-2.5 py-1 rounded-lg border border-slate-300 text-xs font-mono bg-white"
-                />
-              </div>
-            </div>
-          </details>
 
           {/* Modal Actions */}
           <div className="flex items-center justify-end gap-2.5 pt-3 border-t-2 border-slate-200">
