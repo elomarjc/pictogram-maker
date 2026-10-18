@@ -19,10 +19,6 @@ import {
   type SceneGenProgress,
 } from '../services/characterSceneGenerator';
 import { getAllPersonas } from '../services/personas';
-import {
-  resetAllAccountQuotas,
-  getQuotaResetInfo,
-} from '../services/imageGenerationApi';
 
 interface SceneGenerationModalProps {
   isOpen: boolean;
@@ -39,8 +35,6 @@ export const SceneGenerationModal: React.FC<SceneGenerationModalProps> = ({
 }) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
-  const [isWaitingForReset, setIsWaitingForReset] = useState(false);
-  const resetTimerRef = useRef<number | null>(null);
 
   const [progress, setProgress] = useState<SceneGenProgress>({
     total: 0,
@@ -61,36 +55,6 @@ export const SceneGenerationModal: React.FC<SceneGenerationModalProps> = ({
       setCurrentPersona(fresh);
     }
   }, [persona, isOpen]);
-
-  // Clean up auto-resume timer on unmount
-  useEffect(() => {
-    return () => {
-      if (resetTimerRef.current !== null) {
-        clearTimeout(resetTimerRef.current);
-      }
-    };
-  }, []);
-
-  const handleScheduleAutoResume = () => {
-    setIsWaitingForReset(true);
-    const resetInfo = getQuotaResetInfo();
-    const now = Date.now();
-    // Wait until midnight UTC + 2 seconds buffer
-    const waitMs = Math.max(1000, resetInfo.nextReset.getTime() - now + 2000);
-
-    if (resetTimerRef.current !== null) {
-      clearTimeout(resetTimerRef.current);
-    }
-
-    resetTimerRef.current = window.setTimeout(() => {
-      resetAllAccountQuotas();
-      setIsWaitingForReset(false);
-      setErrorMsg(null);
-      if (currentPersona) {
-        startGeneration(currentPersona);
-      }
-    }, waitMs);
-  };
 
   // Start generation automatically when opened and missing scenes exist
   useEffect(() => {
@@ -306,32 +270,17 @@ export const SceneGenerationModal: React.FC<SceneGenerationModalProps> = ({
 
           {/* All accounts quota exceeded banner */}
           {progress.allQuotaExceeded && (
-            <div className="mt-2.5 p-3 bg-amber-50 border-2 border-amber-400 rounded-xl shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <Clock size={18} className="text-amber-600 shrink-0" />
-                <div className="text-xs">
-                  <span className="font-black text-amber-950 block">
-                    Pause: Dagens gratis grænse er nået
-                  </span>
-                  <span className="text-amber-900 text-[11px] block">
-                    Klar igen kl. {progress.resetInfo?.localTimeStr || '02:00'} (om{' '}
-                    {progress.resetInfo?.countdownStr || 'i nat'}). Dine {ready} scener er gemt.
-                  </span>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={handleScheduleAutoResume}
-                className="shrink-0 px-3 py-1.5 rounded-xl border-2 border-slate-900 bg-amber-400 hover:bg-amber-500 font-bold text-xs text-slate-900 shadow-2xs flex items-center gap-1.5 transition-colors cursor-pointer self-start sm:self-auto"
-              >
-                <Clock size={13} />
-                <span>
-                  {isWaitingForReset
-                    ? `Venter... (kl. ${progress.resetInfo?.localTimeStr || '02:00'})`
-                    : `Fortsæt automatisk kl. ${progress.resetInfo?.localTimeStr || '02:00'}`}
+            <div className="mt-2.5 p-2.5 bg-amber-50 border-2 border-amber-400 rounded-xl shadow-xs flex items-center gap-2.5">
+              <Clock size={18} className="text-amber-600 shrink-0" />
+              <div className="text-xs">
+                <span className="font-black text-amber-950 block">
+                  Pause: Dagens gratis grænse er nået
                 </span>
-              </button>
+                <span className="text-amber-900 text-[11px] block">
+                  Klar igen kl. {progress.resetInfo?.localTimeStr || '02:00'} (om{' '}
+                  {progress.resetInfo?.countdownStr || 'i nat'}). Dine {ready} scener er gemt.
+                </span>
+              </div>
             </div>
           )}
 
