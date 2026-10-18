@@ -19,7 +19,9 @@ import { MoveToDayModal } from './components/MoveToDayModal';
 import { CopyDayModal } from './components/CopyDayModal';
 import { PrivacyInfoModal } from './components/PrivacyInfoModal';
 import { PersonaSelectorModal } from './components/PersonaSelectorModal';
+import { SceneGenerationModal } from './components/SceneGenerationModal';
 import { getPersona } from './services/personas';
+import type { Persona } from './types';
 
 export const App: React.FC = () => {
   // Load plans from sessionStorage on initial render
@@ -46,6 +48,8 @@ export const App: React.FC = () => {
   const [isPersonaModalOpen, setIsPersonaModalOpen] = useState(false);
   const [movingPictogram, setMovingPictogram] = useState<Pictogram | null>(null);
   const [copyingSourceDayId, setCopyingSourceDayId] = useState<DayOfWeek | null>(null);
+  const [sceneGenPersona, setSceneGenPersona] = useState<Persona | null>(null);
+  const [sceneGenAutoStart, setSceneGenAutoStart] = useState(false);
 
   // Sync state to sessionStorage whenever plans change
   useEffect(() => {
@@ -515,6 +519,10 @@ export const App: React.FC = () => {
         }}
         onSave={handleSavePictogram}
         onApplyFontSizeToAll={handleApplyFontSizeToAll}
+        onOpenSceneGen={(persona) => {
+          setSceneGenPersona(persona);
+          setSceneGenAutoStart(false);
+        }}
       />
 
       <PrintPreviewModal
@@ -574,6 +582,27 @@ export const App: React.FC = () => {
         currentShortCode={currentPlan.shortCode || 'K.'}
         onClose={() => setIsPersonaModalOpen(false)}
         onSelectPersona={handleSelectPersona}
+        onOpenSceneGen={(persona, autoStart = false) => {
+          setSceneGenPersona(persona);
+          setSceneGenAutoStart(autoStart);
+        }}
+        updatedPersona={sceneGenPersona}
+      />
+
+      <SceneGenerationModal
+        isOpen={!!sceneGenPersona}
+        persona={sceneGenPersona}
+        autoStart={sceneGenAutoStart}
+        onClose={() => {
+          setSceneGenPersona(null);
+          setSceneGenAutoStart(false);
+        }}
+        onPersonaUpdated={(updated) => {
+          if (currentPlan.personaId === updated.id) {
+            handleSelectPersona(updated.id, updated.shortCode || currentPlan.shortCode || '', updated.avatarUrl);
+          }
+          setSceneGenPersona((prev) => (prev?.id === updated.id ? updated : prev));
+        }}
       />
     </div>
   );

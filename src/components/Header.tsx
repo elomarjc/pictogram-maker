@@ -6,7 +6,7 @@ import {
   LayoutTemplate,
   FolderKanban,
   ChevronDown,
-  Sparkles,
+  CalendarDays,
   Layers,
 } from 'lucide-react';
 
@@ -36,7 +36,7 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Brand */}
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-2xl bg-amber-400 border-2 border-slate-900 flex items-center justify-center shadow-xs">
-            <Sparkles size={22} className="text-slate-900 stroke-[2.5]" />
+            <CalendarDays size={22} className="text-slate-900 stroke-[2.5]" />
           </div>
           <div>
             <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight leading-none">

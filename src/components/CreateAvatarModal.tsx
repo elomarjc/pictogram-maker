@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X, Camera, Check, Upload, Trash2, AlertCircle, RotateCcw, Sparkles, Clock } from 'lucide-react';
+import { X, Camera, Check, Upload, Trash2, AlertCircle, RotateCcw, Clock, Loader2, Wand2 } from 'lucide-react';
 import { createAvatarFromPhoto, describeAvatarImage } from '../services/imageGenerationApi';
 import { saveCustomPersona } from '../services/personas';
 import type { Persona } from '../types';
@@ -241,7 +241,7 @@ export const CreateAvatarModal: React.FC<CreateAvatarModalProps> = ({
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-xs font-black text-slate-900 px-1">
                   <span className="flex items-center gap-1.5">
-                    <Sparkles size={14} className="text-amber-600 animate-spin" />
+                    <Loader2 size={14} className="text-amber-600 animate-spin" />
                     <span>{progressStage || 'Opretter figur...'}</span>
                   </span>
                   <span className="tabular-nums font-black text-amber-950">
@@ -402,7 +402,7 @@ export const CreateAvatarModal: React.FC<CreateAvatarModalProps> = ({
                 onClick={handleTransform}
                 className="w-full py-2.5 rounded-xl border-2 border-slate-900 bg-amber-400 hover:bg-amber-500 disabled:opacity-50 disabled:cursor-not-allowed font-black text-slate-900 text-xs shadow-xs hover:shadow transition-all flex items-center justify-center gap-2 cursor-pointer"
               >
-                <Sparkles size={15} className="text-slate-900" />
+                <Wand2 size={15} className="text-slate-900" />
                 <span>Opret tegneseriefigur (AI)</span>
               </button>
             </div>

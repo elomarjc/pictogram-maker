@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  Sparkles,
+  Images,
+  Plus,
+  Play,
   X,
   CheckCircle2,
   Loader2,
@@ -253,7 +255,7 @@ export const SceneGenerationModal: React.FC<SceneGenerationModalProps> = ({
   // Minimized floating banner at bottom-right
   if (isMinimized) {
     return (
-      <div className="fixed bottom-4 right-4 z-50 bg-white border-3 border-slate-900 rounded-2xl shadow-2xl p-3 flex items-center gap-3 animate-in slide-in-from-bottom-3 duration-200">
+      <div className="fixed bottom-4 right-4 z-[100] bg-white border-3 border-slate-900 rounded-2xl shadow-2xl p-3 flex items-center gap-3 animate-in slide-in-from-bottom-3 duration-200">
         <div className="w-10 h-10 rounded-xl border-2 border-slate-900 overflow-hidden bg-slate-100 flex-shrink-0">
           <img
             src={currentPersona.avatarUrl}
@@ -287,7 +289,14 @@ export const SceneGenerationModal: React.FC<SceneGenerationModalProps> = ({
           </button>
           <button
             type="button"
-            onClick={onClose}
+            onClick={() => {
+              if (isGenerating && abortControllerRef.current) {
+                abortControllerRef.current.abort();
+              }
+              setIsGenerating(false);
+              setIsMinimized(false);
+              onClose();
+            }}
             title="Luk"
             className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-700 cursor-pointer"
           >
@@ -299,13 +308,13 @@ export const SceneGenerationModal: React.FC<SceneGenerationModalProps> = ({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
+    <div className="fixed inset-0 z-[90] flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
       <div className="bg-white rounded-3xl border-4 border-slate-900 shadow-2xl max-w-2xl w-full overflow-hidden flex flex-col max-h-[92vh]">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-3.5 border-b-2 border-slate-900 bg-amber-400">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-white border-2 border-slate-900 flex items-center justify-center text-slate-900 shadow-xs">
-              <Sparkles size={18} className="text-amber-600 fill-amber-400" />
+              <Images size={18} className="text-slate-900" />
             </div>
             <div>
               <h2 className="text-lg font-black text-slate-900 tracking-tight leading-none">
@@ -327,7 +336,14 @@ export const SceneGenerationModal: React.FC<SceneGenerationModalProps> = ({
             </button>
             <button
               type="button"
-              onClick={onClose}
+              onClick={() => {
+                if (isGenerating) {
+                  setIsMinimized(true);
+                } else {
+                  onClose();
+                }
+              }}
+              title={isGenerating ? 'Minimer til baggrunden' : 'Luk'}
               className="p-1.5 rounded-xl hover:bg-black/10 text-slate-900 transition-colors cursor-pointer"
             >
               <X size={18} />
@@ -545,8 +561,8 @@ export const SceneGenerationModal: React.FC<SceneGenerationModalProps> = ({
                       <div className="flex flex-col items-center justify-center gap-1 text-slate-500 group-hover:text-amber-800 transition-colors">
                         {!isGenerating ? (
                           <>
-                            <Sparkles size={16} className="text-amber-500 group-hover:scale-110 transition-transform" />
-                            <span className="text-[10px] font-bold">Tryk for at generere</span>
+                            <Plus size={16} className="text-slate-400 group-hover:text-amber-600 group-hover:scale-110 transition-transform stroke-[2.5]" />
+                            <span className="text-[10px] font-bold text-slate-600 group-hover:text-slate-900">Tryk for at generere</span>
                           </>
                         ) : (
                           <span className="text-[10px] font-bold text-slate-400">Venter i kø</span>
@@ -627,7 +643,7 @@ export const SceneGenerationModal: React.FC<SceneGenerationModalProps> = ({
                   onClick={() => startGeneration(currentPersona)}
                   className="px-5 py-2 rounded-xl border-2 border-slate-900 bg-amber-400 hover:bg-amber-500 text-slate-900 font-black text-xs shadow-xs transition-colors cursor-pointer flex items-center gap-1.5"
                 >
-                  <Sparkles size={14} />
+                  <Play size={14} className="fill-current" />
                   <span>Generer manglende scener</span>
                 </button>
               </>

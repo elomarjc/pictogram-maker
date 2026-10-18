@@ -7,7 +7,6 @@ import {
   Upload,
   Trash2,
   Check,
-  Sparkles,
   Type,
   Loader2,
   AlertCircle,
@@ -21,6 +20,9 @@ import {
   ExternalLink,
   Layers,
   FileText,
+  Play,
+  Plus,
+  Edit3,
 } from 'lucide-react';
 import {
   buildCloudflareAiPrompt,
@@ -37,7 +39,6 @@ import {
 } from '../services/imageGenerationApi';
 import { getShortSceneTitle } from '../utils/sceneTitleHelper';
 import { getDbItem, setDbItem } from '../services/storageDb';
-import { SceneGenerationModal } from './SceneGenerationModal';
 import { getReadyScenesCount } from '../services/characterSceneGenerator';
 
 interface PictogramEditorModalProps {
@@ -47,6 +48,7 @@ interface PictogramEditorModalProps {
   onClose: () => void;
   onSave: (pic: Pictogram) => void;
   onApplyFontSizeToAll?: (fontSize: number) => void;
+  onOpenSceneGen?: (persona: Persona) => void;
 }
 
 const REFERENCE_COLOR_PRESETS = [
@@ -290,12 +292,12 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
   onClose,
   onSave,
   onApplyFontSizeToAll,
+  onOpenSceneGen,
 }) => {
   if (!isOpen || !pictogram) return null;
 
   const activePersona = persona || getPersona();
   const [appliedToAll, setAppliedToAll] = useState(false);
-  const [isSceneGenOpen, setIsSceneGenOpen] = useState(false);
   const [title, setTitle] = useState(pictogram.title);
   const [time, setTime] = useState(pictogram.time || '');
   const [illustrationId, setIllustrationId] = useState(pictogram.illustrationId || 'spisetid');
@@ -632,7 +634,7 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
         <div className="flex items-center justify-between px-5 py-3.5 border-b-2 border-slate-900 bg-amber-400">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-xl bg-white border-2 border-slate-900 flex items-center justify-center shadow-xs">
-              <Sparkles size={18} className="text-slate-900" />
+              <Edit3 size={18} className="text-slate-900" />
             </div>
             <h2 className="text-lg font-black text-slate-900 tracking-tight leading-none">
               Rediger piktogram
@@ -959,7 +961,7 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
                       : 'text-amber-800 hover:text-amber-950 hover:bg-amber-100/50'
                   }`}
                 >
-                  <Sparkles size={14} className={activeTab === 'upload' ? 'text-slate-900' : 'text-amber-600'} />
+                  <Plus size={14} className={activeTab === 'upload' ? 'text-slate-900' : 'text-amber-600'} />
                   <span>Opret en ny scene</span>
                 </button>
               </div>
@@ -975,17 +977,17 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
                   return (
                     <div className="col-span-full mb-1 p-2 bg-amber-50 border-2 border-amber-300 rounded-xl flex items-center justify-between gap-2 shadow-xs">
                       <div className="flex items-center gap-2">
-                        <Sparkles size={15} className="text-amber-600 flex-shrink-0" />
+                        <Clock size={15} className="text-amber-600 flex-shrink-0" />
                         <span className="text-xs font-bold text-slate-800">
                           Figuren mangler {total - ready} standardscener ({ready}/{total} klar).
                         </span>
                       </div>
                       <button
                         type="button"
-                        onClick={() => setIsSceneGenOpen(true)}
+                        onClick={() => onOpenSceneGen?.(activePersona)}
                         className="px-2.5 py-1 bg-amber-400 hover:bg-amber-500 text-slate-900 font-black text-xs rounded-lg border border-slate-900 shadow-xs cursor-pointer flex items-center gap-1 flex-shrink-0"
                       >
-                        <Sparkles size={12} />
+                        <Play size={12} className="fill-current" />
                         <span>Generer manglende</span>
                       </button>
                     </div>
@@ -1015,7 +1017,7 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
                   className="flex flex-col items-center justify-center p-1.5 rounded-xl border-2 border-dashed border-amber-400 hover:border-amber-600 bg-amber-50/60 hover:bg-amber-100/80 cursor-pointer transition-all group h-22"
                 >
                   <div className="w-7 h-7 rounded-lg bg-amber-300 group-hover:bg-amber-400 flex items-center justify-center text-slate-900 transition-colors mb-1">
-                    <Sparkles size={14} className="text-slate-900" />
+                    <Plus size={14} className="text-slate-900 stroke-[2.5]" />
                   </div>
                   <span className="text-[10.5px] font-black text-amber-950 text-center leading-tight">
                     Opret en ny scene
@@ -1213,7 +1215,7 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
                 <div className="bg-amber-50/70 border-2 border-amber-300 rounded-2xl p-3 space-y-2.5">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-black text-slate-900 flex items-center gap-1.5">
-                      <Sparkles size={14} className="text-amber-600" />
+                      <FileText size={14} className="text-amber-600" />
                       Hvad skal figuren lave i scenen?
                     </span>
                     <button
@@ -1404,7 +1406,7 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
                           </>
                         ) : (
                           <>
-                            <Sparkles size={13} className="text-amber-500" />
+                            <Wand2 size={13} className="text-amber-500" />
                             <span>Direkte AI (1-klik)</span>
                           </>
                         )}
@@ -1414,7 +1416,7 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
 
                   {aiRotationNotice && (
                     <div className="mt-2 p-2 rounded-xl bg-sky-50 border border-sky-300 text-xs font-bold text-sky-800 flex items-center gap-1.5 animate-pulse">
-                      <Sparkles size={13} className="text-sky-600 shrink-0" />
+                      <Clock size={13} className="text-sky-600 shrink-0" />
                       <span>{aiRotationNotice}</span>
                     </div>
                   )}
@@ -1461,12 +1463,6 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
           setCropImageSource(null);
         }}
         onSave={handleCropSave}
-      />
-
-      <SceneGenerationModal
-        isOpen={isSceneGenOpen}
-        persona={activePersona}
-        onClose={() => setIsSceneGenOpen(false)}
       />
     </div>
   );

@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import type { Persona } from '../types';
 import { getAllPersonas, saveCustomPersona, deleteCustomPersona, isDefaultPersona, DEFAULT_PERSONAS } from '../services/personas';
-import { X, Check, User, Upload, Camera, Trash2, AlertTriangle, Sparkles, Clock, CheckCircle2 } from 'lucide-react';
+import { X, Check, User, Upload, Camera, Trash2, Clock, CheckCircle2, Images, AlertTriangle } from 'lucide-react';
 import { CreateAvatarModal } from './CreateAvatarModal';
-import { SceneGenerationModal } from './SceneGenerationModal';
 import { getReadyScenesCount } from '../services/characterSceneGenerator';
 
 interface PersonaSelectorModalProps {
@@ -12,6 +11,8 @@ interface PersonaSelectorModalProps {
   currentShortCode: string;
   onClose: () => void;
   onSelectPersona: (personaId: string, customShortCode: string, customAvatarUrl?: string) => void;
+  onOpenSceneGen?: (persona: Persona, autoStart?: boolean) => void;
+  updatedPersona?: Persona | null;
 }
 
 export const PersonaSelectorModal: React.FC<PersonaSelectorModalProps> = ({
@@ -20,22 +21,22 @@ export const PersonaSelectorModal: React.FC<PersonaSelectorModalProps> = ({
   currentShortCode,
   onClose,
   onSelectPersona,
+  onOpenSceneGen,
+  updatedPersona,
 }) => {
   const [selectedId, setSelectedId] = useState(currentPersona.id);
   const [personas, setPersonas] = useState<Persona[]>(() => getAllPersonas());
   const [avatarToDelete, setAvatarToDelete] = useState<Persona | null>(null);
   const [isCreatePhotoModalOpen, setIsCreatePhotoModalOpen] = useState(false);
-  const [sceneGenPersona, setSceneGenPersona] = useState<Persona | null>(null);
-  const [sceneGenAutoStart, setSceneGenAutoStart] = useState(false);
 
-  // Sync state whenever modal opens or current active persona changes
+  // Sync state whenever modal opens or current active persona or updated persona changes
   useEffect(() => {
     if (isOpen) {
       setPersonas(getAllPersonas());
       setSelectedId(currentPersona.id);
       setAvatarToDelete(null);
     }
-  }, [isOpen, currentPersona.id]);
+  }, [isOpen, currentPersona.id, updatedPersona]);
 
   if (!isOpen) return null;
 
@@ -65,9 +66,7 @@ export const PersonaSelectorModal: React.FC<PersonaSelectorModalProps> = ({
         const updated = getAllPersonas();
         setPersonas(updated);
         setSelectedId(newPersona.id);
-        // Automatically launch standard scene generation for new character!
-        setSceneGenAutoStart(true);
-        setSceneGenPersona(newPersona);
+        onOpenSceneGen?.(newPersona, false);
       }
     };
     reader.readAsDataURL(file);
@@ -200,8 +199,7 @@ export const PersonaSelectorModal: React.FC<PersonaSelectorModalProps> = ({
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
-                        setSceneGenAutoStart(false);
-                        setSceneGenPersona(p);
+                        onOpenSceneGen?.(p, false);
                       }}
                       title="Klik for at se figurens scener"
                       className={`inline-flex items-center justify-center gap-1 px-2.5 h-6 rounded-full text-[10px] font-black whitespace-nowrap transition-all cursor-pointer shadow-2xs hover:scale-105 active:scale-95 ${
@@ -236,13 +234,12 @@ export const PersonaSelectorModal: React.FC<PersonaSelectorModalProps> = ({
             onClick={() => {
               const selected = personas.find((p) => p.id === selectedId) || personas[0];
               if (selected) {
-                setSceneGenAutoStart(false);
-                setSceneGenPersona(selected);
+                onOpenSceneGen?.(selected, false);
               }
             }}
             className="px-3.5 py-2 rounded-xl border-2 border-slate-900 bg-amber-400 hover:bg-amber-500 text-slate-900 font-black text-xs shadow-xs transition-colors cursor-pointer flex items-center gap-1.5"
           >
-            <Sparkles size={14} />
+            <Images size={14} />
             <span>Tjek / generer scener</span>
           </button>
 
@@ -323,26 +320,7 @@ export const PersonaSelectorModal: React.FC<PersonaSelectorModalProps> = ({
           setPersonas(updated);
           setSelectedId(newPersona.id);
           onSelectPersona(newPersona.id, newPersona.shortCode || '', newPersona.avatarUrl);
-          // Automatically launch scene generation for the new character!
-          setSceneGenAutoStart(true);
-          setSceneGenPersona(newPersona);
-        }}
-      />
-
-      <SceneGenerationModal
-        isOpen={!!sceneGenPersona}
-        persona={sceneGenPersona}
-        autoStart={sceneGenAutoStart}
-        onClose={() => {
-          setSceneGenPersona(null);
-          setSceneGenAutoStart(false);
-        }}
-        onPersonaUpdated={(updated) => {
-          const all = getAllPersonas();
-          setPersonas(all);
-          if (selectedId === updated.id) {
-            onSelectPersona(updated.id, updated.shortCode || '', updated.avatarUrl);
-          }
+          onOpenSceneGen?.(newPersona, false);
         }}
       />
     </div>
