@@ -82,18 +82,17 @@ export const CropSceneModal: React.FC<CropSceneModalProps> = ({
     const img = new Image();
     img.crossOrigin = 'anonymous';
     img.onload = () => {
-      // 16:9 canvas matching pictogram card scene box proportions
-      const targetW = 640;
-      const targetH = 360;
+      // Standard format matching reference/scenes/vaesketoeg.webp (2126 x 740, ~2.873:1)
+      const targetW = 2126;
+      const targetH = 740;
       const canvas = document.createElement('canvas');
       canvas.width = targetW;
       canvas.height = targetH;
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
 
-      // Clean background
-      ctx.fillStyle = '#FFFFFF';
-      ctx.fillRect(0, 0, targetW, targetH);
+      // Preserve transparent background
+      ctx.clearRect(0, 0, targetW, targetH);
 
       const srcW = img.naturalWidth || img.width;
       const srcH = img.naturalHeight || img.height;
@@ -227,7 +226,7 @@ export const CropSceneModal: React.FC<CropSceneModalProps> = ({
 
             <div
               onMouseDown={handleMouseDown}
-              className={`w-full aspect-[16/9] rounded-2xl border-3 border-slate-900 overflow-hidden relative shadow-md bg-white select-none ${
+              className={`w-full aspect-[2126/740] rounded-2xl border-3 border-slate-900 overflow-hidden relative shadow-md bg-slate-100/60 select-none ${
                 fitMode === 'cover' ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'
               }`}
             >

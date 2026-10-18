@@ -184,6 +184,27 @@ describe('Prompt optimering og scene-beskrivelser', () => {
     expect(promptWomanLaundry).toContain('laundry basket');
     expect(promptWomanLaundry).toContain('washing machine');
   });
+
+  it('har standard 2126 x 740 scene-dimensioner matchende vaesketoeg.webp og beregner mørkere nuance', async () => {
+    const { STANDARD_SCENE_WIDTH, STANDARD_SCENE_HEIGHT } = await import('../services/imageGenerationApi');
+    expect(STANDARD_SCENE_WIDTH).toBe(2126);
+    expect(STANDARD_SCENE_HEIGHT).toBe(740);
+    expect((STANDARD_SCENE_WIDTH / STANDARD_SCENE_HEIGHT).toFixed(3)).toBe('2.873');
+
+    const { darkenColor } = await import('../services/colorUtils');
+    // Yellow card
+    const darkYellow = darkenColor('#fdef8c', 0.14);
+    expect(darkYellow).not.toBe('#fdef8c');
+    expect(darkYellow.startsWith('#')).toBe(true);
+
+    // Pink card
+    const darkPink = darkenColor('#fbb6db', 0.14);
+    expect(darkPink).not.toBe('#fbb6db');
+
+    // White fallback
+    const darkWhite = darkenColor('#ffffff', 0.14);
+    expect(darkWhite).toBe('#eceef2');
+  });
 });
 
 describe('Uafhængig skriftstørrelse (enkelte kort vs. global værktøjslinje)', () => {

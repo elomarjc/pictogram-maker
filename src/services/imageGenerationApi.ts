@@ -294,3 +294,121 @@ export async function createAvatarFromPhoto(
   return removeImageBackground(rawGeneratedUrl);
 }
 
+/**
+ * Standard reference dimensions matching reference/scenes/vaesketoeg.webp (2126 x 740, aspect ratio ~2.873:1).
+ */
+export const STANDARD_SCENE_WIDTH = 2126;
+export const STANDARD_SCENE_HEIGHT = 740;
+
+/**
+ * Automatically fits, centers, and scales a transparent cartoon scene onto the
+ * exact standard reference format of 2126 x 740 (aspect ratio ~2.873:1, matching vaesketoeg.webp).
+ * It detects the non-transparent subject bounds, scales it to comfortably fill the height
+ * while preserving headroom, grounds it near the bottom, and centers it horizontally.
+ */
+export async function autoFitSceneToStandardFormat(
+  imageDataUrl: string,
+  targetWidth: number = STANDARD_SCENE_WIDTH,
+  targetHeight: number = STANDARD_SCENE_HEIGHT
+): Promise<string> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      try {
+        const srcW = img.naturalWidth || img.width;
+        const srcH = img.naturalHeight || img.height;
+
+        // Create temporary canvas to scan alpha bounds
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = srcW;
+        tempCanvas.height = srcH;
+        const tempCtx = tempCanvas.getContext('2d');
+        if (!tempCtx) {
+          resolve(imageDataUrl);
+          return;
+        }
+
+        tempCtx.drawImage(img, 0, 0);
+        const imgData = tempCtx.getImageData(0, 0, srcW, srcH);
+        const data = imgData.data;
+
+        let minX = srcW;
+        let minY = srcH;
+        let maxX = -1;
+        let maxY = -1;
+
+        // Scan pixels for non-transparent content (alpha > 15)
+        for (let y = 0; y < srcH; y++) {
+          for (let x = 0; x < srcW; x++) {
+            const idx = (y * srcW + x) * 4;
+            if (data[idx + 3] > 15) {
+              if (x < minX) minX = x;
+              if (x > maxX) maxX = x;
+              if (y < minY) minY = y;
+              if (y > maxY) maxY = y;
+            }
+          }
+        }
+
+        // If no transparent bounds detected (e.g. solid opaque image), use whole image
+        if (maxX < minX || maxY < minY) {
+          minX = 0;
+          minY = 0;
+          maxX = srcW - 1;
+          maxY = srcH - 1;
+        }
+
+        const cropW = maxX - minX + 1;
+        const cropH = maxY - minY + 1;
+
+        // Output canvas: standard reference format (2126 x 740)
+        const outCanvas = document.createElement('canvas');
+        outCanvas.width = targetWidth;
+        outCanvas.height = targetHeight;
+        const outCtx = outCanvas.getContext('2d');
+        if (!outCtx) {
+          resolve(imageDataUrl);
+          return;
+        }
+
+        // Available dimensions within canvas
+        // Headroom: ~3.5% padding at top, ~1.2% padding at bottom
+        const padTop = Math.round(targetHeight * 0.035);
+        const padBottom = Math.round(targetHeight * 0.012);
+        const availH = targetHeight - padTop - padBottom;
+        const availW = Math.round(targetWidth * 0.95);
+
+        const scale = Math.min(availW / cropW, availH / cropH);
+        const destW = Math.round(cropW * scale);
+        const destH = Math.round(cropH * scale);
+
+        // Center horizontally
+        const destX = Math.round((targetWidth - destW) / 2);
+        // Ground near bottom (like vaesketoeg.webp where feet/machines sit flush at bottom)
+        const destY = Math.round(targetHeight - destH - padBottom);
+
+        outCtx.imageSmoothingEnabled = true;
+        outCtx.imageSmoothingQuality = 'high';
+        outCtx.drawImage(
+          img,
+          minX,
+          minY,
+          cropW,
+          cropH,
+          destX,
+          destY,
+          destW,
+          destH
+        );
+
+        resolve(outCanvas.toDataURL('image/png'));
+      } catch {
+        resolve(imageDataUrl);
+      }
+    };
+    img.onerror = () => resolve(imageDataUrl);
+    img.src = imageDataUrl;
+  });
+}
+

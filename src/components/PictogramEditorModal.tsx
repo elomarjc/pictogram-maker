@@ -35,6 +35,7 @@ import {
   getStoredWorkerUrl,
   getStoredApiKey,
   removeImageBackground,
+  autoFitSceneToStandardFormat,
 } from '../services/imageGenerationApi';
 
 interface PictogramEditorModalProps {
@@ -424,17 +425,35 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
     if (!file || !file.type.startsWith('image/')) return;
 
     const reader = new FileReader();
-    reader.onload = () => {
+    reader.onload = async () => {
       if (typeof reader.result === 'string') {
-        setCropImageSource(reader.result);
         const baseName = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
-        const initialName = inlineSceneText.trim()
+        const sceneTitle = inlineSceneText.trim()
           ? inlineSceneText.slice(0, 24).trim()
           : title.trim() && title !== 'Aktivitetsnavn'
           ? title.trim()
           : baseName;
-        setCropInitialName(initialName);
-        setCropModalOpen(true);
+
+        let processedUrl = reader.result;
+        try {
+          processedUrl = await removeImageBackground(processedUrl);
+        } catch {
+          // ignore
+        }
+        try {
+          processedUrl = await autoFitSceneToStandardFormat(processedUrl);
+        } catch {
+          // ignore
+        }
+
+        const updatedCustom = saveCustomScene({
+          url: processedUrl,
+          name: sceneTitle,
+        });
+        setCustomScenes(updatedCustom);
+        setSceneImageUrl(processedUrl);
+        setIllustrationId('');
+        setCustomImageUrl('');
       }
     };
     reader.readAsDataURL(file);
@@ -481,13 +500,26 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
         // keep generatedDataUrl if background removal fails
       }
 
+      // Automatically fit and format to exact 2126x740 ratio (matching reference/scenes/vaesketoeg.webp)
+      try {
+        finalDataUrl = await autoFitSceneToStandardFormat(finalDataUrl);
+      } catch {
+        // keep finalDataUrl if auto-fit fails
+      }
+
       const sceneTitle =
         inlineSceneText.slice(0, 24).trim() ||
         (title.trim() && title !== 'Aktivitetsnavn' ? title.trim() : 'Ny AI scene');
 
-      setCropImageSource(finalDataUrl);
-      setCropInitialName(sceneTitle);
-      setCropModalOpen(true);
+      // Automatically save and apply to card without forcing manual crop!
+      const updatedCustom = saveCustomScene({
+        url: finalDataUrl,
+        name: sceneTitle,
+      });
+      setCustomScenes(updatedCustom);
+      setSceneImageUrl(finalDataUrl);
+      setIllustrationId('');
+      setCustomImageUrl('');
     } catch (err) {
       setAiError(
         `AI-fejl: ${err instanceof Error ? err.message : String(err)}. Brug gerne den idiotsikre ChatGPT-metode ovenfor med Masterprompt + Ref 1 & 2!`
