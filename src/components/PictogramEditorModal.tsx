@@ -38,6 +38,7 @@ import {
   autoFitSceneToStandardFormat,
 } from '../services/imageGenerationApi';
 import { getShortSceneTitle } from '../utils/sceneTitleHelper';
+import { getDbItem, setDbItem } from '../services/storageDb';
 import { SceneGenerationModal } from './SceneGenerationModal';
 import { getReadyScenesCount } from '../services/characterSceneGenerator';
 
@@ -180,18 +181,35 @@ export interface CustomSceneItem {
 const STORAGE_KEY_CUSTOM_SCENES = 'pictogram_custom_scenes';
 const STORAGE_KEY_CUSTOM_ICONS = 'pictogram_custom_icons';
 
+let memoryCustomScenes: CustomSceneItem[] | null = null;
+
+if (typeof window !== 'undefined') {
+  getDbItem<CustomSceneItem[]>(STORAGE_KEY_CUSTOM_SCENES)
+    .then((items) => {
+      if (items && Array.isArray(items) && items.length > 0) {
+        memoryCustomScenes = items;
+      }
+    })
+    .catch(() => {});
+}
+
 function getStoredCustomScenes(): CustomSceneItem[] {
+  if (memoryCustomScenes) {
+    return memoryCustomScenes;
+  }
   try {
     const raw = localStorage.getItem(STORAGE_KEY_CUSTOM_SCENES);
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed)) {
-        return parsed.map((item, idx) => {
+        const items = parsed.map((item, idx) => {
           if (typeof item === 'string') {
             return { id: `legacy_${idx}`, url: item, name: 'Eget billede' };
           }
           return item;
         });
+        memoryCustomScenes = items;
+        return items;
       }
     }
     // Migration from legacy array of strings
@@ -199,11 +217,13 @@ function getStoredCustomScenes(): CustomSceneItem[] {
     if (legacy) {
       const parsed = JSON.parse(legacy);
       if (Array.isArray(parsed)) {
-        return parsed.map((url, idx) => ({
+        const items = parsed.map((url, idx) => ({
           id: `legacy_${idx}`,
           url,
           name: 'Eget billede',
         }));
+        memoryCustomScenes = items;
+        return items;
       }
     }
     return [];
@@ -231,6 +251,10 @@ function saveCustomScene(item: { url: string; name: string; originalUrl?: string
   } else {
     updated = [newScene, ...current];
   }
+  memoryCustomScenes = updated;
+
+  // Persist to IndexedDB
+  setDbItem(STORAGE_KEY_CUSTOM_SCENES, updated);
 
   try {
     localStorage.setItem(STORAGE_KEY_CUSTOM_SCENES, JSON.stringify(updated));
@@ -249,6 +273,10 @@ function saveCustomScene(item: { url: string; name: string; originalUrl?: string
 function deleteCustomScene(idOrUrl: string): CustomSceneItem[] {
   const current = getStoredCustomScenes();
   const updated = current.filter((s) => s.id !== idOrUrl && s.url !== idOrUrl);
+  memoryCustomScenes = updated;
+
+  setDbItem(STORAGE_KEY_CUSTOM_SCENES, updated);
+
   try {
     localStorage.setItem(STORAGE_KEY_CUSTOM_SCENES, JSON.stringify(updated));
   } catch {

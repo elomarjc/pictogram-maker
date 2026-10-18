@@ -107,33 +107,74 @@ export const ACTIVITY_DEFAULT_ICONS: Record<string, string> = {
   sengetid: `${BASE}reference/icons/seng_ikon.webp`,
 };
 
+import { getDbItem, setDbItem } from './storageDb';
+
 const STORAGE_KEY_CUSTOM_PERSONAS = 'pictogram_custom_personas';
 
+let memoryCustomPersonas: Persona[] | null = null;
+
+// Background hydration from IndexedDB for large assets
+if (typeof window !== 'undefined') {
+  getDbItem<Persona[]>(STORAGE_KEY_CUSTOM_PERSONAS)
+    .then((idbPersonas) => {
+      if (idbPersonas && Array.isArray(idbPersonas) && idbPersonas.length > 0) {
+        memoryCustomPersonas = idbPersonas;
+      }
+    })
+    .catch(() => {});
+}
+
 export function getCustomPersonas(): Persona[] {
+  if (memoryCustomPersonas) {
+    return memoryCustomPersonas;
+  }
   try {
     const raw = localStorage.getItem(STORAGE_KEY_CUSTOM_PERSONAS);
     if (!raw) return [];
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      memoryCustomPersonas = parsed;
+      return parsed;
+    }
+    return [];
   } catch {
     return [];
   }
 }
 
 export function saveCustomPersona(newPersona: Persona): void {
-  const current = getCustomPersonas();
+  const current = [...getCustomPersonas()];
   const existingIndex = current.findIndex((p) => p.id === newPersona.id);
   if (existingIndex >= 0) {
     current[existingIndex] = newPersona;
   } else {
     current.push(newPersona);
   }
-  localStorage.setItem(STORAGE_KEY_CUSTOM_PERSONAS, JSON.stringify(current));
+  memoryCustomPersonas = current;
+
+  // 1. Always persist to IndexedDB (virtually unlimited quota for images)
+  setDbItem(STORAGE_KEY_CUSTOM_PERSONAS, current);
+
+  // 2. Safely attempt localStorage with try/catch to avoid QuotaExceededError crashes
+  try {
+    localStorage.setItem(STORAGE_KEY_CUSTOM_PERSONAS, JSON.stringify(current));
+  } catch (quotaErr) {
+    console.warn('[personas] localStorage kvote overskredet, gemt sikkert i IndexedDB:', quotaErr);
+  }
 }
 
 export function deleteCustomPersona(id: string): void {
   const current = getCustomPersonas();
   const filtered = current.filter((p) => p.id !== id);
-  localStorage.setItem(STORAGE_KEY_CUSTOM_PERSONAS, JSON.stringify(filtered));
+  memoryCustomPersonas = filtered;
+
+  setDbItem(STORAGE_KEY_CUSTOM_PERSONAS, filtered);
+
+  try {
+    localStorage.setItem(STORAGE_KEY_CUSTOM_PERSONAS, JSON.stringify(filtered));
+  } catch (quotaErr) {
+    console.warn('[personas] Fejl ved sletning i localStorage:', quotaErr);
+  }
 }
 
 export function isDefaultPersona(id: string): boolean {

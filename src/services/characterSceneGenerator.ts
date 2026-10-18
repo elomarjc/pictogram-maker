@@ -3,6 +3,7 @@ import {
   generateSceneImage,
   removeImageBackground,
   autoFitSceneToStandardFormat,
+  describeAvatarImage,
   getStoredWorkerUrl,
   getStoredApiKey,
 } from './imageGenerationApi';
@@ -196,6 +197,8 @@ export async function generateSingleScene(
     apiKey,
     model: '@cf/black-forest-labs/flux-1-schnell',
     numSteps: 4,
+    referenceImage: persona.avatarUrl,
+    isScene: true,
   });
 
   const transparentUrl = await removeImageBackground(rawUrl);
@@ -216,7 +219,7 @@ export interface SceneGenProgress {
 
 /**
  * Batch generates all missing default scenes for a persona with live progress updates.
- * Automatically persists to localStorage after every single completed scene.
+ * Automatically persists to localStorage + IndexedDB after every single completed scene.
  */
 export async function generateAllMissingScenes(
   persona: Persona,
@@ -227,15 +230,42 @@ export async function generateAllMissingScenes(
     signal?: AbortSignal;
   }
 ): Promise<Persona> {
-  const missing = getMissingScenesForPersona(persona);
+  let activePersona = { ...persona };
+  const missing = getMissingScenesForPersona(activePersona);
   const total = missing.length;
   if (total === 0) {
     onProgress({ total: 0, completed: 0, percent: 100, done: true });
-    return persona;
+    return activePersona;
+  }
+
+  // Auto-analyze avatar traits if description is missing, so all scenes share consistent character traits
+  if ((!activePersona.description || !activePersona.description.trim()) && activePersona.avatarUrl) {
+    onProgress({
+      total,
+      completed: 0,
+      currentSceneTitle: 'Analyserer figurudseende...',
+      percent: 0,
+      done: false,
+    });
+    try {
+      const desc = await describeAvatarImage(activePersona.avatarUrl, {
+        workerUrl: options?.workerUrl,
+        apiKey: options?.apiKey,
+      });
+      if (desc && desc.trim()) {
+        activePersona = {
+          ...activePersona,
+          description: desc.trim(),
+        };
+        saveCustomPersona(activePersona);
+      }
+    } catch (e) {
+      console.warn('Could not auto-describe avatar:', e);
+    }
   }
 
   let completed = 0;
-  const updatedScenes = { ...(persona.activityScenes || {}) };
+  const updatedScenes = { ...(activePersona.activityScenes || {}) };
 
   for (const sceneDef of missing) {
     if (options?.signal?.aborted) {
@@ -252,7 +282,7 @@ export async function generateAllMissingScenes(
     });
 
     try {
-      const finalUrl = await generateSingleScene(persona, sceneDef, options);
+      const finalUrl = await generateSingleScene(activePersona, sceneDef, options);
       updatedScenes[sceneDef.key] = finalUrl;
 
       // Also set aliases
@@ -267,11 +297,11 @@ export async function generateAllMissingScenes(
       completed++;
 
       // Immediately persist persona update so partial progress is never lost
-      const updatedPersona: Persona = {
-        ...persona,
+      activePersona = {
+        ...activePersona,
         activityScenes: updatedScenes,
       };
-      saveCustomPersona(updatedPersona);
+      saveCustomPersona(activePersona);
 
       onProgress({
         total,
@@ -301,7 +331,7 @@ export async function generateAllMissingScenes(
   }
 
   const finalPersona: Persona = {
-    ...persona,
+    ...activePersona,
     activityScenes: updatedScenes,
   };
   saveCustomPersona(finalPersona);

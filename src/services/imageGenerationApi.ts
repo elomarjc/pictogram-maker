@@ -76,6 +76,7 @@ export interface GenerateSceneOptions {
   strength?: number;
   provider?: 'auto' | 'cloudflare' | 'openai';
   retries?: number;
+  isScene?: boolean;
 }
 
 /**
@@ -116,6 +117,10 @@ export async function generateSceneImage(
     format: 'base64',
     provider: options?.provider || 'auto',
   };
+
+  if (options?.isScene) {
+    bodyPayload.is_scene = true;
+  }
 
   if (options?.referenceImage) {
     bodyPayload.image_b64 = options.referenceImage;
@@ -342,7 +347,11 @@ export async function removeImageBackground(imageDataUrl: string): Promise<strin
         }
 
         ctx.putImageData(imgData, 0, 0);
-        resolve(canvas.toDataURL('image/png'));
+        let finalDataUrl = canvas.toDataURL('image/webp', 0.88);
+        if (!finalDataUrl.startsWith('data:image/webp')) {
+          finalDataUrl = canvas.toDataURL('image/png');
+        }
+        resolve(finalDataUrl);
       } catch {
         resolve(imageDataUrl);
       }
@@ -510,7 +519,11 @@ export async function autoFitSceneToStandardFormat(
           destH
         );
 
-        resolve(outCanvas.toDataURL('image/png'));
+        let finalDataUrl = outCanvas.toDataURL('image/webp', 0.88);
+        if (!finalDataUrl.startsWith('data:image/webp')) {
+          finalDataUrl = outCanvas.toDataURL('image/png');
+        }
+        resolve(finalDataUrl);
       } catch {
         resolve(imageDataUrl);
       }
@@ -518,5 +531,89 @@ export async function autoFitSceneToStandardFormat(
     img.onerror = () => resolve(imageDataUrl);
     img.src = imageDataUrl;
   });
+}
+
+/**
+ * Converts an image URL (relative or remote) to a Base64 data URL via canvas if not already one.
+ */
+export async function convertImageUrlToDataUrl(url: string): Promise<string> {
+  if (url.startsWith('data:image/')) {
+    return url;
+  }
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth || img.width;
+        canvas.height = img.naturalHeight || img.height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0);
+          const dataUrl = canvas.toDataURL('image/webp', 0.9);
+          if (dataUrl.startsWith('data:image/')) {
+            resolve(dataUrl);
+            return;
+          }
+          resolve(canvas.toDataURL('image/png'));
+          return;
+        }
+      } catch {
+        // fallback
+      }
+      resolve(url);
+    };
+    img.onerror = () => resolve(url);
+    img.src = url;
+  });
+}
+
+/**
+ * Analyzes an avatar image using the Cloudflare Worker Vision AI (Llama 3.2 11B Vision / LLaVA).
+ * Extracts hair length, color, facial hair, glasses, clothing, etc.
+ * Returns a concise English description of character appearance to ensure consistent multi-scene generation.
+ */
+export async function describeAvatarImage(
+  avatarDataUrl: string,
+  options?: { workerUrl?: string; apiKey?: string }
+): Promise<string> {
+  const workerUrl = (options?.workerUrl || getStoredWorkerUrl()).replace(/\/+$/, '');
+  const apiKey = options?.apiKey ?? getStoredApiKey();
+
+  if (!workerUrl || !avatarDataUrl) {
+    return '';
+  }
+
+  const endpoint = `${workerUrl}/v1/describe-avatar`;
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+  if (apiKey) {
+    headers['Authorization'] = `Bearer ${apiKey}`;
+  }
+
+  try {
+    const resolvedDataUrl = await convertImageUrlToDataUrl(avatarDataUrl);
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ image: resolvedDataUrl }),
+    });
+
+    if (!res.ok) {
+      console.warn('Avatar description endpoint returned HTTP', res.status);
+      return '';
+    }
+
+    const data = await res.json();
+    if (data?.description && typeof data.description === 'string') {
+      return data.description.trim();
+    }
+    return '';
+  } catch (err) {
+    console.warn('Failed to call describe-avatar endpoint:', err);
+    return '';
+  }
 }
 

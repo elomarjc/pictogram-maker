@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { X, Camera, Check, Upload, Trash2, AlertCircle, RotateCcw, Sparkles, Clock } from 'lucide-react';
-import { createAvatarFromPhoto } from '../services/imageGenerationApi';
+import { createAvatarFromPhoto, describeAvatarImage } from '../services/imageGenerationApi';
 import { saveCustomPersona } from '../services/personas';
 import type { Persona } from '../types';
 
@@ -20,6 +20,7 @@ export const CreateAvatarModal: React.FC<CreateAvatarModalProps> = ({
   const [progress, setProgress] = useState(0);
   const [progressStage, setProgressStage] = useState('');
   const [generatedAvatarUrl, setGeneratedAvatarUrl] = useState<string | null>(null);
+  const [avatarDescription, setAvatarDescription] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const progressTimerRef = useRef<number | null>(null);
@@ -125,6 +126,14 @@ export const CreateAvatarModal: React.FC<CreateAvatarModalProps> = ({
       }
       setProgress(100);
       setProgressStage('Færdig!');
+
+      // Kick off background visual trait analysis so it's ready when generating scenes
+      describeAvatarImage(avatarDataUrl).then((desc) => {
+        if (desc && desc.trim()) {
+          setAvatarDescription(desc.trim());
+        }
+      }).catch(() => {});
+
       // Brief pause to display 100% completion before switching view
       await new Promise((r) => setTimeout(r, 200));
       setGeneratedAvatarUrl(avatarDataUrl);
@@ -147,7 +156,7 @@ export const CreateAvatarModal: React.FC<CreateAvatarModalProps> = ({
       name: 'Min figur',
       shortCode: '',
       avatarUrl: generatedAvatarUrl,
-      description: '',
+      description: avatarDescription.trim(),
       activityScenes: {},
     };
 
@@ -162,6 +171,7 @@ export const CreateAvatarModal: React.FC<CreateAvatarModalProps> = ({
     }
     setPhotoDataUrl(null);
     setGeneratedAvatarUrl(null);
+    setAvatarDescription('');
     setIsGenerating(false);
     setProgress(0);
     setProgressStage('');
