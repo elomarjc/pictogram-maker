@@ -78,9 +78,8 @@ export class AllAccountsQuotaExceededError extends Error {
   public totalAccounts: number;
 
   constructor(resetInfo: QuotaResetInfo, totalAccounts: number) {
-    const accLabel = totalAccounts > 1 ? `alle dine ${totalAccounts} Cloudflare-konti` : 'din Cloudflare-konto';
     super(
-      `Dagens gratis kvote på ${accLabel} er opbrugt. Kvoten nulstilles automatisk kl. ${resetInfo.localTimeStr} (om ${resetInfo.countdownStr}), hvorefter genereringen automatisk kan fortsætte.`
+      `Dagens gratis grænse er nået. Klar igen kl. ${resetInfo.localTimeStr} (om ${resetInfo.countdownStr}).`
     );
     this.name = 'AllAccountsQuotaExceededError';
     this.resetInfo = resetInfo;

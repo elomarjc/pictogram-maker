@@ -306,38 +306,32 @@ export const SceneGenerationModal: React.FC<SceneGenerationModalProps> = ({
 
           {/* All accounts quota exceeded banner */}
           {progress.allQuotaExceeded && (
-            <div className="mt-3 p-4 bg-amber-50 border-2 border-amber-400 rounded-2xl shadow-xs space-y-2">
-              <div className="flex items-start gap-2.5">
-                <Clock size={20} className="text-amber-600 shrink-0 mt-0.5" />
-                <div className="text-xs space-y-0.5">
-                  <h4 className="font-black text-amber-950">
-                    Dagens gratis AI-kvote er nået på alle dine Cloudflare-konti
-                  </h4>
-                  <p className="text-amber-900">
-                    Cloudflare nulstiller automatisk kvoten (10.000 neuroner pr. konto){' '}
-                    <strong>kl. {progress.resetInfo?.localTimeStr || '02:00'}</strong> (om{' '}
-                    {progress.resetInfo?.countdownStr || 'i nat'}).
-                  </p>
-                  <p className="text-[11px] text-slate-600">
-                    Dine {ready} færdiggjorte scener er gemt sikkert i din browser.
-                  </p>
+            <div className="mt-2.5 p-3 bg-amber-50 border-2 border-amber-400 rounded-xl shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <Clock size={18} className="text-amber-600 shrink-0" />
+                <div className="text-xs">
+                  <span className="font-black text-amber-950 block">
+                    Pause: Dagens gratis grænse er nået
+                  </span>
+                  <span className="text-amber-900 text-[11px] block">
+                    Klar igen kl. {progress.resetInfo?.localTimeStr || '02:00'} (om{' '}
+                    {progress.resetInfo?.countdownStr || 'i nat'}). Dine {ready} scener er gemt.
+                  </span>
                 </div>
               </div>
 
-              <div className="pt-1">
-                <button
-                  type="button"
-                  onClick={handleScheduleAutoResume}
-                  className="px-3.5 py-2 rounded-xl border-2 border-slate-900 bg-amber-400 hover:bg-amber-500 font-black text-xs text-slate-900 shadow-xs flex items-center gap-1.5 transition-colors cursor-pointer"
-                >
-                  <Clock size={15} />
-                  <span>
-                    {isWaitingForReset
-                      ? `Venter på automatisk fortsættelse kl. ${progress.resetInfo?.localTimeStr || '02:00'}...`
-                      : `Fortsæt automatisk kl. ${progress.resetInfo?.localTimeStr || '02:00'}`}
-                  </span>
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={handleScheduleAutoResume}
+                className="shrink-0 px-3 py-1.5 rounded-xl border-2 border-slate-900 bg-amber-400 hover:bg-amber-500 font-bold text-xs text-slate-900 shadow-2xs flex items-center gap-1.5 transition-colors cursor-pointer self-start sm:self-auto"
+              >
+                <Clock size={13} />
+                <span>
+                  {isWaitingForReset
+                    ? `Venter... (kl. ${progress.resetInfo?.localTimeStr || '02:00'})`
+                    : `Fortsæt automatisk kl. ${progress.resetInfo?.localTimeStr || '02:00'}`}
+                </span>
+              </button>
             </div>
           )}
 
