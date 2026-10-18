@@ -110,8 +110,8 @@ export async function generateSceneImage(
 
   const bodyPayload: Record<string, unknown> = {
     prompt: prompt.trim(),
-    model: options?.model || '@cf/bytedance/stable-diffusion-xl-lightning',
-    num_steps: options?.numSteps || 6,
+    model: options?.model || '@cf/black-forest-labs/flux-1-schnell',
+    num_steps: options?.numSteps || 4,
     format: 'base64',
     provider: options?.provider || 'auto',
   };
@@ -287,8 +287,8 @@ export async function createAvatarFromPhoto(
     workerUrl: options?.workerUrl,
     referenceImage: photoDataUrl,
     strength: 0.7,
-    model: '@cf/bytedance/stable-diffusion-xl-lightning',
-    numSteps: 8,
+    model: '@cf/black-forest-labs/flux-1-schnell',
+    numSteps: 4,
   });
 
   return removeImageBackground(rawGeneratedUrl);
