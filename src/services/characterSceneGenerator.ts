@@ -381,3 +381,98 @@ export async function generateAllMissingScenes(
   saveCustomPersona(finalPersona);
   return finalPersona;
 }
+
+/**
+ * Generates only one specific scene for a persona on demand.
+ */
+export async function generateSingleSceneForPersona(
+  persona: Persona,
+  sceneDef: DefaultSceneDef,
+  onProgress?: (p: SceneGenProgress) => void,
+  options?: {
+    workerUrl?: string;
+    apiKey?: string;
+    signal?: AbortSignal;
+  }
+): Promise<Persona> {
+  let activePersona = { ...persona };
+
+  // Auto-analyze avatar traits if description is missing
+  if ((!activePersona.description || !activePersona.description.trim()) && activePersona.avatarUrl) {
+    onProgress?.({
+      total: 1,
+      completed: 0,
+      currentSceneTitle: 'Analyserer figurudseende...',
+      percent: 10,
+      done: false,
+    });
+    try {
+      const desc = await describeAvatarImage(activePersona.avatarUrl, {
+        workerUrl: options?.workerUrl,
+        apiKey: options?.apiKey,
+      });
+      if (desc && desc.trim()) {
+        activePersona = {
+          ...activePersona,
+          description: desc.trim(),
+        };
+        saveCustomPersona(activePersona);
+      }
+    } catch (e) {
+      console.warn('Could not auto-describe avatar:', e);
+    }
+  }
+
+  onProgress?.({
+    total: 1,
+    completed: 0,
+    currentSceneKey: sceneDef.key,
+    currentSceneTitle: sceneDef.title,
+    percent: 25,
+    done: false,
+  });
+
+  const finalUrl = await generateSingleScene(activePersona, sceneDef, {
+    ...options,
+    onAccountRotated: (rot) => {
+      onProgress?.({
+        total: 1,
+        completed: 0,
+        currentSceneKey: sceneDef.key,
+        currentSceneTitle: sceneDef.title,
+        percent: 50,
+        accountSwitchInfo: rot.message,
+        done: false,
+      });
+    },
+  });
+
+  const updatedScenes = { ...(activePersona.activityScenes || {}) };
+  updatedScenes[sceneDef.key] = finalUrl;
+
+  if (sceneDef.aliases) {
+    for (const alias of sceneDef.aliases) {
+      if (!updatedScenes[alias]) {
+        updatedScenes[alias] = finalUrl;
+      }
+    }
+  }
+
+  const updatedPersona: Persona = {
+    ...activePersona,
+    activityScenes: updatedScenes,
+  };
+  saveCustomPersona(updatedPersona);
+
+  onProgress?.({
+    total: 1,
+    completed: 1,
+    currentSceneKey: sceneDef.key,
+    currentSceneTitle: sceneDef.title,
+    percent: 100,
+    latestSceneUrl: finalUrl,
+    done: true,
+  });
+
+  return updatedPersona;
+}

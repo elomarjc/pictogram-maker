@@ -15,11 +15,14 @@ import type { Persona } from '../types';
 import {
   DEFAULT_SCENE_DEFINITIONS,
   generateAllMissingScenes,
+  generateSingleSceneForPersona,
   getMissingScenesForPersona,
   getReadyScenesCount,
   type SceneGenProgress,
+  type DefaultSceneDef,
 } from '../services/characterSceneGenerator';
 import { getAllPersonas, saveCustomPersona } from '../services/personas';
+import { AllAccountsQuotaExceededError } from '../services/imageGenerationApi';
 
 interface SceneGenerationModalProps {
   isOpen: boolean;
@@ -125,6 +128,66 @@ export const SceneGenerationModal: React.FC<SceneGenerationModalProps> = ({
       abortControllerRef.current.abort();
     }
     setIsGenerating(false);
+  };
+
+  const handleGenerateSingleCard = async (sceneDef: DefaultSceneDef) => {
+    if (!currentPersona || isGenerating) return;
+
+    setErrorMsg(null);
+    setIsGenerating(true);
+
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
+    try {
+      const updated = await generateSingleSceneForPersona(
+        currentPersona,
+        sceneDef,
+        (p) => {
+          setProgress(p);
+          if (p.error) {
+            setErrorMsg(p.error);
+          }
+          const all = getAllPersonas();
+          const fresh = all.find((x) => x.id === currentPersona.id);
+          if (fresh) {
+            setCurrentPersona(fresh);
+            onPersonaUpdated?.(fresh);
+          }
+        },
+        { signal: controller.signal }
+      );
+
+      setCurrentPersona(updated);
+      onPersonaUpdated?.(updated);
+
+      const { ready, total } = getReadyScenesCount(updated);
+      setProgress((prev) => ({
+        ...prev,
+        completed: ready,
+        percent: total > 0 ? Math.round((ready / total) * 100) : 0,
+        done: ready === total,
+      }));
+    } catch (err) {
+      const isAllQuota =
+        err instanceof AllAccountsQuotaExceededError ||
+        (err && typeof err === 'object' && 'resetInfo' in err);
+
+      if (isAllQuota) {
+        const quotaErr = err as AllAccountsQuotaExceededError;
+        setProgress((prev) => ({
+          ...prev,
+          allQuotaExceeded: true,
+          resetInfo: quotaErr.resetInfo,
+          done: false,
+        }));
+      } else {
+        setErrorMsg(`Fejl ved ${sceneDef.title}: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    } finally {
+      setIsGenerating(false);
+      abortControllerRef.current = null;
+    }
   };
 
   const handleDeleteScene = (sceneKey: string) => {
@@ -368,12 +431,26 @@ export const SceneGenerationModal: React.FC<SceneGenerationModalProps> = ({
               return (
                 <div
                   key={sceneDef.key}
-                  className={`flex flex-col rounded-2xl border-2 transition-all p-2 relative overflow-hidden ${
+                  onClick={() => {
+                    if (!isGenerating) {
+                      handleGenerateSingleCard(sceneDef);
+                    }
+                  }}
+                  title={
                     isDone
-                      ? 'border-emerald-500 bg-emerald-50/50 shadow-xs'
+                      ? `${sceneDef.title} (klik for at gen-generere)`
+                      : isGenerating
+                      ? sceneDef.title
+                      : `Klik for at generere ${sceneDef.title}`
+                  }
+                  className={`flex flex-col rounded-2xl border-2 transition-all p-2 relative overflow-hidden group ${
+                    isDone
+                      ? 'border-emerald-500 bg-emerald-50/50 shadow-xs hover:border-amber-500 hover:shadow-md cursor-pointer'
                       : isCurrent
                       ? 'border-amber-500 bg-amber-50 ring-2 ring-amber-400 shadow-md'
-                      : 'border-slate-300 bg-slate-50 opacity-70'
+                      : !isGenerating
+                      ? 'border-slate-300 bg-slate-50 hover:border-amber-500 hover:bg-amber-50/60 hover:shadow-md cursor-pointer opacity-90 hover:opacity-100 hover:scale-[1.02]'
+                      : 'border-slate-300 bg-slate-50 opacity-60'
                   }`}
                 >
                   {/* Status badge */}
@@ -393,19 +470,32 @@ export const SceneGenerationModal: React.FC<SceneGenerationModalProps> = ({
                     )}
                   </div>
 
-                  {/* Delete individual scene button */}
+                  {/* Delete & Re-generate buttons for completed scenes */}
                   {isDone && !isGenerating && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteScene(sceneDef.key);
-                      }}
-                      title="Slet denne scene"
-                      className="absolute top-1.5 left-1.5 z-10 w-5 h-5 rounded-md bg-white/90 hover:bg-rose-600 text-slate-600 hover:text-white border border-slate-300 hover:border-rose-600 flex items-center justify-center shadow-2xs transition-colors cursor-pointer"
-                    >
-                      <Trash2 size={11} className="stroke-[2.5]" />
-                    </button>
+                    <div className="absolute top-1.5 left-1.5 z-10 flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteScene(sceneDef.key);
+                        }}
+                        title="Slet denne scene"
+                        className="w-5 h-5 rounded-md bg-white/95 hover:bg-rose-600 text-slate-600 hover:text-white border border-slate-300 hover:border-rose-600 flex items-center justify-center shadow-2xs transition-colors cursor-pointer"
+                      >
+                        <Trash2 size={11} className="stroke-[2.5]" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleGenerateSingleCard(sceneDef);
+                        }}
+                        title="Gen-generer denne scene"
+                        className="w-5 h-5 rounded-md bg-white/95 hover:bg-amber-400 text-slate-600 hover:text-slate-900 border border-slate-300 hover:border-slate-900 flex items-center justify-center shadow-2xs transition-colors cursor-pointer"
+                      >
+                        <RotateCw size={11} className="stroke-[2.5]" />
+                      </button>
+                    </div>
                   )}
 
                   {/* Scene Preview Container (matching 2126x740 ratio) */}
@@ -427,10 +517,15 @@ export const SceneGenerationModal: React.FC<SceneGenerationModalProps> = ({
                         </span>
                       </div>
                     ) : (
-                      <div className="flex flex-col items-center justify-center text-slate-400">
-                        <span className="text-[10px] font-bold">
-                          {isGenerating ? 'Venter i kø' : 'Ikke oprettet endnu'}
-                        </span>
+                      <div className="flex flex-col items-center justify-center gap-1 text-slate-500 group-hover:text-amber-800 transition-colors">
+                        {!isGenerating ? (
+                          <>
+                            <Sparkles size={16} className="text-amber-500 group-hover:scale-110 transition-transform" />
+                            <span className="text-[10px] font-bold">Tryk for at generere</span>
+                          </>
+                        ) : (
+                          <span className="text-[10px] font-bold text-slate-400">Venter i kø</span>
+                        )}
                       </div>
                     )}
                   </div>
