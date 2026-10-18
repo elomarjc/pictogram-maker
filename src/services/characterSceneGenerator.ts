@@ -1,7 +1,6 @@
 import type { Persona } from '../types';
 import {
   generateSceneImage,
-  removeImageBackground,
   autoFitSceneToStandardFormat,
   describeAvatarImage,
   type CloudflareWorkerAccount,
@@ -178,12 +177,12 @@ export function buildScenePromptForPersona(persona: Persona, sceneDef: DefaultSc
     characterDesc = `A cheerful friendly 2D cartoon character (${nameStr}), round friendly face, rosy cheeks, warm open smile, dressed in comfortable casual clothes matching avatar style`;
   }
 
-  return `Clean 2D cartoon pictogram vector illustration, horizontal aspect ratio. ${characterDesc}, ${sceneDef.englishActivity}. Bold thick smooth black outlines, simple flat cel-shading, colorful and cheerful, isolated on pure solid white background, cute autism schedule pictogram, no text, no frame, wide horizontal composition.`;
+  return `Clean 2D cartoon pictogram vector illustration, horizontal aspect ratio. ${characterDesc}, ${sceneDef.englishActivity}. Bold thick smooth black outlines, simple flat cel-shading, colorful and cheerful, isolated on pure solid white background, cute visual schedule pictogram, no text, no frame, wide horizontal composition.`;
 }
 
 /**
- * Generates a single scene for a persona, strips the background, and fits it into 2126x740 format.
- */
+  * Generates a single scene for a persona and fits it into 2126x740 format.
+  */
 export async function generateSingleScene(
   persona: Persona,
   sceneDef: DefaultSceneDef,
@@ -208,8 +207,7 @@ export async function generateSingleScene(
     onAccountRotated: options?.onAccountRotated,
   });
 
-  const transparentUrl = await removeImageBackground(rawUrl);
-  const fittedUrl = await autoFitSceneToStandardFormat(transparentUrl);
+  const fittedUrl = await autoFitSceneToStandardFormat(rawUrl);
   return fittedUrl;
 }
 

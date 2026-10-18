@@ -752,17 +752,30 @@ export async function autoFitSceneToStandardFormat(
           }
         }
 
-        // If less than 2% of pixels are transparent, automatically remove background first!
+        // If less than 2% of pixels are transparent, it is a complete scene illustration.
+        // Scale and center directly onto target format (2126 x 740) without destroying background art!
         if (transparentPixelCount < (srcW * srcH) * 0.02) {
-          removeImageBackground(imageDataUrl)
-            .then((transparentUrl) => {
-              if (transparentUrl !== imageDataUrl) {
-                autoFitSceneToStandardFormat(transparentUrl, targetWidth, targetHeight).then(resolve);
-                return;
-              }
-              resolve(imageDataUrl);
-            })
-            .catch(() => resolve(imageDataUrl));
+          const outCanvas = document.createElement('canvas');
+          outCanvas.width = targetWidth;
+          outCanvas.height = targetHeight;
+          const outCtx = outCanvas.getContext('2d');
+          if (!outCtx) {
+            resolve(imageDataUrl);
+            return;
+          }
+
+          const scale = Math.max(targetWidth / srcW, targetHeight / srcH);
+          const drawW = Math.round(srcW * scale);
+          const drawH = Math.round(srcH * scale);
+          const drawX = Math.round((targetWidth - drawW) / 2);
+          const drawY = Math.round((targetHeight - drawH) / 2);
+          outCtx.drawImage(img, drawX, drawY, drawW, drawH);
+
+          let finalDataUrl = outCanvas.toDataURL('image/webp', 0.92);
+          if (!finalDataUrl.startsWith('data:image/webp')) {
+            finalDataUrl = outCanvas.toDataURL('image/png');
+          }
+          resolve(finalDataUrl);
           return;
         }
 

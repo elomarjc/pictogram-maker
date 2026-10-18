@@ -79,7 +79,7 @@ export const PictogramCard: React.FC<PictogramCardProps> = ({
     ? { fontSize: `${numericFontSize}px` }
     : {};
 
-  const sceneBgColor = darkenColor(pictogram.bgColor || '#FFFFFF', 0.14);
+  const sceneBgColor = darkenColor(pictogram.bgColor || '#FFFFFF', 0.04);
 
   if (viewMode === 'vertical') {
     // iPhone vertical aspect ratio card (6.5 x 10 cm proportions)
@@ -194,7 +194,7 @@ export const PictogramCard: React.FC<PictogramCardProps> = ({
       {/* Left section: Graphic illustration / Photo (figure fills more space) */}
       <div
         style={{ backgroundColor: sceneBgColor }}
-        className="w-40 sm:w-56 md:w-64 h-full min-h-[84px] sm:min-h-[96px] border-r-3 border-slate-900 flex items-center justify-center shrink-0 overflow-hidden relative"
+        className="w-40 sm:w-56 md:w-64 h-full min-h-[84px] sm:min-h-[96px] flex items-center justify-center shrink-0 overflow-hidden relative"
       >
         {sceneImageUrl ? (
           <img

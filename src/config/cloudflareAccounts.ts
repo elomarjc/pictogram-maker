@@ -34,5 +34,9 @@ export const CONFIGURED_CLOUDFLARE_ACCOUNTS: ConfiguredCloudflareAccount[] = [
   {
     "name": "Konto 2",
     "url": "https://piktogram.kygoanderson.workers.dev"
+  },
+  {
+    "name": "Konto 3",
+    "url": "https://piktogram.thecrazywizards1311.workers.dev"
   }
 ];

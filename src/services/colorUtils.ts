@@ -3,11 +3,10 @@
  */
 
 /**
- * Darkens a hex color string by a given percentage (default 14%).
- * Used to give the illustration/scene area a slightly darker shade of the card color,
- * creating depth while ensuring transparent character PNGs blend harmoniously.
+ * Darkens a hex color string by a given percentage (default 4%).
+ * Used to give the illustration/scene area a clean, slightly darker shade of the card color.
  */
-export function darkenColor(hexColor: string | undefined, amount: number = 0.14): string {
+export function darkenColor(hexColor: string | undefined, amount: number = 0.04): string {
   if (!hexColor) return '#e2e8f0';
   let c = hexColor.trim().replace('#', '');
   if (c.length === 3) {
