@@ -51,7 +51,7 @@ export const DEFAULT_PERSONAS: Persona[] = [
     id: 'woman_a',
     name: 'Kvinde',
     shortCode: 'A.',
-    avatarUrl: `${BASE}reference/persona_woman_avatar.webp`,
+    avatarUrl: `${BASE}reference/persona_woman_avatar.webp?v=transparent`,
     description: 'Kvindelig figur med hestehale og turkis hættetrøje',
     activityScenes: {
       vaesketoeg: `${BASE}reference/scenes/woman_vasketoj.webp`,
