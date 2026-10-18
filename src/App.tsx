@@ -19,6 +19,7 @@ import { MoveToDayModal } from './components/MoveToDayModal';
 import { CopyDayModal } from './components/CopyDayModal';
 import { PrivacyInfoModal } from './components/PrivacyInfoModal';
 import { PersonaSelectorModal } from './components/PersonaSelectorModal';
+import { CloudflareAccountsModal } from './components/CloudflareAccountsModal';
 import { getPersona } from './services/personas';
 
 export const App: React.FC = () => {
@@ -44,6 +45,7 @@ export const App: React.FC = () => {
   const [isTemplatePickerOpen, setIsTemplatePickerOpen] = useState(false);
   const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false);
   const [isPersonaModalOpen, setIsPersonaModalOpen] = useState(false);
+  const [isCloudflareModalOpen, setIsCloudflareModalOpen] = useState(false);
   const [movingPictogram, setMovingPictogram] = useState<Pictogram | null>(null);
   const [copyingSourceDayId, setCopyingSourceDayId] = useState<DayOfWeek | null>(null);
 
@@ -445,6 +447,7 @@ export const App: React.FC = () => {
         onOpenTemplatePicker={() => setIsTemplatePickerOpen(true)}
         onOpenPrintModal={() => setIsPrintModalOpen(true)}
         onOpenPrivacyModal={() => setIsPrivacyModalOpen(true)}
+        onOpenCloudflareModal={() => setIsCloudflareModalOpen(true)}
       />
 
       {/* Main Workspace Body */}
@@ -575,6 +578,11 @@ export const App: React.FC = () => {
         currentShortCode={currentPlan.shortCode || 'K.'}
         onClose={() => setIsPersonaModalOpen(false)}
         onSelectPersona={handleSelectPersona}
+      />
+
+      <CloudflareAccountsModal
+        isOpen={isCloudflareModalOpen}
+        onClose={() => setIsCloudflareModalOpen(false)}
       />
     </div>
   );

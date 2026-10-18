@@ -1,28 +1,277 @@
 /**
  * Service to generate pictogram images directly via Cloudflare Workers AI API.
  * Eliminates the need to copy-paste reference images and prompts into ChatGPT.
+ * Supports multi-account rotation, quota tracking, and automatic failover.
  */
 
 const STORAGE_KEY_WORKER_URL = 'pictogram_cf_ai_worker_url';
 const STORAGE_KEY_API_KEY = 'pictogram_cf_ai_api_key';
+const STORAGE_KEY_WORKER_ACCOUNTS = 'pictogram_cf_ai_worker_accounts';
 
 export const DEFAULT_WORKER_URL = 'https://free-image-generation-api.elomarjc.workers.dev';
 
-// Default worker URL fallback or user-configured endpoint
+export interface CloudflareWorkerAccount {
+  id: string;
+  name: string;
+  url: string;
+  apiKey?: string;
+  isExhausted?: boolean;
+  exhaustedUntil?: string; // ISO string for next UTC midnight
+  lastUsedAt?: string;
+  lastError?: string;
+}
+
+export interface QuotaResetInfo {
+  nextReset: Date;
+  hours: number;
+  minutes: number;
+  localTimeStr: string;
+  countdownStr: string;
+}
+
+/**
+ * Calculates the upcoming 00:00 UTC when Cloudflare Workers AI free tier quotas reset.
+ */
+export function getNextUtcMidnight(): Date {
+  const now = new Date();
+  return new Date(Date.UTC(
+    now.getUTCFullYear(),
+    now.getUTCMonth(),
+    now.getUTCDate() + 1,
+    0, 0, 0, 0
+  ));
+}
+
+/**
+ * Calculates human-readable time and countdown until the next daily quota reset.
+ */
+export function getQuotaResetInfo(): QuotaResetInfo {
+  const nextReset = getNextUtcMidnight();
+  const now = new Date();
+  const diffMs = Math.max(0, nextReset.getTime() - now.getTime());
+  const totalMinutes = Math.floor(diffMs / (1000 * 60));
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+
+  const localTimeStr = nextReset.toLocaleTimeString('da-DK', {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+
+  const countdownStr = hours > 0
+    ? `${hours} time${hours === 1 ? '' : 'r'} og ${minutes} minut${minutes === 1 ? '' : 'ter'}`
+    : `${minutes} minut${minutes === 1 ? '' : 'ter'}`;
+
+  return {
+    nextReset,
+    hours,
+    minutes,
+    localTimeStr,
+    countdownStr,
+  };
+}
+
+export class AllAccountsQuotaExceededError extends Error {
+  public resetInfo: QuotaResetInfo;
+  public totalAccounts: number;
+
+  constructor(resetInfo: QuotaResetInfo, totalAccounts: number) {
+    const accLabel = totalAccounts > 1 ? `alle dine ${totalAccounts} Cloudflare-konti` : 'din Cloudflare-konto';
+    super(
+      `Dagens gratis kvote på ${accLabel} er opbrugt. Kvoten nulstilles automatisk kl. ${resetInfo.localTimeStr} (om ${resetInfo.countdownStr}), hvorefter genereringen automatisk kan fortsætte.`
+    );
+    this.name = 'AllAccountsQuotaExceededError';
+    this.resetInfo = resetInfo;
+    this.totalAccounts = totalAccounts;
+  }
+}
+
+/**
+ * Returns all configured Cloudflare worker accounts, automatically lifting exhaustion
+ * if the daily reset time (00:00 UTC) has passed.
+ */
+export function getStoredWorkerAccounts(): CloudflareWorkerAccount[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_WORKER_ACCOUNTS);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        const now = Date.now();
+        let changed = false;
+        const cleaned: CloudflareWorkerAccount[] = parsed.map((acc: CloudflareWorkerAccount) => {
+          if (acc.exhaustedUntil && new Date(acc.exhaustedUntil).getTime() <= now) {
+            changed = true;
+            return {
+              ...acc,
+              isExhausted: false,
+              exhaustedUntil: undefined,
+              lastError: undefined,
+            };
+          }
+          return acc;
+        });
+
+        if (changed) {
+          saveStoredWorkerAccounts(cleaned);
+        }
+        return cleaned;
+      }
+    }
+  } catch {
+    // fallback to defaults
+  }
+
+  // Backwards compatibility migration
+  const legacyUrl = localStorage.getItem(STORAGE_KEY_WORKER_URL) || DEFAULT_WORKER_URL;
+  const legacyKey = localStorage.getItem(STORAGE_KEY_API_KEY) || '';
+  const initialAccounts: CloudflareWorkerAccount[] = [
+    {
+      id: 'account_default',
+      name: 'Primær konto (Konto 1)',
+      url: legacyUrl,
+      apiKey: legacyKey,
+    },
+  ];
+  saveStoredWorkerAccounts(initialAccounts);
+  return initialAccounts;
+}
+
+export function saveStoredWorkerAccounts(accounts: CloudflareWorkerAccount[]): void {
+  try {
+    localStorage.setItem(STORAGE_KEY_WORKER_ACCOUNTS, JSON.stringify(accounts));
+    if (accounts[0]) {
+      localStorage.setItem(STORAGE_KEY_WORKER_URL, accounts[0].url);
+      if (accounts[0].apiKey) {
+        localStorage.setItem(STORAGE_KEY_API_KEY, accounts[0].apiKey);
+      }
+    }
+  } catch (e) {
+    console.warn('Could not save worker accounts to localStorage:', e);
+  }
+}
+
+export function addStoredWorkerAccount(account: {
+  name: string;
+  url: string;
+  apiKey?: string;
+}): CloudflareWorkerAccount {
+  const accounts = getStoredWorkerAccounts();
+  const cleanUrl = account.url.trim().replace(/\/+$/, '');
+  const newAccount: CloudflareWorkerAccount = {
+    id: `cf_acc_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+    name: account.name.trim() || `Konto ${accounts.length + 1}`,
+    url: cleanUrl,
+    apiKey: account.apiKey?.trim() || undefined,
+    isExhausted: false,
+  };
+  const updated = [...accounts, newAccount];
+  saveStoredWorkerAccounts(updated);
+  return newAccount;
+}
+
+export function updateStoredWorkerAccount(
+  id: string,
+  updates: Partial<CloudflareWorkerAccount>
+): void {
+  const accounts = getStoredWorkerAccounts();
+  const updated = accounts.map((acc) => (acc.id === id ? { ...acc, ...updates } : acc));
+  saveStoredWorkerAccounts(updated);
+}
+
+export function deleteStoredWorkerAccount(id: string): void {
+  const accounts = getStoredWorkerAccounts();
+  const filtered = accounts.filter((acc) => acc.id !== id);
+  if (filtered.length === 0) {
+    // Keep at least default account
+    filtered.push({
+      id: 'account_default',
+      name: 'Primær konto',
+      url: DEFAULT_WORKER_URL,
+    });
+  }
+  saveStoredWorkerAccounts(filtered);
+}
+
+export function resetAllAccountQuotas(): void {
+  const accounts = getStoredWorkerAccounts();
+  const resetAccounts = accounts.map((acc) => ({
+    ...acc,
+    isExhausted: false,
+    exhaustedUntil: undefined,
+    lastError: undefined,
+  }));
+  saveStoredWorkerAccounts(resetAccounts);
+}
+
+export function getActiveWorkerAccounts(): CloudflareWorkerAccount[] {
+  const accounts = getStoredWorkerAccounts();
+  return accounts.filter((acc) => !acc.isExhausted);
+}
+
+export function markAccountExhausted(
+  accountIdentifier: string,
+  errorMsg?: string
+): { exhaustedAccount: CloudflareWorkerAccount; nextAccount: CloudflareWorkerAccount | null } {
+  const accounts = getStoredWorkerAccounts();
+  const resetTime = getNextUtcMidnight().toISOString();
+
+  let targetIndex = accounts.findIndex((a) => a.id === accountIdentifier);
+  if (targetIndex < 0) {
+    targetIndex = accounts.findIndex((a) => a.url === accountIdentifier.replace(/\/+$/, ''));
+  }
+
+  if (targetIndex >= 0) {
+    accounts[targetIndex] = {
+      ...accounts[targetIndex],
+      isExhausted: true,
+      exhaustedUntil: resetTime,
+      lastError: errorMsg || 'Dagens gratis kvote nået (10.000 neuroner)',
+    };
+    saveStoredWorkerAccounts(accounts);
+  }
+
+  const exhaustedAccount = accounts[targetIndex] || {
+    id: 'unknown',
+    name: 'Cloudflare konto',
+    url: accountIdentifier,
+    isExhausted: true,
+  };
+
+  const nextActive = accounts.find((a) => !a.isExhausted) || null;
+  return { exhaustedAccount, nextAccount: nextActive };
+}
+
+// Single-worker backwards compatibility helpers
 export function getStoredWorkerUrl(): string {
-  return localStorage.getItem(STORAGE_KEY_WORKER_URL) || DEFAULT_WORKER_URL;
+  const active = getActiveWorkerAccounts();
+  if (active.length > 0) return active[0].url;
+  const all = getStoredWorkerAccounts();
+  return all[0]?.url || DEFAULT_WORKER_URL;
 }
 
 export function setStoredWorkerUrl(url: string): void {
   localStorage.setItem(STORAGE_KEY_WORKER_URL, url.trim());
+  const accounts = getStoredWorkerAccounts();
+  if (accounts.length > 0) {
+    accounts[0].url = url.trim();
+    saveStoredWorkerAccounts(accounts);
+  }
 }
 
 export function getStoredApiKey(): string {
-  return localStorage.getItem(STORAGE_KEY_API_KEY) || '';
+  const active = getActiveWorkerAccounts();
+  if (active.length > 0) return active[0].apiKey || '';
+  const all = getStoredWorkerAccounts();
+  return all[0]?.apiKey || '';
 }
 
 export function setStoredApiKey(key: string): void {
   localStorage.setItem(STORAGE_KEY_API_KEY, key.trim());
+  const accounts = getStoredWorkerAccounts();
+  if (accounts.length > 0) {
+    accounts[0].apiKey = key.trim();
+    saveStoredWorkerAccounts(accounts);
+  }
 }
 
 export interface WorkerHealthResult {
@@ -77,19 +326,48 @@ export interface GenerateSceneOptions {
   provider?: 'auto' | 'cloudflare' | 'openai';
   retries?: number;
   isScene?: boolean;
+  onAccountRotated?: (info: {
+    fromAccount: CloudflareWorkerAccount;
+    toAccount: CloudflareWorkerAccount;
+    message: string;
+  }) => void;
 }
 
 /**
- * Generates an image using the Cloudflare Workers AI API (with optional OpenAI rotation).
- * Supports text-to-image and image-to-image (with reference images).
- * Returns a Base64 data URL string ready to be set directly on a pictogram or avatar.
+ * Generates an image using the Cloudflare Workers AI API with automatic multi-account rotation.
+ * If an account exhausts its daily 10,000 neurons, it rotates seamlessly to the next available account.
+ * When all accounts are exhausted, it throws AllAccountsQuotaExceededError with exact reset time.
  */
 export async function generateSceneImage(
   prompt: string,
   options?: GenerateSceneOptions
 ): Promise<string> {
-  const workerUrl = (options?.workerUrl || getStoredWorkerUrl()).replace(/\/+$/, '');
-  const apiKey = options?.apiKey ?? getStoredApiKey();
+  const allAccounts = getStoredWorkerAccounts();
+  const activeAccounts = getActiveWorkerAccounts();
+
+  // If all configured accounts are exhausted, immediately throw with reset calculation
+  if (activeAccounts.length === 0) {
+    const resetInfo = getQuotaResetInfo();
+    throw new AllAccountsQuotaExceededError(resetInfo, allAccounts.length);
+  }
+
+  // Determine which worker account to target
+  let currentAccount: CloudflareWorkerAccount;
+  if (options?.workerUrl) {
+    const targetUrl = options.workerUrl.replace(/\/+$/, '');
+    currentAccount =
+      allAccounts.find((a) => a.url.replace(/\/+$/, '') === targetUrl) || {
+        id: 'custom',
+        name: 'Brugerdefineret worker',
+        url: targetUrl,
+        apiKey: options.apiKey,
+      };
+  } else {
+    currentAccount = activeAccounts[0];
+  }
+
+  const workerUrl = currentAccount.url.replace(/\/+$/, '');
+  const apiKey = options?.apiKey ?? currentAccount.apiKey ?? getStoredApiKey();
 
   if (!workerUrl) {
     throw new Error(
@@ -138,27 +416,53 @@ export async function generateSceneImage(
     });
   } catch (fetchErr) {
     throw new Error(
-      `Netværksfejl under forbindelse til Cloudflare Worker: ${fetchErr instanceof Error ? fetchErr.message : String(fetchErr)}`
+      `Netværksfejl under forbindelse til Cloudflare Worker (${currentAccount.name}): ${fetchErr instanceof Error ? fetchErr.message : String(fetchErr)}`
     );
   }
 
   const data = await response.json().catch(() => null);
 
   if (!response.ok) {
-    if (response.status === 429) {
-      const waitTime = data?.retryAfterSeconds || data?.retryAfter || 2;
-      const remainingRetries = (options?.retries ?? 2) - 1;
-      if (remainingRetries >= 0) {
-        await new Promise((r) => setTimeout(r, (waitTime + 0.5) * 1000));
-        return generateSceneImage(prompt, { ...options, retries: remainingRetries });
-      }
-      throw new Error(
-        data?.message || `Hastighedsgrænse nået. Vent venligst ${waitTime} sekunder før næste forsøg.`
+    const errorStr = (data?.message || data?.error || '').toLowerCase();
+    const isQuotaExceeded =
+      response.status === 429 ||
+      errorStr.includes('quota') ||
+      errorStr.includes('neuron') ||
+      errorStr.includes('4006') ||
+      errorStr.includes('opbrugt') ||
+      errorStr.includes('limit');
+
+    if (isQuotaExceeded) {
+      // Mark current account as exhausted until midnight UTC
+      const { exhaustedAccount, nextAccount } = markAccountExhausted(
+        currentAccount.id,
+        data?.message || 'Dagens kvote på 10.000 neuroner opbrugt'
       );
+
+      // If another account is available, rotate automatically!
+      if (nextAccount) {
+        options?.onAccountRotated?.({
+          fromAccount: exhaustedAccount,
+          toAccount: nextAccount,
+          message: `Kvote opbrugt på "${exhaustedAccount.name}". Skifter automatisk til "${nextAccount.name}" – genereringen fortsætter...`,
+        });
+
+        return generateSceneImage(prompt, {
+          ...options,
+          workerUrl: nextAccount.url,
+          apiKey: nextAccount.apiKey,
+        });
+      }
+
+      // No accounts left in the pool!
+      const resetInfo = getQuotaResetInfo();
+      throw new AllAccountsQuotaExceededError(resetInfo, allAccounts.length);
     }
+
     if (response.status === 401) {
-      throw new Error('Ugyldig eller manglende API-nøgle til Cloudflare Worker.');
+      throw new Error(`Ugyldig eller manglende API-nøgle til Cloudflare Worker (${currentAccount.name}).`);
     }
+
     throw new Error(
       data?.message || data?.error || `Billedgenerering fejlede med HTTP status ${response.status}.`
     );
@@ -167,6 +471,9 @@ export async function generateSceneImage(
   if (!data?.imageUrl) {
     throw new Error('Cloudflare Worker returnerede ikke noget gyldigt billede.');
   }
+
+  // Update last used timestamp
+  updateStoredWorkerAccount(currentAccount.id, { lastUsedAt: new Date().toISOString() });
 
   return data.imageUrl as string;
 }
@@ -578,8 +885,28 @@ export async function describeAvatarImage(
   avatarDataUrl: string,
   options?: { workerUrl?: string; apiKey?: string }
 ): Promise<string> {
-  const workerUrl = (options?.workerUrl || getStoredWorkerUrl()).replace(/\/+$/, '');
-  const apiKey = options?.apiKey ?? getStoredApiKey();
+  const allAccounts = getStoredWorkerAccounts();
+  const activeAccounts = getActiveWorkerAccounts();
+
+  let currentAccount: CloudflareWorkerAccount;
+  if (options?.workerUrl) {
+    const targetUrl = options.workerUrl.replace(/\/+$/, '');
+    currentAccount =
+      allAccounts.find((a) => a.url.replace(/\/+$/, '') === targetUrl) || {
+        id: 'custom',
+        name: 'Brugerdefineret worker',
+        url: targetUrl,
+        apiKey: options.apiKey,
+      };
+  } else {
+    if (activeAccounts.length === 0) {
+      return '';
+    }
+    currentAccount = activeAccounts[0];
+  }
+
+  const workerUrl = currentAccount.url.replace(/\/+$/, '');
+  const apiKey = options?.apiKey ?? currentAccount.apiKey ?? getStoredApiKey();
 
   if (!workerUrl || !avatarDataUrl) {
     return '';
@@ -601,12 +928,32 @@ export async function describeAvatarImage(
       body: JSON.stringify({ image: resolvedDataUrl }),
     });
 
+    const data = await res.json().catch(() => null);
+
     if (!res.ok) {
+      const errorStr = (data?.message || data?.error || '').toLowerCase();
+      const isQuotaExceeded =
+        res.status === 429 ||
+        errorStr.includes('quota') ||
+        errorStr.includes('neuron') ||
+        errorStr.includes('4006') ||
+        errorStr.includes('opbrugt');
+
+      if (isQuotaExceeded) {
+        const { nextAccount } = markAccountExhausted(currentAccount.id, data?.message);
+        if (nextAccount) {
+          return describeAvatarImage(avatarDataUrl, {
+            ...options,
+            workerUrl: nextAccount.url,
+            apiKey: nextAccount.apiKey,
+          });
+        }
+      }
+
       console.warn('Avatar description endpoint returned HTTP', res.status);
       return '';
     }
 
-    const data = await res.json();
     if (data?.description && typeof data.description === 'string') {
       return data.description.trim();
     }

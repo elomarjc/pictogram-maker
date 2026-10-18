@@ -9,6 +9,7 @@ import {
   ChevronDown,
   Sparkles,
   Layers,
+  Server,
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -20,6 +21,7 @@ interface HeaderProps {
   onOpenTemplatePicker: () => void;
   onOpenPrintModal: () => void;
   onOpenPrivacyModal: () => void;
+  onOpenCloudflareModal: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -31,6 +33,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenTemplatePicker,
   onOpenPrintModal,
   onOpenPrivacyModal,
+  onOpenCloudflareModal,
 }) => {
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b-3 border-slate-900 shadow-sm print:hidden">
@@ -81,6 +84,15 @@ export const Header: React.FC<HeaderProps> = ({
             className="md:hidden inline-flex items-center gap-1 px-2.5 py-2 rounded-xl border border-slate-300 hover:bg-slate-100 text-xs font-bold text-slate-700 transition-colors"
           >
             <FolderKanban size={15} />
+          </button>
+
+          <button
+            onClick={onOpenCloudflareModal}
+            title="Cloudflare AI Konti & Rotation"
+            className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-xl border border-slate-300 hover:bg-amber-50 text-xs font-bold text-slate-700 transition-colors"
+          >
+            <Server size={15} className="text-amber-600" />
+            <span className="hidden sm:inline">AI Konti</span>
           </button>
 
           <button

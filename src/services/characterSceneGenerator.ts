@@ -4,8 +4,9 @@ import {
   removeImageBackground,
   autoFitSceneToStandardFormat,
   describeAvatarImage,
-  getStoredWorkerUrl,
-  getStoredApiKey,
+  type CloudflareWorkerAccount,
+  type QuotaResetInfo,
+  AllAccountsQuotaExceededError,
 } from './imageGenerationApi';
 import { saveCustomPersona } from './personas';
 
@@ -186,19 +187,25 @@ export function buildScenePromptForPersona(persona: Persona, sceneDef: DefaultSc
 export async function generateSingleScene(
   persona: Persona,
   sceneDef: DefaultSceneDef,
-  options?: { workerUrl?: string; apiKey?: string }
+  options?: {
+    workerUrl?: string;
+    apiKey?: string;
+    onAccountRotated?: (info: {
+      fromAccount: CloudflareWorkerAccount;
+      toAccount: CloudflareWorkerAccount;
+      message: string;
+    }) => void;
+  }
 ): Promise<string> {
-  const workerUrl = options?.workerUrl || getStoredWorkerUrl();
-  const apiKey = options?.apiKey || getStoredApiKey();
-
   const prompt = buildScenePromptForPersona(persona, sceneDef);
   const rawUrl = await generateSceneImage(prompt, {
-    workerUrl,
-    apiKey,
+    workerUrl: options?.workerUrl,
+    apiKey: options?.apiKey,
     model: '@cf/black-forest-labs/flux-1-schnell',
     numSteps: 4,
     referenceImage: persona.avatarUrl,
     isScene: true,
+    onAccountRotated: options?.onAccountRotated,
   });
 
   const transparentUrl = await removeImageBackground(rawUrl);
@@ -215,6 +222,9 @@ export interface SceneGenProgress {
   latestSceneUrl?: string;
   error?: string;
   done: boolean;
+  accountSwitchInfo?: string;
+  allQuotaExceeded?: boolean;
+  resetInfo?: QuotaResetInfo;
 }
 
 /**
@@ -282,7 +292,20 @@ export async function generateAllMissingScenes(
     });
 
     try {
-      const finalUrl = await generateSingleScene(activePersona, sceneDef, options);
+      const finalUrl = await generateSingleScene(activePersona, sceneDef, {
+        ...options,
+        onAccountRotated: (rot) => {
+          onProgress({
+            total,
+            completed,
+            currentSceneKey: sceneDef.key,
+            currentSceneTitle: sceneDef.title,
+            percent: Math.round((completed / total) * 100),
+            accountSwitchInfo: rot.message,
+            done: false,
+          });
+        },
+      });
       updatedScenes[sceneDef.key] = finalUrl;
 
       // Also set aliases
@@ -316,6 +339,27 @@ export async function generateAllMissingScenes(
       // Brief pause between requests to maintain smooth network flow
       await new Promise((r) => setTimeout(r, 300));
     } catch (err) {
+      const isAllQuota =
+        err instanceof AllAccountsQuotaExceededError ||
+        (err && typeof err === 'object' && 'resetInfo' in err);
+
+      if (isAllQuota) {
+        const quotaErr = err as AllAccountsQuotaExceededError;
+        onProgress({
+          total,
+          completed,
+          currentSceneKey: sceneDef.key,
+          currentSceneTitle: sceneDef.title,
+          percent: Math.round((completed / total) * 100),
+          error: quotaErr.message,
+          allQuotaExceeded: true,
+          resetInfo: quotaErr.resetInfo,
+          done: false,
+        });
+        // Stop batch generation immediately when all accounts are exhausted
+        break;
+      }
+
       onProgress({
         total,
         completed,

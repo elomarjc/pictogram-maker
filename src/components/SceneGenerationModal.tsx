@@ -8,6 +8,9 @@ import {
   AlertCircle,
   Minimize2,
   Maximize2,
+  RotateCw,
+  Server,
+  Plus,
 } from 'lucide-react';
 import type { Persona } from '../types';
 import {
@@ -18,6 +21,12 @@ import {
   type SceneGenProgress,
 } from '../services/characterSceneGenerator';
 import { getAllPersonas } from '../services/personas';
+import { CloudflareAccountsModal } from './CloudflareAccountsModal';
+import {
+  getActiveWorkerAccounts,
+  resetAllAccountQuotas,
+  getQuotaResetInfo,
+} from '../services/imageGenerationApi';
 
 interface SceneGenerationModalProps {
   isOpen: boolean;
@@ -34,6 +43,10 @@ export const SceneGenerationModal: React.FC<SceneGenerationModalProps> = ({
 }) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
+  const [isAccountsModalOpen, setIsAccountsModalOpen] = useState(false);
+  const [isWaitingForReset, setIsWaitingForReset] = useState(false);
+  const resetTimerRef = useRef<number | null>(null);
+
   const [progress, setProgress] = useState<SceneGenProgress>({
     total: 0,
     completed: 0,
@@ -53,6 +66,47 @@ export const SceneGenerationModal: React.FC<SceneGenerationModalProps> = ({
       setCurrentPersona(fresh);
     }
   }, [persona, isOpen]);
+
+  // Clean up auto-resume timer on unmount
+  useEffect(() => {
+    return () => {
+      if (resetTimerRef.current !== null) {
+        clearTimeout(resetTimerRef.current);
+      }
+    };
+  }, []);
+
+  const handleScheduleAutoResume = () => {
+    setIsWaitingForReset(true);
+    const resetInfo = getQuotaResetInfo();
+    const now = Date.now();
+    // Wait until midnight UTC + 2 seconds buffer
+    const waitMs = Math.max(1000, resetInfo.nextReset.getTime() - now + 2000);
+
+    if (resetTimerRef.current !== null) {
+      clearTimeout(resetTimerRef.current);
+    }
+
+    resetTimerRef.current = window.setTimeout(() => {
+      resetAllAccountQuotas();
+      setIsWaitingForReset(false);
+      setErrorMsg(null);
+      if (currentPersona) {
+        startGeneration(currentPersona);
+      }
+    }, waitMs);
+  };
+
+  const handleAccountsChanged = () => {
+    const active = getActiveWorkerAccounts();
+    if (active.length > 0 && currentPersona) {
+      setErrorMsg(null);
+      setIsWaitingForReset(false);
+      if (!isGenerating) {
+        startGeneration(currentPersona);
+      }
+    }
+  };
 
   // Start generation automatically when opened and missing scenes exist
   useEffect(() => {
@@ -192,7 +246,16 @@ export const SceneGenerationModal: React.FC<SceneGenerationModalProps> = ({
               </span>
             </div>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setIsAccountsModalOpen(true)}
+              className="px-2.5 py-1 rounded-xl bg-white/90 hover:bg-white border-2 border-slate-900 font-bold text-xs text-slate-900 flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs mr-1"
+              title="Administrer Cloudflare AI Konti & Rotation"
+            >
+              <Server size={13} />
+              <span>AI Konti</span>
+            </button>
             <button
               type="button"
               onClick={() => setIsMinimized(true)}
@@ -258,7 +321,60 @@ export const SceneGenerationModal: React.FC<SceneGenerationModalProps> = ({
             />
           </div>
 
-          {errorMsg && (
+          {/* Account switch notification */}
+          {progress.accountSwitchInfo && (
+            <div className="mt-2.5 p-2.5 bg-sky-50 border-2 border-sky-400 rounded-xl flex items-center gap-2 text-sky-900 text-xs font-bold animate-pulse shadow-xs">
+              <RotateCw size={15} className="text-sky-600 shrink-0 animate-spin" />
+              <span>{progress.accountSwitchInfo}</span>
+            </div>
+          )}
+
+          {/* All accounts quota exceeded banner */}
+          {progress.allQuotaExceeded && (
+            <div className="mt-3 p-4 bg-amber-50 border-2 border-amber-400 rounded-2xl shadow-xs space-y-2">
+              <div className="flex items-start gap-2.5">
+                <Clock size={20} className="text-amber-600 shrink-0 mt-0.5" />
+                <div className="text-xs space-y-0.5">
+                  <h4 className="font-black text-amber-950">
+                    Dagens gratis AI-kvote er nået på alle dine Cloudflare-konti
+                  </h4>
+                  <p className="text-amber-900">
+                    Cloudflare nulstiller automatisk kvoten (10.000 neuroner pr. konto){' '}
+                    <strong>kl. {progress.resetInfo?.localTimeStr || '02:00'}</strong> (om{' '}
+                    {progress.resetInfo?.countdownStr || 'i nat'}).
+                  </p>
+                  <p className="text-[11px] text-slate-600">
+                    Dine {ready} færdiggjorte scener er gemt sikkert i din browser.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setIsAccountsModalOpen(true)}
+                  className="px-3 py-1.5 rounded-xl border-2 border-slate-900 bg-amber-400 hover:bg-amber-500 font-bold text-xs text-slate-900 shadow-2xs flex items-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <Plus size={14} className="stroke-[3]" />
+                  <span>Tilføj ekstra konto (fortsæt nu)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleScheduleAutoResume}
+                  className="px-3 py-1.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-100 font-bold text-xs text-slate-700 shadow-2xs flex items-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <Clock size={14} />
+                  <span>
+                    {isWaitingForReset
+                      ? `Venter på automatisk fortsættelse kl. ${progress.resetInfo?.localTimeStr || '02:00'}...`
+                      : `Fortsæt automatisk kl. ${progress.resetInfo?.localTimeStr || '02:00'}`}
+                  </span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {errorMsg && !progress.allQuotaExceeded && (
             <div className="mt-2.5 p-2 bg-rose-50 border border-rose-300 rounded-xl flex items-center gap-2 text-rose-700 text-xs font-bold">
               <AlertCircle size={14} className="flex-shrink-0" />
               <span className="line-clamp-1">{errorMsg}</span>
@@ -410,6 +526,12 @@ export const SceneGenerationModal: React.FC<SceneGenerationModalProps> = ({
           </div>
         </div>
       </div>
+
+      <CloudflareAccountsModal
+        isOpen={isAccountsModalOpen}
+        onClose={() => setIsAccountsModalOpen(false)}
+        onAccountsChanged={handleAccountsChanged}
+      />
     </div>
   );
 };

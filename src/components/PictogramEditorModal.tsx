@@ -21,6 +21,7 @@ import {
   ExternalLink,
   Layers,
   FileText,
+  Server,
 } from 'lucide-react';
 import {
   buildCloudflareAiPrompt,
@@ -32,14 +33,13 @@ import { PICTO_STYLE_REF_URL } from '../services/personas';
 import { CropSceneModal, type CropSceneResult } from './CropSceneModal';
 import {
   generateSceneImage,
-  getStoredWorkerUrl,
-  getStoredApiKey,
   removeImageBackground,
   autoFitSceneToStandardFormat,
 } from '../services/imageGenerationApi';
 import { getShortSceneTitle } from '../utils/sceneTitleHelper';
 import { getDbItem, setDbItem } from '../services/storageDb';
 import { SceneGenerationModal } from './SceneGenerationModal';
+import { CloudflareAccountsModal } from './CloudflareAccountsModal';
 import { getReadyScenesCount } from '../services/characterSceneGenerator';
 
 interface PictogramEditorModalProps {
@@ -493,16 +493,12 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
   // Cloudflare Workers AI integration state
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
+  const [aiRotationNotice, setAiRotationNotice] = useState<string | null>(null);
+  const [isAccountsModalOpen, setIsAccountsModalOpen] = useState(false);
 
   const handleGenerateWithAi = async () => {
-    const workerUrl = getStoredWorkerUrl();
-    const workerApiKey = getStoredApiKey();
-    if (!workerUrl.trim()) {
-      setAiError('Ingen Cloudflare Worker adresse fundet. Brug gerne ChatGPT Masterprompt metoden herover.');
-      return;
-    }
-
     setAiError(null);
+    setAiRotationNotice(null);
     setIsGeneratingAi(true);
 
     try {
@@ -514,13 +510,10 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
         isWoman: activePersona.id === 'woman_a',
       });
 
-      // Note: We deliberately do NOT pass referenceImage to generateSceneImage.
-      // The Cloudflare Worker backend treats any image_b64 as an Avatar Creator selfie request,
-      // which overwrites the scene prompt with an avatar bust portrait. Flux-1-Schnell
-      // executes text-to-image directly on our prompt with character and activity details.
       const generatedDataUrl = await generateSceneImage(promptToUse, {
-        workerUrl,
-        apiKey: workerApiKey,
+        onAccountRotated: (rot) => {
+          setAiRotationNotice(rot.message);
+        },
       });
 
       // Automatically remove solid background to make it transparent
@@ -1400,30 +1393,60 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
                     <span className="text-[11px] font-bold text-slate-500">
                       Eller prøv direkte i browseren:
                     </span>
-                    <button
-                      type="button"
-                      disabled={isGeneratingAi || !inlineSceneText.trim()}
-                      onClick={handleGenerateWithAi}
-                      className="py-1.5 px-3 bg-slate-100 hover:bg-amber-100 disabled:opacity-50 text-slate-800 font-bold text-xs rounded-xl border border-slate-300 hover:border-slate-900 flex items-center gap-1.5 transition-colors cursor-pointer"
-                    >
-                      {isGeneratingAi ? (
-                        <>
-                          <Loader2 size={13} className="animate-spin text-amber-600" />
-                          <span>Genererer...</span>
-                        </>
-                      ) : (
-                        <>
-                          <Sparkles size={13} className="text-amber-500" />
-                          <span>Direkte AI (1-klik)</span>
-                        </>
-                      )}
-                    </button>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setIsAccountsModalOpen(true)}
+                        className="py-1 px-2.5 bg-white hover:bg-slate-100 text-slate-700 font-bold text-[11px] rounded-xl border border-slate-300 flex items-center gap-1 transition-colors cursor-pointer"
+                        title="Administrer Cloudflare AI Konti & Rotation"
+                      >
+                        <Server size={12} className="text-amber-600" />
+                        <span>AI Konti</span>
+                      </button>
+                      <button
+                        type="button"
+                        disabled={isGeneratingAi || !inlineSceneText.trim()}
+                        onClick={handleGenerateWithAi}
+                        className="py-1.5 px-3 bg-slate-100 hover:bg-amber-100 disabled:opacity-50 text-slate-800 font-bold text-xs rounded-xl border border-slate-300 hover:border-slate-900 flex items-center gap-1.5 transition-colors cursor-pointer"
+                      >
+                        {isGeneratingAi ? (
+                          <>
+                            <Loader2 size={13} className="animate-spin text-amber-600" />
+                            <span>Genererer...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles size={13} className="text-amber-500" />
+                            <span>Direkte AI (1-klik)</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
                   </div>
 
+                  {aiRotationNotice && (
+                    <div className="mt-2 p-2 rounded-xl bg-sky-50 border border-sky-300 text-xs font-bold text-sky-800 flex items-center gap-1.5 animate-pulse">
+                      <Sparkles size={13} className="text-sky-600 shrink-0" />
+                      <span>{aiRotationNotice}</span>
+                    </div>
+                  )}
+
                   {aiError && (
-                    <div className="mt-2 p-2 rounded-xl bg-rose-50 border border-rose-300 text-xs font-bold text-rose-800 flex items-center gap-2">
-                      <AlertCircle size={14} className="text-rose-700 shrink-0" />
-                      <span>{aiError}</span>
+                    <div className="mt-2 p-2.5 rounded-xl bg-amber-50 border border-amber-300 text-xs font-bold text-amber-900 flex flex-col gap-1.5">
+                      <div className="flex items-start gap-2">
+                        <AlertCircle size={15} className="text-amber-700 shrink-0 mt-0.5" />
+                        <span>{aiError}</span>
+                      </div>
+                      {aiError.includes('kvote') && (
+                        <button
+                          type="button"
+                          onClick={() => setIsAccountsModalOpen(true)}
+                          className="self-start text-[11px] font-black px-2.5 py-1 bg-amber-400 hover:bg-amber-500 text-slate-900 rounded-lg border border-slate-900 flex items-center gap-1 transition-colors cursor-pointer"
+                        >
+                          <Server size={12} />
+                          <span>Tilføj ekstra konto i AI Konti</span>
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
@@ -1466,6 +1489,11 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
         isOpen={isSceneGenOpen}
         persona={activePersona}
         onClose={() => setIsSceneGenOpen(false)}
+      />
+
+      <CloudflareAccountsModal
+        isOpen={isAccountsModalOpen}
+        onClose={() => setIsAccountsModalOpen(false)}
       />
     </div>
   );
