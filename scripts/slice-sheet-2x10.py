@@ -156,6 +156,40 @@ CELL_DEFINITIONS = [
     },
 ]
 
+# Præcis definition af de 20 scener i Batch 2 (Pligter, hobbyer, ture ud af huset)
+CELL_DEFINITIONS_BATCH2 = [
+    # Række 1
+    {"coords": (0, 187, 0, 465), "primary_key": "skifte_sengetoj", "aliases": [], "title": "Skifte sengetøj"},
+    {"coords": (0, 188, 465, None), "primary_key": "stovsuge", "aliases": [], "title": "Støvsuge gulv"},
+    # Række 2
+    {"coords": (188, 362, 0, 465), "primary_key": "torre_bord", "aliases": [], "title": "Tørre bord af"},
+    {"coords": (189, 360, 465, None), "primary_key": "tomme_opvaskemaskine", "aliases": [], "title": "Tømme opvaskemaskine"},
+    # Række 3
+    {"coords": (363, 543, 0, 465), "primary_key": "legge_toj_sammen", "aliases": [], "title": "Lægge tøj sammen"},
+    {"coords": (361, 540, 465, None), "primary_key": "forberede_mad", "aliases": [], "title": "Forberede mad"},
+    # Række 4
+    {"coords": (544, 709, 0, 465), "primary_key": "hore_musik", "aliases": [], "title": "Høre musik"},
+    {"coords": (541, 708, 465, None), "primary_key": "ipad_tablet", "aliases": [], "title": "iPad / Tablet"},
+    # Række 5
+    {"coords": (709, 883, 0, 465), "primary_key": "perler", "aliases": [], "title": "Lave perler"},
+    {"coords": (709, 883, 465, None), "primary_key": "havearbejde", "aliases": [], "title": "Havearbejde"},
+    # Række 6
+    {"coords": (883, 1030, 0, 465), "primary_key": "svommehal", "aliases": [], "title": "Svømmehal"},
+    {"coords": (885, 1030, 465, None), "primary_key": "bus_tog", "aliases": [], "title": "Køre i bus / tog"},
+    # Række 7
+    {"coords": (1031, 1192, 0, 465), "primary_key": "pakke_taske", "aliases": [], "title": "Pakke taske til weekend"},
+    {"coords": (1031, 1192, 465, None), "primary_key": "besog_far", "aliases": [], "title": "Besøg hos far / familie"},
+    # Række 8
+    {"coords": (1193, 1338, 0, 465), "primary_key": "pant_flasker", "aliases": [], "title": "Aflevere pant & flasker"},
+    {"coords": (1193, 1338, 465, None), "primary_key": "tage_toj_paa", "aliases": [], "title": "Tage tøj og jakke på"},
+    # Række 9
+    {"coords": (1339, 1479, 0, 465), "primary_key": "drikke_vand", "aliases": [], "title": "Drikke et glas vand"},
+    {"coords": (1339, 1481, 465, None), "primary_key": "spille_spil", "aliases": [], "title": "Brætspil / Puslespil"},
+    # Række 10
+    {"coords": (1480, 1660, 0, 465), "primary_key": "rydde_op", "aliases": [], "title": "Rydde op på værelset"},
+    {"coords": (1482, 1660, 465, None), "primary_key": "sansehus", "aliases": [], "title": "Sansehus / Sanserum"},
+]
+
 
 def clean_cell_artifacts(cell_img: Image.Image) -> Image.Image:
     """Fjerner løsrevne støj-pixel og rester fra nabo-rækker vha. connected components."""
@@ -182,7 +216,7 @@ def clean_cell_artifacts(cell_img: Image.Image) -> Image.Image:
     return Image.fromarray(cell_arr)
 
 
-def slice_sheet(sheet_path: str, avatar_id: str = "avatar_1"):
+def slice_sheet(sheet_path: str, avatar_id: str = "avatar_1", batch: int = 1):
     sheet_file = Path(sheet_path).expanduser().resolve()
     if not sheet_file.exists():
         print(f"❌ Fejl: Fandt ikke billedfilen på: {sheet_file}")
@@ -198,8 +232,10 @@ def slice_sheet(sheet_path: str, avatar_id: str = "avatar_1"):
     ref_scenes_dir.mkdir(parents=True, exist_ok=True)
     pub_scenes_dir.mkdir(parents=True, exist_ok=True)
 
+    cell_defs = CELL_DEFINITIONS_BATCH2 if batch == 2 else CELL_DEFINITIONS
+
     print("\n========================================================")
-    print(f"✂️  Opdeler og beskærer 2x10 Sceneark for: {avatar_id}")
+    print(f"✂️  Opdeler og beskærer 2x10 Sceneark (Batch {batch}) for: {avatar_id}")
     print(f"📁 Kildebillede: {sheet_file}")
     print(f"🎯 Gemmes i: {ref_scenes_dir}")
     print("========================================================\n")
@@ -211,7 +247,7 @@ def slice_sheet(sheet_path: str, avatar_id: str = "avatar_1"):
     saved_count = 0
     updated_scenes = {}
 
-    for idx, cdef in enumerate(CELL_DEFINITIONS):
+    for idx, cdef in enumerate(cell_defs):
         y1, y2, x1, x2 = cdef["coords"]
         if x2 is None:
             x2 = total_w
@@ -258,7 +294,8 @@ def slice_sheet(sheet_path: str, avatar_id: str = "avatar_1"):
             target_canvas.save(ref_out, "WEBP", quality=95)
             target_canvas.save(pub_out, "WEBP", quality=95)
 
-            updated_scenes[k] = f"reference/personas/{avatar_id}/scenes/{k}.webp"
+        # Kun kanonisk primær scene tilføjes til manifest for at undgå duplikater
+        updated_scenes[key] = f"reference/personas/{avatar_id}/scenes/{key}.webp"
 
         saved_count += 1
         print(f"✓ [{idx+1:2d}/{len(CELL_DEFINITIONS)}] Gemte: {key}.webp ({title}) — oprindelig boks {cw}x{ch} px")
@@ -313,9 +350,26 @@ def slice_sheet(sheet_path: str, avatar_id: str = "avatar_1"):
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Brug: python3 scripts/slice-sheet-2x10.py <sti-til-billede> [avatar_id]")
+        print("Brug: python3 scripts/slice-sheet-2x10.py <sti-til-billede> [avatar_id] [--batch 1|2]")
         sys.exit(1)
 
     sheet_arg = sys.argv[1]
-    avatar_arg = sys.argv[2] if len(sys.argv) > 2 else "avatar_1"
-    slice_sheet(sheet_arg, avatar_arg)
+    avatar_arg = "avatar_1"
+    batch_arg = 1
+
+    # Check filename for auto-detect
+    if "batch2" in sheet_arg.lower():
+        batch_arg = 2
+
+    # Parse args
+    args = sys.argv[2:]
+    for i, a in enumerate(args):
+        if a in ("--batch", "-b") and i + 1 < len(args):
+            try:
+                batch_arg = int(args[i + 1])
+            except ValueError:
+                pass
+        elif not a.startswith("-") and i == 0:
+            avatar_arg = a
+
+    slice_sheet(sheet_arg, avatar_arg, batch_arg)

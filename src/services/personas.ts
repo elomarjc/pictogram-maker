@@ -36,6 +36,7 @@ export const DEFAULT_PERSONAS: Persona[] = [
       morgenmad: `${BASE}reference/personas/avatar_1/scenes/morgenmad.webp`,
       frokost: `${BASE}reference/personas/avatar_1/scenes/frokost.webp`,
       aftensmad: `${BASE}reference/personas/avatar_1/scenes/spisetid.webp`,
+      forberede_mad: `${BASE}reference/personas/avatar_1/scenes/spisetid.webp`,
       aktiviteter: `${BASE}reference/personas/avatar_1/scenes/aktiviteter.webp`,
       vaske_op: `${BASE}reference/personas/avatar_1/scenes/vaske_op.webp`,
       bolle: `${BASE}reference/personas/avatar_1/scenes/bolle.webp`,
@@ -43,41 +44,11 @@ export const DEFAULT_PERSONAS: Persona[] = [
       gatur: `${BASE}reference/personas/avatar_1/scenes/gatur.webp`,
       rede_seng: `${BASE}reference/personas/avatar_1/scenes/rede_seng.webp`,
       pause_sofa: `${BASE}reference/personas/avatar_1/scenes/pause_sofa.webp`,
-      tv_skaerm: `${BASE}reference/personas/avatar_1/scenes/pause_sofa.webp`,
       skraldespand: `${BASE}reference/personas/avatar_1/scenes/skraldespand.webp`,
       handle: `${BASE}reference/personas/avatar_1/scenes/handle.webp`,
-      forberede_mad: `${BASE}reference/personas/avatar_1/scenes/spisetid.webp`,
       boerste_taender: `${BASE}reference/personas/avatar_1/scenes/boerste_taender.webp`,
       cykeltur: `${BASE}reference/personas/avatar_1/scenes/cykeltur.webp`,
       weekend: `${BASE}reference/personas/avatar_1/scenes/weekend.webp`,
-    },
-  },
-  {
-    id: 'avatar_2',
-    name: 'avatar_2',
-    shortCode: 'avatar_2',
-    avatarUrl: `${BASE}reference/personas/avatar_2/avatar.webp?v=transparent`,
-    description: 'avatar_2',
-    activityScenes: {
-      vaesketoeg: `${BASE}reference/personas/avatar_2/scenes/vaesketoeg.webp`,
-      kaffe: `${BASE}reference/personas/avatar_2/scenes/kaffe.webp`,
-      medicin: `${BASE}reference/personas/avatar_2/scenes/medicin.webp`,
-      badetid: `${BASE}reference/personas/avatar_2/scenes/badetid.webp`,
-      spisetid: `${BASE}reference/personas/avatar_2/scenes/spisetid.webp`,
-      morgenmad: `${BASE}reference/personas/avatar_2/scenes/spisetid.webp`,
-      frokost: `${BASE}reference/personas/avatar_2/scenes/spisetid.webp`,
-      aftensmad: `${BASE}reference/personas/avatar_2/scenes/spisetid.webp`,
-      aktiviteter: `${BASE}reference/personas/avatar_1/scenes/aktiviteter.webp`,
-      vaske_op: `${BASE}reference/personas/avatar_2/scenes/vaesketoeg.webp`,
-      bolle: `${BASE}reference/personas/avatar_2/scenes/kaffe.webp`,
-      sengetid: `${BASE}reference/personas/avatar_2/scenes/sengetid.webp`,
-      gatur: `${BASE}reference/personas/avatar_1/scenes/gatur.webp`,
-      rede_seng: `${BASE}reference/personas/avatar_1/scenes/rede_seng.webp`,
-      pause_sofa: `${BASE}reference/personas/avatar_1/scenes/pause_sofa.webp`,
-      tv_skaerm: `${BASE}reference/personas/avatar_1/scenes/pause_sofa.webp`,
-      skraldespand: `${BASE}reference/personas/avatar_1/scenes/skraldespand.webp`,
-      handle: `${BASE}reference/personas/avatar_1/scenes/handle.webp`,
-      forberede_mad: `${BASE}reference/personas/avatar_2/scenes/spisetid.webp`,
     },
   },
 ];
@@ -115,14 +86,8 @@ export function resolveAssetUrl(url?: string): string {
   if (clean.includes('personas/man/')) {
     clean = clean.replace('personas/man/', 'personas/avatar_1/');
   }
-  if (clean.includes('personas/woman/')) {
-    clean = clean.replace('personas/woman/', 'personas/avatar_2/');
-  }
   if (clean.includes('personas/man_k/')) {
     clean = clean.replace('personas/man_k/', 'personas/avatar_1/');
-  }
-  if (clean.includes('personas/woman_a/')) {
-    clean = clean.replace('personas/woman_a/', 'personas/avatar_2/');
   }
   return `${BASE}${clean}`;
 }
@@ -194,11 +159,11 @@ export function getCustomPersonas(): Persona[] {
     }
   }
 
-  // Filter out any legacy IDs and enforce clean avatar_1 / avatar_2 names without gender
+  // Filter out any legacy IDs and enforce clean avatar_1 name without gender
   const cleanList = list
-    .filter((p) => p && p.id && p.id !== 'man' && p.id !== 'woman' && p.id !== 'man_k' && p.id !== 'woman_a')
+    .filter((p) => p && p.id && p.id !== 'man' && p.id !== 'woman' && p.id !== 'man_k' && p.id !== 'woman_a' && p.id !== 'avatar_2')
     .map((p) => {
-      if (p.id === 'avatar_1' || p.id === 'avatar_2') {
+      if (p.id === 'avatar_1') {
         return {
           ...p,
           name: p.id,
@@ -413,10 +378,33 @@ export function getAllPersonas(): Persona[] {
 
 export function getPersona(id?: string): Persona {
   const all = getAllPersonas();
-  const cleanId = id === 'man_k' || id === 'man' ? 'avatar_1' : id === 'woman_a' || id === 'woman' ? 'avatar_2' : id;
+  const cleanId = id === 'man_k' || id === 'man' ? 'avatar_1' : id;
   const found = all.find((p) => p.id === cleanId || p.id === id);
   return found || DEFAULT_PERSONAS[0];
 }
+
+export const SCENE_ALIAS_MAP: Record<string, string> = {
+  vasketoj: 'vaesketoeg',
+  the_kaffe: 'kaffe',
+  brusebad: 'badetid',
+  toej_af: 'badetid',
+  borste_taender: 'boerste_taender',
+  borste_tander: 'boerste_taender',
+  tandborste: 'boerste_taender',
+  opvask: 'vaske_op',
+  bolle_ikon: 'bolle',
+  gaatur: 'gatur',
+  sovetid: 'sengetid',
+  sove: 'sengetid',
+  sofa: 'pause_sofa',
+  tv_skaerm: 'pause_sofa',
+  skrald: 'skraldespand',
+  indkoeb: 'handle',
+  forberede_mad: 'spisetid',
+  lave_mad: 'spisetid',
+  aftensmad: 'spisetid',
+  tage_toej_paa: 'cykeltur',
+};
 
 export function resolveSceneImage(pic: Pictogram, persona: Persona): string | null {
   if (pic.customImageUrl) return resolveAssetUrl(pic.customImageUrl);
@@ -427,12 +415,16 @@ export function resolveSceneImage(pic: Pictogram, persona: Persona): string | nu
     if (persona.activityScenes[key]) {
       return resolveAssetUrl(persona.activityScenes[key]);
     }
-    // Fallbacks for common aliases
-    if (key === 'vaesketoeg' && persona.activityScenes['vasketoj']) {
-      return resolveAssetUrl(persona.activityScenes['vasketoj']);
+    // Check canonical alias map
+    const canonical = SCENE_ALIAS_MAP[key];
+    if (canonical && persona.activityScenes[canonical]) {
+      return resolveAssetUrl(persona.activityScenes[canonical]);
     }
-    if (key === 'vasketoj' && persona.activityScenes['vaesketoeg']) {
-      return resolveAssetUrl(persona.activityScenes['vaesketoeg']);
+    // Check reverse (if key is canonical, check if persona has alias)
+    for (const [alias, target] of Object.entries(SCENE_ALIAS_MAP)) {
+      if (target === key && persona.activityScenes[alias]) {
+        return resolveAssetUrl(persona.activityScenes[alias]);
+      }
     }
   }
   return null;

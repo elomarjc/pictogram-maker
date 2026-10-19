@@ -1,5 +1,5 @@
 import type React from 'react';
-import type { WeekPlan, DayOfWeek } from '../types';
+import type { WeekPlan, DayOfWeek, DayShift } from '../types';
 import { DAYS_OF_WEEK } from '../types';
 import {
   Printer,
@@ -8,6 +8,8 @@ import {
   ChevronDown,
   CalendarDays,
   Layers,
+  Sun,
+  Moon,
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -18,6 +20,7 @@ interface HeaderProps {
   onOpenPlanManager: () => void;
   onOpenTemplatePicker: () => void;
   onOpenPrintModal: () => void;
+  onToggleAllDaysShift?: (shift: DayShift) => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -28,6 +31,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenPlanManager,
   onOpenTemplatePicker,
   onOpenPrintModal,
+  onToggleAllDaysShift,
 }) => {
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b-3 border-slate-900 shadow-sm print:hidden">
@@ -112,19 +116,27 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* 7 Days Tabs */}
           {DAYS_OF_WEEK.map((day) => {
-            const count = currentPlan.days[day.id]?.pictograms.length || 0;
+            const daySchedule = currentPlan.days[day.id];
+            const count = daySchedule?.pictograms.length || 0;
             const isSelected = selectedDayId === day.id;
+            const shift = daySchedule?.activeShift || 'dag';
 
             return (
               <button
                 key={day.id}
                 onClick={() => onSelectDay(day.id)}
+                title={shift === 'aften' ? `${day.name} (Aftenplan)` : `${day.name} (Dagplan)`}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-extrabold text-xs transition-all shrink-0 cursor-pointer min-h-[32px] ${
                   isSelected
                     ? 'bg-amber-400 text-slate-900 border-2 border-slate-900 shadow-xs'
                     : 'text-slate-700 hover:bg-white hover:text-slate-900 border border-transparent'
                 }`}
               >
+                {shift === 'aften' ? (
+                  <Moon size={12} className="text-indigo-600 stroke-[2.5] shrink-0" />
+                ) : (
+                  <Sun size={12} className="text-amber-600 stroke-[2.5] shrink-0" />
+                )}
                 <span>{day.name}</span>
                 <span
                   className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
@@ -138,6 +150,31 @@ export const Header: React.FC<HeaderProps> = ({
               </button>
             );
           })}
+
+          {/* Global quick shift switcher */}
+          {onToggleAllDaysShift && (
+            <div className="ml-auto hidden md:flex items-center gap-1 bg-white p-0.5 rounded-xl border border-slate-300 shadow-2xs text-[11px] font-bold shrink-0">
+              <span className="text-[10px] text-slate-500 font-bold px-1.5">Alle:</span>
+              <button
+                type="button"
+                onClick={() => onToggleAllDaysShift('dag')}
+                title="Skift alle ugedage til Dagplaner"
+                className="flex items-center gap-1 px-2 py-0.5 rounded-lg hover:bg-amber-100 text-slate-800 transition-colors cursor-pointer"
+              >
+                <Sun size={12} className="text-amber-600 stroke-[2.5]" />
+                <span>Dag</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => onToggleAllDaysShift('aften')}
+                title="Skift alle ugedage til Aftenplaner"
+                className="flex items-center gap-1 px-2 py-0.5 rounded-lg hover:bg-indigo-100 text-slate-800 transition-colors cursor-pointer"
+              >
+                <Moon size={12} className="text-indigo-600 stroke-[2.5]" />
+                <span>Aften</span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </header>

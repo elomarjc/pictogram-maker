@@ -3,6 +3,7 @@ import html2canvas from 'html2canvas-pro';
 import type { DaySchedule, Pictogram, PrintSettings, WeekPlan, Persona } from '../types';
 import { DAYS_OF_WEEK } from '../types';
 import { getPersona, resolveSceneImage } from './personas';
+import { switchDayScheduleShift } from '../data/templates';
 
 // Convert hex color to RGB tuple
 function hexToRgb(hex: string): [number, number, number] {
@@ -320,14 +321,31 @@ export async function generatePdf(
   const pageHeight = 297;
   const margin = 12;
 
-  let targetDays: DaySchedule[] = [];
+  let baseTargetDays: DaySchedule[] = [];
   if (settings.scope === 'all') {
-    targetDays = DAYS_OF_WEEK.map((d) => plan.days[d.id]).filter(Boolean);
+    baseTargetDays = DAYS_OF_WEEK.map((d) => plan.days[d.id]).filter(Boolean);
   } else if (settings.scope === 'selected' && settings.targetDayId) {
-    targetDays = [plan.days[settings.targetDayId]];
+    baseTargetDays = [plan.days[settings.targetDayId]];
   } else {
     const firstDay = DAYS_OF_WEEK.find((d) => plan.days[d.id]?.pictograms.length > 0) || DAYS_OF_WEEK[0];
-    targetDays = [plan.days[settings.targetDayId || firstDay.id]];
+    baseTargetDays = [plan.days[settings.targetDayId || firstDay.id]];
+  }
+
+  let targetDays: DaySchedule[] = [];
+  const shiftFilter = settings.shiftFilter || 'active';
+  for (const day of baseTargetDays) {
+    if (!day) continue;
+    if (shiftFilter === 'dag') {
+      targetDays.push(switchDayScheduleShift(day, 'dag'));
+    } else if (shiftFilter === 'aften') {
+      targetDays.push(switchDayScheduleShift(day, 'aften'));
+    } else if (shiftFilter === 'both') {
+      targetDays.push(switchDayScheduleShift(day, 'dag'));
+      targetDays.push(switchDayScheduleShift(day, 'aften'));
+    } else {
+      // active as-is
+      targetDays.push(day);
+    }
   }
 
   let isFirstPage = true;

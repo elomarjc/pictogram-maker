@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import type { DaySchedule, Pictogram, PrintLayoutMode, Persona } from '../types';
+import type { DaySchedule, Pictogram, PrintLayoutMode, Persona, DayShift } from '../types';
 import { PictogramCard } from './PictogramCard';
 import { HeaderIconDisplay, HEADER_ICONS, SHIFT_PRESETS } from '../data/headerIcons';
 import {
@@ -13,6 +13,9 @@ import {
   X,
   Type,
   ChevronDown,
+  Sun,
+  Moon,
+  MoreHorizontal,
 } from 'lucide-react';
 
 interface DailyBoardProps {
@@ -37,6 +40,7 @@ interface DailyBoardProps {
   onUpdateAllCardsFontSize?: (size: number) => void;
   headerFontSize?: number;
   onUpdateHeaderFontSize?: (size: number) => void;
+  onToggleShift?: (shift: DayShift) => void;
 }
 
 export const DailyBoard: React.FC<DailyBoardProps> = ({
@@ -61,6 +65,7 @@ export const DailyBoard: React.FC<DailyBoardProps> = ({
   onUpdateHeaderIcons,
   onUpdateAllCardsFontSize,
   onUpdateHeaderFontSize,
+  onToggleShift,
 }) => {
   const [draggedIdx, setDraggedIdx] = useState<number | null>(null);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -78,11 +83,24 @@ export const DailyBoard: React.FC<DailyBoardProps> = ({
   const [isFontSizeMenuOpen, setIsFontSizeMenuOpen] = useState(false);
   const fontSizeMenuRef = useRef<HTMLDivElement>(null);
 
+  // State for day action menu dropdown (Copy, Reset, Clear)
+  const [isDayActionsOpen, setIsDayActionsOpen] = useState(false);
+  const dayActionsMenuRef = useRef<HTMLDivElement>(null);
+
   const currentGlobalFontSize = globalFontSize ?? 22;
   const currentHeaderFontSize = headerFontSize ?? schedule.headerFontSize ?? 28;
 
   const currentLeftIcon = schedule.headerLeftIcon || 'sun';
   const currentRightIcon = schedule.headerRightIcon || 'cloud';
+  const currentShift: DayShift = schedule.activeShift || 'dag';
+
+  const getDisplayDayTitle = (name: string, shift: DayShift) => {
+    const base = name.replace(/\s*[-–—]?\s*(Dag|Aften)\s*$/i, '').trim() || 'Mandag';
+    const suffix = shift === 'aften' ? 'Aften' : 'Dag';
+    return `${base} - ${suffix}`;
+  };
+
+  const displayTitle = getDisplayDayTitle(schedule.dayName, currentShift);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent | TouchEvent) => {
@@ -101,6 +119,12 @@ export const DailyBoard: React.FC<DailyBoardProps> = ({
       ) {
         setIsFontSizeMenuOpen(false);
       }
+      if (
+        dayActionsMenuRef.current &&
+        !dayActionsMenuRef.current.contains(e.target as Node)
+      ) {
+        setIsDayActionsOpen(false);
+      }
       if (target && !target.closest('[data-pictogram-card="true"]')) {
         setSelectedCardId(null);
       }
@@ -114,8 +138,8 @@ export const DailyBoard: React.FC<DailyBoardProps> = ({
   }, []);
 
   useEffect(() => {
-    setTempTitle(schedule.dayName);
-  }, [schedule.dayName]);
+    setTempTitle(displayTitle);
+  }, [displayTitle]);
 
   const handleMoveUp = (index: number) => {
     if (index <= 0) return;
@@ -155,36 +179,62 @@ export const DailyBoard: React.FC<DailyBoardProps> = ({
 
   return (
     <div className="w-full max-w-4xl mx-auto space-y-4">
-      {/* Top Action Toolbar for the Day */}
-      <div className="flex flex-wrap items-center justify-between gap-2.5 bg-white p-3 sm:p-4 rounded-2xl border-2 border-slate-900 shadow-sm">
-        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+      {/* Top Action Toolbar for the Day - Streamlined and clean */}
+      <div className="flex flex-wrap items-center justify-between gap-2.5 bg-white p-2.5 sm:p-3.5 rounded-2xl border-2 border-slate-900 shadow-sm">
+        {/* Left: Primary Actions - Add Card & Shift Toggle */}
+        <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={onAddPictogram}
-            className="inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-2 bg-amber-400 hover:bg-amber-500 text-slate-900 font-black rounded-xl border-2 border-slate-900 shadow-sm hover:shadow transition-all text-xs sm:text-sm cursor-pointer min-h-[36px]"
+            className="inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-2 bg-amber-400 hover:bg-amber-500 text-slate-900 font-black rounded-xl border-2 border-slate-900 shadow-sm hover:shadow transition-all text-xs sm:text-sm cursor-pointer min-h-[38px]"
           >
             <Plus size={18} className="stroke-[3]" />
-            Tilføj piktogram
+            <span>Tilføj piktogram</span>
           </button>
 
-          {/* Persona / Figure selector button */}
-          <button
-            onClick={onOpenPersonaModal}
-            title="Vælg figur"
-            className="inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 bg-white hover:bg-amber-50 text-slate-900 font-black rounded-xl border-2 border-slate-900 shadow-xs hover:shadow transition-all text-xs cursor-pointer min-h-[36px]"
-          >
-            <div className="w-5 h-5 rounded-md border border-slate-900 overflow-hidden shrink-0 bg-amber-100">
-              <img src={persona.avatarUrl} alt="" className="w-full h-full object-cover" />
+          {/* Dag vs. Aften Shift Toggle */}
+          {onToggleShift && (
+            <div className="inline-flex items-center bg-slate-100 p-0.5 sm:p-1 rounded-xl border-2 border-slate-900 shadow-2xs">
+              <button
+                type="button"
+                onClick={() => onToggleShift('dag')}
+                title="Skift til Dag-plan (morgen, bad, frokost, aktiviteter)"
+                aria-label="Skift til Dag-plan"
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black transition-all cursor-pointer ${
+                  currentShift === 'dag'
+                    ? 'bg-amber-400 text-slate-900 border border-slate-900 shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+                }`}
+              >
+                <Sun size={14} className="text-amber-800 stroke-[2.5]" />
+                <span>Dag</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => onToggleShift('aften')}
+                title="Skift til Aften-plan (kaffe, skrald, madlavning, TV, sove)"
+                aria-label="Skift til Aften-plan"
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black transition-all cursor-pointer ${
+                  currentShift === 'aften'
+                    ? 'bg-slate-900 text-amber-300 border border-slate-900 shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+                }`}
+              >
+                <Moon size={14} className="text-amber-300 stroke-[2.5]" />
+                <span>Aften</span>
+              </button>
             </div>
-            <span>Vælg figur</span>
-          </button>
+          )}
+        </div>
 
-          {/* View mode toggle - accessible on both mobile and desktop */}
-          <div className="flex items-center bg-slate-100 p-0.5 sm:p-1 rounded-xl border border-slate-300">
+        {/* Right: Display options, Persona & More Actions Dropdown */}
+        <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+          {/* View mode toggle */}
+          <div className="flex items-center bg-slate-100 p-0.5 rounded-xl border border-slate-300">
             <button
               onClick={() => onChangeViewMode('board')}
               title="Tavle-visning"
               aria-label="Tavle-visning"
-              className={`flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 viewMode === 'board'
                   ? 'bg-white text-slate-900 border border-slate-900 shadow-xs'
                   : 'text-slate-600 hover:text-slate-900'
@@ -197,7 +247,7 @@ export const DailyBoard: React.FC<DailyBoardProps> = ({
               onClick={() => onChangeViewMode('cards')}
               title="Kort-visning"
               aria-label="Kort-visning"
-              className={`flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 viewMode === 'cards'
                   ? 'bg-white text-slate-900 border border-slate-900 shadow-xs'
                   : 'text-slate-600 hover:text-slate-900'
@@ -208,25 +258,24 @@ export const DailyBoard: React.FC<DailyBoardProps> = ({
             </button>
           </div>
 
-          {/* Quick font size control for all cards */}
+          {/* Quick font size control */}
           {onUpdateAllCardsFontSize && (
             <div className="relative" ref={fontSizeMenuRef}>
               <button
                 type="button"
                 onClick={() => setIsFontSizeMenuOpen((prev) => !prev)}
-                title="Skift tekststørrelse for alle kort"
-                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white hover:bg-slate-50 text-slate-900 font-bold rounded-xl border-2 border-slate-900 shadow-xs text-xs cursor-pointer transition-all min-h-[36px]"
+                title="Skift tekststørrelse"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white hover:bg-slate-50 text-slate-900 font-bold rounded-xl border border-slate-300 hover:border-slate-900 text-xs cursor-pointer transition-all min-h-[34px]"
               >
                 <Type size={13} className="text-slate-700" />
-                <span className="hidden sm:inline">Tekst</span>
-                <span className="font-black text-amber-950 bg-amber-100 px-1 rounded border border-amber-300">
+                <span className="font-black text-amber-950 bg-amber-100 px-1 rounded border border-amber-300 text-[11px]">
                   {currentGlobalFontSize}
                 </span>
                 <ChevronDown size={12} className={`text-slate-600 transition-transform ${isFontSizeMenuOpen ? 'rotate-180' : ''}`} />
               </button>
 
               {isFontSizeMenuOpen && (
-                <div className="absolute left-0 sm:left-auto sm:right-0 top-full mt-1.5 z-40 p-3 bg-white border-2 border-slate-900 rounded-2xl shadow-xl w-56 max-w-[calc(100vw-32px)] space-y-2.5 animate-in fade-in zoom-in-95">
+                <div className="absolute right-0 top-full mt-1.5 z-40 p-3 bg-white border-2 border-slate-900 rounded-2xl shadow-xl w-56 max-w-[calc(100vw-32px)] space-y-2.5 animate-in fade-in zoom-in-95">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-slate-700">Tekststørrelse</span>
                     <div className="flex items-center gap-1 bg-slate-100 border border-slate-300 rounded-lg px-1.5 py-0.5">
@@ -328,36 +377,70 @@ export const DailyBoard: React.FC<DailyBoardProps> = ({
               )}
             </div>
           )}
-        </div>
 
-        <div className="flex items-center gap-1.5 sm:gap-2">
+          {/* Persona selector button */}
           <button
-            onClick={onCopyDay}
-            title="Kopiér denne dagsplan til en anden ugedag"
-            aria-label="Kopiér denne dagsplan"
-            className="inline-flex items-center justify-center gap-1 px-2.5 sm:px-3 py-1.5 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 text-xs font-bold rounded-xl border border-slate-300 transition-colors cursor-pointer min-h-[34px] min-w-[34px]"
+            onClick={onOpenPersonaModal}
+            title="Skift figur/avatar"
+            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white hover:bg-amber-50 text-slate-900 font-bold rounded-xl border border-slate-300 hover:border-slate-900 transition-all text-xs cursor-pointer min-h-[34px]"
           >
-            <Copy size={14} />
-            <span className="hidden md:inline">Kopiér dag</span>
+            <div className="w-5 h-5 rounded-md border border-slate-900 overflow-hidden shrink-0 bg-amber-100">
+              <img src={persona.avatarUrl} alt="" className="w-full h-full object-cover" />
+            </div>
+            <span className="hidden sm:inline">Figur</span>
           </button>
-          <button
-            onClick={onResetDay}
-            title="Nulstil denne dag til standardskabelonen"
-            aria-label="Nulstil denne dag"
-            className="inline-flex items-center justify-center gap-1 px-2.5 sm:px-3 py-1.5 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 text-xs font-bold rounded-xl border border-slate-300 transition-colors cursor-pointer min-h-[34px] min-w-[34px]"
-          >
-            <RotateCcw size={14} />
-            <span className="hidden md:inline">Nulstil dag</span>
-          </button>
-          <button
-            onClick={onClearDay}
-            title="Tøm alle piktogrammer for denne dag"
-            aria-label="Tøm denne dag"
-            className="inline-flex items-center justify-center gap-1 px-2.5 sm:px-3 py-1.5 bg-rose-50 hover:bg-rose-100 active:bg-rose-200 text-rose-700 text-xs font-bold rounded-xl border border-rose-300 transition-colors cursor-pointer min-h-[34px] min-w-[34px]"
-          >
-            <Trash2 size={14} />
-            <span className="hidden md:inline">Tøm dag</span>
-          </button>
+
+          {/* More Day Actions Dropdown (Copy, Reset, Clear) */}
+          <div className="relative" ref={dayActionsMenuRef}>
+            <button
+              type="button"
+              onClick={() => setIsDayActionsOpen((prev) => !prev)}
+              title="Flere handlinger for dagen"
+              aria-label="Flere handlinger for dagen"
+              className="inline-flex items-center justify-center p-2 bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 rounded-xl border border-slate-300 transition-colors cursor-pointer min-h-[34px] min-w-[34px]"
+            >
+              <MoreHorizontal size={16} />
+            </button>
+
+            {isDayActionsOpen && (
+              <div className="absolute right-0 top-full mt-1.5 z-40 py-1.5 bg-white border-2 border-slate-900 rounded-2xl shadow-xl w-52 animate-in fade-in zoom-in-95">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsDayActionsOpen(false);
+                    onCopyDay();
+                  }}
+                  className="w-full flex items-center gap-2 px-3.5 py-2 text-xs font-bold text-slate-700 hover:text-slate-900 hover:bg-slate-100 transition-colors text-left cursor-pointer"
+                >
+                  <Copy size={15} className="text-slate-500" />
+                  <span>Kopiér denne dag...</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsDayActionsOpen(false);
+                    onResetDay();
+                  }}
+                  className="w-full flex items-center gap-2 px-3.5 py-2 text-xs font-bold text-slate-700 hover:text-slate-900 hover:bg-slate-100 transition-colors text-left cursor-pointer"
+                >
+                  <RotateCcw size={15} className="text-slate-500" />
+                  <span>Nulstil til standard</span>
+                </button>
+                <div className="my-1 border-t border-slate-100" />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsDayActionsOpen(false);
+                    onClearDay();
+                  }}
+                  className="w-full flex items-center gap-2 px-3.5 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 transition-colors text-left cursor-pointer"
+                >
+                  <Trash2 size={15} className="text-rose-500" />
+                  <span>Tøm alle kort i dagen</span>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -416,7 +499,7 @@ export const DailyBoard: React.FC<DailyBoardProps> = ({
                       }
                     } else if (e.key === 'Escape') {
                       setIsEditingTitle(false);
-                      setTempTitle(schedule.dayName);
+                      setTempTitle(displayTitle);
                     }
                   }}
                   className="w-full max-w-sm text-center font-black text-slate-900 tracking-tight font-rounded bg-white/95 border-2 border-slate-900 rounded-xl px-2 py-0.5 outline-none shadow-sm leading-tight"
@@ -446,21 +529,23 @@ export const DailyBoard: React.FC<DailyBoardProps> = ({
                 )}
               </div>
             ) : (
-              <div
-                onClick={() => {
-                  setTempTitle(schedule.dayName);
-                  setIsEditingTitle(true);
-                }}
-                title="Klik for at redigere overskriften direkte"
-                className="group/title inline-flex items-center justify-center gap-1.5 cursor-pointer py-1 px-3 rounded-xl hover:bg-black/10 transition-colors"
-              >
-                <h1
-                  style={{ fontSize: `${currentHeaderFontSize}px` }}
-                  className="font-black text-slate-900 tracking-tight font-rounded leading-tight"
+              <div className="flex flex-col items-center">
+                <div
+                  onClick={() => {
+                    setTempTitle(displayTitle);
+                    setIsEditingTitle(true);
+                  }}
+                  title="Klik for at redigere overskriften direkte"
+                  className="group/title inline-flex items-center justify-center gap-1.5 cursor-pointer py-1 px-3 rounded-xl hover:bg-black/10 transition-colors"
                 >
-                  {schedule.dayName}
-                </h1>
-                <Pencil size={16} className="text-slate-800 opacity-70 sm:opacity-40 sm:group-hover/title:opacity-100 transition-opacity shrink-0 print:hidden" data-html2canvas-ignore="true" />
+                  <h1
+                    style={{ fontSize: `${currentHeaderFontSize}px` }}
+                    className="font-black text-slate-900 tracking-tight font-rounded leading-tight"
+                  >
+                    {displayTitle}
+                  </h1>
+                  <Pencil size={16} className="text-slate-800 opacity-70 sm:opacity-40 sm:group-hover/title:opacity-100 transition-opacity shrink-0 print:hidden" data-html2canvas-ignore="true" />
+                </div>
               </div>
             )}
           </div>

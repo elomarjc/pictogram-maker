@@ -26,8 +26,8 @@ export const DAYS_OF_WEEK: DayInfo[] = [
 export type CardFontSize = 'sm' | 'base' | 'lg' | 'xl' | number | string;
 
 export interface Persona {
-  id: string; // 'avatar_1' | 'avatar_2' | 'custom'
-  name: string; // 'Avatar 1' | 'Avatar 2' | 'Tilpasset'
+  id: string; // 'avatar_1' | 'custom'
+  name: string; // 'avatar_1' | 'Tilpasset'
   shortCode: string; // 'K.' | 'A.' | ...
   avatarUrl: string;
   description?: string;
@@ -51,6 +51,17 @@ export interface Pictogram {
   fontSize?: CardFontSize;
 }
 
+export type DayShift = 'dag' | 'aften';
+
+export interface DayShiftState {
+  dayName?: string;
+  headerSubtitle?: string;
+  headerFontSize?: number;
+  headerLeftIcon?: string;
+  headerRightIcon?: string;
+  pictograms: Pictogram[];
+}
+
 export interface DaySchedule {
   dayId: DayOfWeek;
   dayName: string;
@@ -59,6 +70,9 @@ export interface DaySchedule {
   headerLeftIcon?: string; // e.g. 'sun', 'moon', 'coffee', 'home', 'none'
   headerRightIcon?: string; // e.g. 'cloud', 'star', 'bed', 'heart', 'none'
   pictograms: Pictogram[];
+  activeShift?: DayShift; // 'dag' | 'aften' (default: 'dag')
+  dag?: DayShiftState; // Saved day shift state
+  aften?: DayShiftState; // Saved evening shift state
 }
 
 export interface WeekPlan {
@@ -87,6 +101,7 @@ export interface PrintSettings {
   colorMode: 'color' | 'grayscale';
   scope: 'current' | 'selected' | 'all'; // current day, chosen day, or all 7 days
   targetDayId?: DayOfWeek;
+  shiftFilter?: 'active' | 'dag' | 'aften' | 'both'; // Print active shift, only dag, only aften, or all 14 boards
 }
 
 export interface TemplateDefinition {
@@ -96,5 +111,14 @@ export interface TemplateDefinition {
   icon: string;
   personaId?: string;
   shortCode?: string;
-  days: Record<DayOfWeek, { headerSubtitle?: string; pictograms: Omit<Pictogram, 'id'>[] }>;
+  days: Record<
+    DayOfWeek,
+    {
+      headerSubtitle?: string;
+      pictograms: Omit<Pictogram, 'id'>[];
+      dagPictograms?: Omit<Pictogram, 'id'>[];
+      aftenPictograms?: Omit<Pictogram, 'id'>[];
+    }
+  >;
 }
+

@@ -1,4 +1,4 @@
-import type { TemplateDefinition, WeekPlan, DayOfWeek } from '../types';
+import type { TemplateDefinition, WeekPlan, DayOfWeek, DaySchedule, DayShift, DayShiftState, Pictogram } from '../types';
 import { DAYS_OF_WEEK } from '../types';
 import { REFERENCE_PALETTE } from '../services/personas';
 
@@ -900,22 +900,76 @@ export function generateUniqueId(prefix: string = 'pic'): string {
   return `${prefix}_${Date.now()}_${idCounter++}_${Math.random().toString(36).substring(2, 7)}`;
 }
 
+export function getDefaultDagPictogramsForDay(dayId: DayOfWeek): Pictogram[] {
+  const dagTemplate = BUILTIN_TEMPLATES.find((t) => t.id === 'k_dag_uge');
+  const items = dagTemplate?.days[dayId]?.pictograms || [];
+  return items.map((p) => ({
+    ...p,
+    id: generateUniqueId('item'),
+  }));
+}
+
+export function getDefaultAftenPictogramsForDay(dayId: DayOfWeek): Pictogram[] {
+  const aftenTemplate = BUILTIN_TEMPLATES.find((t) => t.id === 'k_aften_uge');
+  const items = aftenTemplate?.days[dayId]?.pictograms || [];
+  return items.map((p) => ({
+    ...p,
+    id: generateUniqueId('item'),
+  }));
+}
+
 export function createWeekPlanFromTemplate(template: TemplateDefinition, name?: string): WeekPlan {
   const planId = generateUniqueId('plan');
   const now = new Date().toISOString();
 
-  const daysRecord = {} as Record<DayOfWeek, WeekPlan['days'][DayOfWeek]>;
+  const isAftenOnly = template.id === 'k_aften_uge';
+  const initialShift: DayShift = isAftenOnly ? 'aften' : 'dag';
+
+  const daysRecord = {} as Record<DayOfWeek, DaySchedule>;
 
   DAYS_OF_WEEK.forEach((day) => {
     const tDay = template.days[day.id] || { headerSubtitle: '', pictograms: [] };
+
+    const dagPics: Pictogram[] =
+      tDay.dagPictograms?.map((p) => ({ ...p, id: generateUniqueId('item') })) ||
+      (!isAftenOnly && tDay.pictograms.length > 0
+        ? tDay.pictograms.map((p) => ({ ...p, id: generateUniqueId('item') }))
+        : getDefaultDagPictogramsForDay(day.id));
+
+    const aftenPics: Pictogram[] =
+      tDay.aftenPictograms?.map((p) => ({ ...p, id: generateUniqueId('item') })) ||
+      (isAftenOnly && tDay.pictograms.length > 0
+        ? tDay.pictograms.map((p) => ({ ...p, id: generateUniqueId('item') }))
+        : getDefaultAftenPictogramsForDay(day.id));
+
+    const activePics = initialShift === 'aften' ? aftenPics : dagPics;
+    const activeSubtitle = initialShift === 'aften' ? 'Aften' : (tDay.headerSubtitle || 'Dag');
+    const activeDayName = `${day.name} - ${initialShift === 'aften' ? 'Aften' : 'Dag'}`;
+    const activeLeftIcon = initialShift === 'aften' ? 'moon' : 'sun';
+    const activeRightIcon = initialShift === 'aften' ? 'star' : 'cloud';
+
     daysRecord[day.id] = {
       dayId: day.id,
-      dayName: day.name,
-      headerSubtitle: tDay.headerSubtitle || template.shortCode || 'K.',
-      pictograms: tDay.pictograms.map((p) => ({
-        ...p,
-        id: generateUniqueId('item'),
-      })),
+      dayName: activeDayName,
+      headerSubtitle: activeSubtitle,
+      headerLeftIcon: activeLeftIcon,
+      headerRightIcon: activeRightIcon,
+      pictograms: activePics,
+      activeShift: initialShift,
+      dag: {
+        dayName: `${day.name} - Dag`,
+        headerSubtitle: 'Dag',
+        headerLeftIcon: 'sun',
+        headerRightIcon: 'cloud',
+        pictograms: dagPics,
+      },
+      aften: {
+        dayName: `${day.name} - Aften`,
+        headerSubtitle: 'Aften',
+        headerLeftIcon: 'moon',
+        headerRightIcon: 'star',
+        pictograms: aftenPics,
+      },
     };
   });
 
@@ -930,3 +984,114 @@ export function createWeekPlanFromTemplate(template: TemplateDefinition, name?: 
     updatedAt: now,
   };
 }
+
+export function ensureDayShiftState(daySchedule: DaySchedule): DaySchedule {
+  const currentShift = daySchedule.activeShift || 'dag';
+  const dayNameBase = DAYS_OF_WEEK.find((d) => d.id === daySchedule.dayId)?.name || 'Dag';
+  const cleanBase = daySchedule.dayName.replace(/\s*[-–—]?\s*(Dag|Aften)\s*$/i, '').trim() || dayNameBase;
+  const formattedDayName = currentShift === 'aften' ? `${cleanBase} - Aften` : `${cleanBase} - Dag`;
+
+  let dag = daySchedule.dag;
+  if (!dag || !dag.pictograms || dag.pictograms.length === 0) {
+    dag = {
+      dayName: `${cleanBase} - Dag`,
+      headerSubtitle: 'Dag',
+      headerLeftIcon: 'sun',
+      headerRightIcon: 'cloud',
+      pictograms:
+        currentShift === 'dag' && daySchedule.pictograms?.length > 0
+          ? [...daySchedule.pictograms]
+          : getDefaultDagPictogramsForDay(daySchedule.dayId),
+    };
+  } else if (!dag.dayName || dag.dayName === cleanBase) {
+    dag.dayName = `${cleanBase} - Dag`;
+  }
+
+  let aften = daySchedule.aften;
+  if (!aften || !aften.pictograms || aften.pictograms.length === 0) {
+    aften = {
+      dayName: `${cleanBase} - Aften`,
+      headerSubtitle: 'Aften',
+      headerLeftIcon: 'moon',
+      headerRightIcon: 'star',
+      pictograms:
+        currentShift === 'aften' && daySchedule.pictograms?.length > 0
+          ? [...daySchedule.pictograms]
+          : getDefaultAftenPictogramsForDay(daySchedule.dayId),
+    };
+  } else if (!aften.dayName || aften.dayName === cleanBase) {
+    aften.dayName = `${cleanBase} - Aften`;
+  }
+
+  return {
+    ...daySchedule,
+    dayName: daySchedule.dayName && daySchedule.dayName.includes(' - ') ? daySchedule.dayName : formattedDayName,
+    activeShift: currentShift,
+    dag,
+    aften,
+  };
+}
+
+export function switchDayScheduleShift(daySchedule: DaySchedule, targetShift: DayShift): DaySchedule {
+  const schedule = ensureDayShiftState(daySchedule);
+  const currentShift = schedule.activeShift || 'dag';
+
+  if (currentShift === targetShift) {
+    return schedule;
+  }
+
+  // Snapshot current state
+  const currentState: DayShiftState = {
+    dayName: schedule.dayName,
+    headerSubtitle: schedule.headerSubtitle,
+    headerFontSize: schedule.headerFontSize,
+    headerLeftIcon: schedule.headerLeftIcon,
+    headerRightIcon: schedule.headerRightIcon,
+    pictograms: schedule.pictograms,
+  };
+
+  const updatedDag = currentShift === 'dag' ? currentState : schedule.dag!;
+  const updatedAften = currentShift === 'aften' ? currentState : schedule.aften!;
+
+  const targetState = targetShift === 'aften' ? updatedAften : updatedDag;
+  const dayNameBase = DAYS_OF_WEEK.find((d) => d.id === schedule.dayId)?.name || 'Dag';
+  const cleanBase =
+    (targetState.dayName || schedule.dayName).replace(/\s*[-–—]?\s*(Dag|Aften)\s*$/i, '').trim() || dayNameBase;
+  const targetDayName = targetShift === 'aften' ? `${cleanBase} - Aften` : `${cleanBase} - Dag`;
+
+  return {
+    ...schedule,
+    activeShift: targetShift,
+    dag: updatedDag,
+    aften: updatedAften,
+    dayName: targetDayName,
+    headerSubtitle: targetState.headerSubtitle || (targetShift === 'aften' ? 'Aften' : 'Dag'),
+    headerFontSize: targetState.headerFontSize ?? schedule.headerFontSize,
+    headerLeftIcon: targetState.headerLeftIcon || (targetShift === 'aften' ? 'moon' : 'sun'),
+    headerRightIcon: targetState.headerRightIcon || (targetShift === 'aften' ? 'star' : 'cloud'),
+    pictograms:
+      targetState.pictograms && targetState.pictograms.length > 0
+        ? targetState.pictograms
+        : targetShift === 'aften'
+          ? getDefaultAftenPictogramsForDay(schedule.dayId)
+          : getDefaultDagPictogramsForDay(schedule.dayId),
+  };
+}
+
+export function syncActiveShiftState(daySchedule: DaySchedule): DaySchedule {
+  const currentShift = daySchedule.activeShift || 'dag';
+  const state: DayShiftState = {
+    dayName: daySchedule.dayName,
+    headerSubtitle: daySchedule.headerSubtitle,
+    headerFontSize: daySchedule.headerFontSize,
+    headerLeftIcon: daySchedule.headerLeftIcon,
+    headerRightIcon: daySchedule.headerRightIcon,
+    pictograms: daySchedule.pictograms,
+  };
+  return {
+    ...daySchedule,
+    dag: currentShift === 'dag' ? state : daySchedule.dag,
+    aften: currentShift === 'aften' ? state : daySchedule.aften,
+  };
+}
+

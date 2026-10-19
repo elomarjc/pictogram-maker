@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   Images,
   Plus,
-  Play,
   X,
   CheckCircle2,
   Loader2,
@@ -12,10 +11,15 @@ import {
   Maximize2,
   RotateCw,
   Trash2,
+  Sparkles,
+  ExternalLink,
+  RefreshCw,
 } from 'lucide-react';
 import type { Persona } from '../types';
 import {
   DEFAULT_SCENE_DEFINITIONS,
+  BATCH_1_SCENE_DEFINITIONS,
+  BATCH_2_SCENE_DEFINITIONS,
   generateAllMissingScenes,
   generateSingleSceneForPersona,
   getMissingScenesForPersona,
@@ -29,7 +33,11 @@ import {
   deletePersonaSceneFromDisk,
   deleteAllPersonaScenesFromDisk,
 } from '../services/personas';
-import { AllAccountsQuotaExceededError } from '../services/imageGenerationApi';
+import {
+  getChatGPTStatus,
+  openChatGPTLogin,
+  type ChatGPTStatus,
+} from '../services/chatgptGeneration';
 import { ConfirmModal } from './ConfirmModal';
 
 interface SceneGenerationModalProps {
@@ -50,6 +58,26 @@ export const SceneGenerationModal: React.FC<SceneGenerationModalProps> = ({
   const [isGenerating, setIsGenerating] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [activeCardKey, setActiveCardKey] = useState<string | null>(null);
+  const [selectedBatchTab, setSelectedBatchTab] = useState<'batch1' | 'batch2' | 'all'>('batch1');
+
+  const [chatgptStatus, setChatgptStatus] = useState<ChatGPTStatus | null>(null);
+  const [checkingStatus, setCheckingStatus] = useState(false);
+
+  const checkStatus = async () => {
+    setCheckingStatus(true);
+    try {
+      const s = await getChatGPTStatus();
+      setChatgptStatus(s);
+    } finally {
+      setCheckingStatus(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      checkStatus();
+    }
+  }, [isOpen]);
 
   const [progress, setProgress] = useState<SceneGenProgress>({
     total: 0,
@@ -68,7 +96,10 @@ export const SceneGenerationModal: React.FC<SceneGenerationModalProps> = ({
     message: string | React.ReactNode;
     previewImage?: string;
     confirmText?: string;
+    cancelText?: string;
+    variant?: 'danger' | 'warning' | 'info';
     onConfirm: () => void;
+    onCancel?: () => void;
   }>({
     isOpen: false,
     title: '',
@@ -106,11 +137,11 @@ export const SceneGenerationModal: React.FC<SceneGenerationModalProps> = ({
     }
 
     if (autoStart) {
-      startGeneration(currentPersona);
+      startGeneration(currentPersona, 1);
     }
   }, [isOpen, currentPersona?.id, autoStart]);
 
-  const startGeneration = async (targetPersona: Persona) => {
+  const startGeneration = async (targetPersona: Persona, batchNum: 1 | 2 = 1) => {
     setErrorMsg(null);
     setIsGenerating(true);
 
@@ -133,7 +164,7 @@ export const SceneGenerationModal: React.FC<SceneGenerationModalProps> = ({
             onPersonaUpdated?.(fresh);
           }
         },
-        { signal: controller.signal }
+        { batch: batchNum, signal: controller.signal }
       );
 
       setCurrentPersona(updated);
@@ -155,7 +186,7 @@ export const SceneGenerationModal: React.FC<SceneGenerationModalProps> = ({
     setIsGenerating(false);
   };
 
-  const handleGenerateSingleCard = async (sceneDef: DefaultSceneDef) => {
+  const executeSingleCardGeneration = async (sceneDef: DefaultSceneDef) => {
     if (!currentPersona || isGenerating) return;
 
     setErrorMsg(null);
@@ -194,25 +225,46 @@ export const SceneGenerationModal: React.FC<SceneGenerationModalProps> = ({
         done: ready === total,
       }));
     } catch (err) {
-      const isAllQuota =
-        err instanceof AllAccountsQuotaExceededError ||
-        (err && typeof err === 'object' && 'resetInfo' in err);
-
-      if (isAllQuota) {
-        const quotaErr = err as AllAccountsQuotaExceededError;
-        setProgress((prev) => ({
-          ...prev,
-          allQuotaExceeded: true,
-          resetInfo: quotaErr.resetInfo,
-          done: false,
-        }));
-      } else {
-        setErrorMsg(`Fejl ved ${sceneDef.title}: ${err instanceof Error ? err.message : String(err)}`);
-      }
+      setErrorMsg(`Fejl ved ${sceneDef.title}: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setIsGenerating(false);
       abortControllerRef.current = null;
     }
+  };
+
+  const handleGenerateSingleCard = (sceneDef: DefaultSceneDef) => {
+    if (!currentPersona || isGenerating) return;
+    const batchNum: 1 | 2 = BATCH_2_SCENE_DEFINITIONS.some((d) => d.key === sceneDef.key) ? 2 : 1;
+
+    setConfirmModal({
+      isOpen: true,
+      title: `Generér "${sceneDef.title}"`,
+      subtitle: '💡 Batch-generering anbefales kraftigt',
+      variant: 'warning',
+      confirmText: `Generer hele Batch ${batchNum} (Anbefalet)`,
+      cancelText: 'Generer kun denne scene',
+      message: (
+        <div className="space-y-2 text-xs text-slate-700">
+          <p>
+            Det <strong>frarådes kraftigt</strong> at generere scener én ad gangen, da ChatGPT hurtigt rammer timekvoten (ca. 40 beskeder per 3 timer).
+          </p>
+          <p>
+            Ved at generere <strong>Batch {batchNum}</strong> (20 scener i ét ark) bruger du <strong>kun 1 prompt</strong>, og alle scener får 100% identisk tøj, figur og streg.
+          </p>
+          <p className="font-bold text-slate-900 pt-1">
+            Vil du køre hele Batch {batchNum} nu (anbefales), eller fortsætte med kun denne ene scene?
+          </p>
+        </div>
+      ),
+      onConfirm: () => {
+        setConfirmModal((prev) => ({ ...prev, isOpen: false }));
+        startGeneration(currentPersona, batchNum);
+      },
+      onCancel: () => {
+        setConfirmModal((prev) => ({ ...prev, isOpen: false }));
+        executeSingleCardGeneration(sceneDef);
+      },
+    });
   };
 
   const handleDeleteScene = (sceneKey: string, sceneTitle?: string, sceneImg?: string) => {
@@ -303,8 +355,15 @@ export const SceneGenerationModal: React.FC<SceneGenerationModalProps> = ({
 
   if (!isOpen || !currentPersona) return null;
 
-  const { ready, total } = getReadyScenesCount(currentPersona);
+  const { ready, total, batch1Ready, batch1Total, batch2Ready, batch2Total } = getReadyScenesCount(currentPersona);
   const scenesMap = currentPersona.activityScenes || {};
+
+  const displayedScenes =
+    selectedBatchTab === 'batch1'
+      ? BATCH_1_SCENE_DEFINITIONS
+      : selectedBatchTab === 'batch2'
+      ? BATCH_2_SCENE_DEFINITIONS
+      : DEFAULT_SCENE_DEFINITIONS;
 
   // Minimized floating banner at bottom-right
   if (isMinimized) {
@@ -363,7 +422,7 @@ export const SceneGenerationModal: React.FC<SceneGenerationModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-[90] flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
-      <div className="bg-white rounded-3xl border-4 border-slate-900 shadow-2xl max-w-2xl w-full overflow-hidden flex flex-col max-h-[92vh]">
+      <div className="bg-white rounded-3xl border-4 border-slate-900 shadow-2xl max-w-3xl w-full overflow-hidden flex flex-col max-h-[92vh]">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-3.5 border-b-2 border-slate-900 bg-amber-400">
           <div className="flex items-center gap-2.5">
@@ -372,10 +431,10 @@ export const SceneGenerationModal: React.FC<SceneGenerationModalProps> = ({
             </div>
             <div>
               <h2 className="text-lg font-black text-slate-900 tracking-tight leading-none">
-                Standardscener til figur
+                Piktogramscener til figur
               </h2>
               <span className="text-xs font-bold text-slate-800">
-                Opretter automatisk de 14 standard piktogramscener
+                40 standardscener fordelt på 2 batches (2x10 ark i ChatGPT)
               </span>
             </div>
           </div>
@@ -406,8 +465,8 @@ export const SceneGenerationModal: React.FC<SceneGenerationModalProps> = ({
         </div>
 
         {/* Persona Info & Progress Banner */}
-        <div className="px-5 py-3.5 bg-slate-50 border-b-2 border-slate-900">
-          <div className="flex items-center justify-between gap-3 mb-2">
+        <div className="px-5 py-3.5 bg-slate-50 border-b-2 border-slate-900 space-y-3">
+          <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2.5">
               <div className="w-10 h-10 rounded-xl border-2 border-slate-900 overflow-hidden bg-white shadow-xs flex-shrink-0">
                 <img
@@ -420,13 +479,13 @@ export const SceneGenerationModal: React.FC<SceneGenerationModalProps> = ({
                 <h3 className="text-sm font-black text-slate-900">
                   {currentPersona.name && !currentPersona.name.startsWith('avatar_')
                     ? currentPersona.name
-                    : 'Ny figur'}
+                    : 'Aktiv figur'}
                 </h3>
                 <span className="text-xs font-bold text-slate-600">
                   {ready === total
-                    ? 'Alle 14 standardscener er klar!'
+                    ? 'Alle 40 standardscener er klar!'
                     : isGenerating
-                    ? `Genererer scene: ${progress.currentSceneTitle || 'Forbereder...'}`
+                    ? `Genererer: ${progress.currentSceneTitle || 'Forbereder ChatGPT...'}`
                     : `${ready} af ${total} scener er klar`}
                 </span>
               </div>
@@ -449,7 +508,7 @@ export const SceneGenerationModal: React.FC<SceneGenerationModalProps> = ({
                   {ready} / {total}
                 </span>
                 <span className="block text-[11px] font-bold text-slate-500">
-                  ({progress.percent}%)
+                  ({Math.round((ready / total) * 100)}%)
                 </span>
               </div>
             </div>
@@ -461,49 +520,149 @@ export const SceneGenerationModal: React.FC<SceneGenerationModalProps> = ({
               className={`h-full transition-all duration-300 ${
                 ready === total ? 'bg-emerald-500' : 'bg-amber-400'
               }`}
-              style={{ width: `${Math.max(5, (ready / total) * 100)}%` }}
+              style={{ width: `${Math.max(4, (ready / total) * 100)}%` }}
             />
           </div>
 
-          {/* Account switch notification */}
-          {progress.accountSwitchInfo && (
-            <div className="mt-2.5 p-2.5 bg-sky-50 border-2 border-sky-400 rounded-xl flex items-center gap-2 text-sky-900 text-xs font-bold animate-pulse shadow-xs">
-              <RotateCw size={15} className="text-sky-600 shrink-0 animate-spin" />
-              <span>{progress.accountSwitchInfo}</span>
+          {/* Prompt / Batch Recommendation Notice (User Requested) */}
+          <div className="p-3 bg-amber-50 border-2 border-amber-400 rounded-2xl flex items-start gap-2.5 shadow-2xs">
+            <span className="text-base select-none mt-0.5">💡</span>
+            <div className="text-xs">
+              <span className="font-black text-slate-900 block text-xs sm:text-[13px]">
+                Anbefaling: Generér altid i batches (20 scener på ét ark)
+              </span>
+              <p className="text-slate-700 font-medium mt-0.5 leading-relaxed text-[11px]">
+                Det <strong>frarådes kraftigt</strong> at generere scener én ad gangen, da ChatGPT hurtigt rammer timekvoten (ca. 40 beskeder per 3 timer). Et 20-i-1 ark tæller som <strong>kun 1 forespørgsel</strong> og sikrer samtidig 100% ensartet tøj, figur og streg.
+              </p>
             </div>
-          )}
+          </div>
 
-          {/* All accounts quota exceeded banner */}
-          {progress.allQuotaExceeded && (
-            <div className="mt-2.5 p-2.5 bg-amber-50 border-2 border-amber-400 rounded-xl shadow-xs flex items-center gap-2.5">
-              <Clock size={18} className="text-amber-600 shrink-0" />
-              <div className="text-xs">
-                <span className="font-black text-amber-950 block">
-                  Pause: Dagens gratis grænse er nået
-                </span>
-                <span className="text-amber-900 text-[11px] block">
-                  Klar igen kl. {progress.resetInfo?.localTimeStr || '02:00'} (om{' '}
-                  {progress.resetInfo?.countdownStr || 'i nat'}). Dine {ready} scener er gemt.
-                </span>
+          {/* ChatGPT Browser Integration & Login Banner */}
+          <div className="p-3 bg-white border-2 border-slate-900 rounded-xl shadow-xs">
+            <div className="flex flex-wrap items-center justify-between gap-2.5">
+              <div className="flex items-center gap-2.5">
+                <div
+                  className={`w-3.5 h-3.5 rounded-full shrink-0 ${
+                    chatgptStatus?.loggedIn
+                      ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]'
+                      : 'bg-amber-400 animate-pulse'
+                  }`}
+                />
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-black text-slate-900">
+                      ChatGPT Browser:
+                    </span>
+                    <span
+                      className={`text-xs font-bold ${
+                        chatgptStatus?.loggedIn ? 'text-emerald-700' : 'text-amber-700'
+                      }`}
+                    >
+                      {chatgptStatus?.loggedIn
+                        ? `Forbundet (${chatgptStatus.profiles.length > 0 ? chatgptStatus.profiles.join(', ') : 'Brave/Chrome'})`
+                        : 'Log ind påkrævet'}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 font-medium">
+                    {chatgptStatus?.loggedIn
+                      ? 'Automationen styrer din aktive ChatGPT session og genererer lynhurtigt 20 scener per ark.'
+                      : 'Log ind på chatgpt.com i din browser, så genereres scenerne automatisk.'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={openChatGPTLogin}
+                  title="Åbn ChatGPT i din browser"
+                  className="px-3 py-1.5 rounded-lg border-2 border-slate-900 bg-slate-100 hover:bg-slate-200 text-slate-900 font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+                >
+                  <ExternalLink size={13} />
+                  <span>{chatgptStatus?.loggedIn ? 'Åbn ChatGPT' : 'Log ind på ChatGPT'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={checkStatus}
+                  disabled={checkingStatus}
+                  title="Tjek login status igen"
+                  className="p-1.5 rounded-lg border border-slate-300 hover:bg-slate-100 text-slate-700 transition-colors cursor-pointer"
+                >
+                  <RefreshCw size={13} className={checkingStatus ? 'animate-spin' : ''} />
+                </button>
               </div>
             </div>
-          )}
+          </div>
 
-          {errorMsg && !progress.allQuotaExceeded && (
-            <div className="mt-2.5 p-2 bg-rose-50 border border-rose-300 rounded-xl flex items-center gap-2 text-rose-700 text-xs font-bold">
-              <AlertCircle size={14} className="flex-shrink-0" />
-              <span className="line-clamp-1">{errorMsg}</span>
+          {/* Batch Selector Tabs */}
+          <div className="flex items-center gap-1.5 p-1 bg-slate-200 rounded-xl border border-slate-300">
+            <button
+              type="button"
+              onClick={() => setSelectedBatchTab('batch1')}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-black transition-all cursor-pointer ${
+                selectedBatchTab === 'batch1'
+                  ? 'bg-white text-slate-900 shadow-xs border border-slate-400'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+              }`}
+            >
+              <span>Batch 1: Grundrutiner</span>
+              <span
+                className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
+                  batch1Ready === batch1Total ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-300 text-slate-700'
+                }`}
+              >
+                {batch1Ready}/{batch1Total}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setSelectedBatchTab('batch2')}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-black transition-all cursor-pointer ${
+                selectedBatchTab === 'batch2'
+                  ? 'bg-white text-slate-900 shadow-xs border border-slate-400'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+              }`}
+            >
+              <span>Batch 2: Supplerende scener</span>
+              <span
+                className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
+                  batch2Ready === batch2Total ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                }`}
+              >
+                {batch2Ready}/{batch2Total}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setSelectedBatchTab('all')}
+              className={`flex items-center justify-center gap-1 py-1.5 px-2.5 rounded-lg text-xs font-black transition-all cursor-pointer ${
+                selectedBatchTab === 'all'
+                  ? 'bg-white text-slate-900 shadow-xs border border-slate-400'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+              }`}
+            >
+              <span>Alle ({ready}/{total})</span>
+            </button>
+          </div>
+
+          {errorMsg && (
+            <div className="p-2.5 bg-rose-50 border-2 border-rose-400 rounded-xl flex items-center gap-2 text-rose-800 text-xs font-bold shadow-xs">
+              <AlertCircle size={15} className="flex-shrink-0 text-rose-600" />
+              <span>{errorMsg}</span>
             </div>
           )}
         </div>
 
-        {/* 14 Scenes Grid */}
+        {/* Scenes Grid */}
         <div
           className="flex-1 overflow-y-auto p-4 sm:p-5"
           onClick={() => setActiveCardKey(null)}
         >
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-            {DEFAULT_SCENE_DEFINITIONS.map((sceneDef) => {
+            {displayedScenes.map((sceneDef) => {
               const sceneUrl = scenesMap[sceneDef.key];
               const isCurrent = isGenerating && progress.currentSceneKey === sceneDef.key;
               const isDone = !!sceneUrl;
@@ -560,7 +719,7 @@ export const SceneGenerationModal: React.FC<SceneGenerationModalProps> = ({
                   </div>
 
                   {/* Delete & Re-generate buttons for completed scenes (visible on hover or when card is selected) */}
-                    {isDone && !isGenerating && (
+                  {isDone && !isGenerating && (
                     <div
                       className={`absolute top-1.5 left-1.5 z-10 flex items-center gap-1 transition-opacity duration-150 ${
                         isSelected
@@ -584,7 +743,7 @@ export const SceneGenerationModal: React.FC<SceneGenerationModalProps> = ({
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleGenerateSingleCard(sceneDef);
+                          executeSingleCardGeneration(sceneDef);
                         }}
                         title="Gen-generer denne scene"
                         aria-label="Gen-generer denne scene"
@@ -627,7 +786,7 @@ export const SceneGenerationModal: React.FC<SceneGenerationModalProps> = ({
                     )}
                   </div>
 
-                  {/* Title (undertitle removed) */}
+                  {/* Title */}
                   <div className="text-center py-0.5">
                     <span className="text-xs font-black text-slate-900 block truncate">
                       {sceneDef.title}
@@ -645,15 +804,25 @@ export const SceneGenerationModal: React.FC<SceneGenerationModalProps> = ({
             {isGenerating ? (
               <span className="flex items-center gap-1.5 text-amber-700">
                 <Loader2 size={14} className="animate-spin" />
-                <span>Genererer automatisk... Du kan trygt køre i baggrunden.</span>
+                <span>Genererer automatisk via ChatGPT... Du kan trygt køre i baggrunden.</span>
               </span>
             ) : ready === total ? (
               <span className="flex items-center gap-1.5 text-emerald-700 font-black">
                 <CheckCircle2 size={14} />
-                <span>Klar! Alle 14 scener er tilgængelige for denne figur.</span>
+                <span>Klar! Alle 40 scener er tilgængelige for denne figur.</span>
+              </span>
+            ) : selectedBatchTab === 'batch1' && batch1Ready === batch1Total ? (
+              <span className="flex items-center gap-1.5 text-emerald-700 font-bold">
+                <CheckCircle2 size={14} />
+                <span>Batch 1 (20 Grundrutiner) er 100% klar!</span>
+              </span>
+            ) : selectedBatchTab === 'batch2' && batch2Ready === batch2Total ? (
+              <span className="flex items-center gap-1.5 text-emerald-700 font-bold">
+                <CheckCircle2 size={14} />
+                <span>Batch 2 (20 Supplerende scener) er 100% klar!</span>
               </span>
             ) : (
-              <span>Tryk for at generere de resterende scener.</span>
+              <span>Generér i 20-sceners batches for maksimal kvalitet og konsistens.</span>
             )}
           </div>
 
@@ -694,14 +863,54 @@ export const SceneGenerationModal: React.FC<SceneGenerationModalProps> = ({
                 >
                   Luk
                 </button>
-                <button
-                  type="button"
-                  onClick={() => startGeneration(currentPersona)}
-                  className="flex-1 sm:flex-none px-5 py-2.5 sm:py-2 rounded-xl border-2 border-slate-900 bg-amber-400 hover:bg-amber-500 text-slate-900 font-black text-xs shadow-xs transition-colors cursor-pointer flex items-center justify-center gap-1.5 min-h-[38px]"
-                >
-                  <Play size={14} className="fill-current" />
-                  <span>Generer manglende scener</span>
-                </button>
+
+                {/* Batch buttons depending on tab */}
+                {selectedBatchTab === 'batch1' && batch1Ready < batch1Total && (
+                  <button
+                    type="button"
+                    onClick={() => startGeneration(currentPersona, 1)}
+                    className="flex-1 sm:flex-none px-4 py-2.5 sm:py-2 rounded-xl border-2 border-slate-900 bg-amber-400 hover:bg-amber-500 text-slate-900 font-black text-xs shadow-xs transition-colors cursor-pointer flex items-center justify-center gap-1.5 min-h-[38px]"
+                  >
+                    <Sparkles size={14} className="fill-current" />
+                    <span>Generer Batch 1 ark (20 Grundrutiner)</span>
+                  </button>
+                )}
+
+                {selectedBatchTab === 'batch2' && batch2Ready < batch2Total && (
+                  <button
+                    type="button"
+                    onClick={() => startGeneration(currentPersona, 2)}
+                    className="flex-1 sm:flex-none px-4 py-2.5 sm:py-2 rounded-xl border-2 border-slate-900 bg-amber-400 hover:bg-amber-500 text-slate-900 font-black text-xs shadow-xs transition-colors cursor-pointer flex items-center justify-center gap-1.5 min-h-[38px]"
+                  >
+                    <Sparkles size={14} className="fill-current" />
+                    <span>Generer Batch 2 ark (20 Supplerende scener)</span>
+                  </button>
+                )}
+
+                {selectedBatchTab === 'all' && (
+                  <>
+                    {batch1Ready < batch1Total && (
+                      <button
+                        type="button"
+                        onClick={() => startGeneration(currentPersona, 1)}
+                        className="flex-1 sm:flex-none px-3.5 py-2 rounded-xl border-2 border-slate-900 bg-amber-400 hover:bg-amber-500 text-slate-900 font-black text-xs shadow-xs transition-colors cursor-pointer flex items-center justify-center gap-1.5 min-h-[38px]"
+                      >
+                        <Sparkles size={13} className="fill-current" />
+                        <span>Batch 1 (20)</span>
+                      </button>
+                    )}
+                    {batch2Ready < batch2Total && (
+                      <button
+                        type="button"
+                        onClick={() => startGeneration(currentPersona, 2)}
+                        className="flex-1 sm:flex-none px-3.5 py-2 rounded-xl border-2 border-slate-900 bg-amber-400 hover:bg-amber-500 text-slate-900 font-black text-xs shadow-xs transition-colors cursor-pointer flex items-center justify-center gap-1.5 min-h-[38px]"
+                      >
+                        <Sparkles size={13} className="fill-current" />
+                        <span>Batch 2 (20)</span>
+                      </button>
+                    )}
+                  </>
+                )}
               </>
             )}
           </div>
@@ -716,10 +925,10 @@ export const SceneGenerationModal: React.FC<SceneGenerationModalProps> = ({
         message={confirmModal.message}
         previewImage={confirmModal.previewImage}
         confirmText={confirmModal.confirmText || 'Ja, slet'}
-        cancelText="Annuller"
-        variant="danger"
+        cancelText={confirmModal.cancelText || 'Annuller'}
+        variant={confirmModal.variant || 'danger'}
         onConfirm={confirmModal.onConfirm}
-        onCancel={() => setConfirmModal((prev) => ({ ...prev, isOpen: false }))}
+        onCancel={confirmModal.onCancel || (() => setConfirmModal((prev) => ({ ...prev, isOpen: false })))}
       />
     </div>
   );

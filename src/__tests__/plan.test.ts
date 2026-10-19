@@ -91,9 +91,9 @@ describe('Persona & Figursystem samt Navnebeskyttelse', () => {
     expect(templatesJson.toLowerCase().includes('kristian')).toBe(false);
   });
 
-  it('indeholder standardfigurer avatar_1 og avatar_2 uden køn eller navne', async () => {
+  it('indeholder standardfigur avatar_1 uden køn eller navne', async () => {
     const { DEFAULT_PERSONAS, getPersona, resolveSceneImage } = await import('../services/personas');
-    expect(DEFAULT_PERSONAS.length).toBeGreaterThanOrEqual(2);
+    expect(DEFAULT_PERSONAS.length).toBeGreaterThanOrEqual(1);
 
     const a1 = getPersona('avatar_1');
     expect(a1.id).toBe('avatar_1');
@@ -101,13 +101,7 @@ describe('Persona & Figursystem samt Navnebeskyttelse', () => {
     expect(a1.shortCode).toBe('avatar_1');
     expect(a1.activityScenes.kaffe).toBeDefined();
 
-    const a2 = getPersona('avatar_2');
-    expect(a2.id).toBe('avatar_2');
-    expect(a2.name).toBe('avatar_2');
-    expect(a2.shortCode).toBe('avatar_2');
-    expect(a2.activityScenes.kaffe).toBeDefined();
-
-    // Verify scene resolution swaps depending on persona
+    // Verify scene resolution
     const testPic = {
       id: 'test_1',
       title: 'The & Kaffe',
@@ -117,10 +111,7 @@ describe('Persona & Figursystem samt Navnebeskyttelse', () => {
     };
 
     const a1Scene = resolveSceneImage(testPic, a1);
-    const a2Scene = resolveSceneImage(testPic, a2);
-    expect(a1Scene).not.toBe(a2Scene);
     expect(a1Scene).toContain('personas/avatar_1/scenes/kaffe');
-    expect(a2Scene).toContain('personas/avatar_2/scenes/kaffe');
   });
 });
 
@@ -175,14 +166,13 @@ describe('Prompt optimering og scene-beskrivelser', () => {
     expect(promptA1Sengetid).toContain('ZZZ');
     expect(promptA1Sengetid).toContain('Clean 2D cartoon pictogram vector illustration');
 
-    const promptA2Laundry = buildCloudflareAiPrompt({
+    const promptCustomLaundry = buildCloudflareAiPrompt({
       sceneDescription: 'vasketøj',
-      personaId: 'avatar_2',
+      personaDescription: 'curly red hair and green sweater',
     });
-    expect(promptA2Laundry).toContain('ponytail');
-    expect(promptA2Laundry).toContain('turquoise teal hoodie');
-    expect(promptA2Laundry).toContain('laundry basket');
-    expect(promptA2Laundry).toContain('washing machine');
+    expect(promptCustomLaundry).toContain('curly red hair and green sweater');
+    expect(promptCustomLaundry).toContain('laundry basket');
+    expect(promptCustomLaundry).toContain('washing machine');
   });
 
   it('har standard 2126 x 740 scene-dimensioner matchende vaesketoeg.webp og beregner mørkere nuance', async () => {
@@ -290,23 +280,34 @@ describe('Korte scene-titler og automatisk standardscene-generator', () => {
   it('beregner manglende scener for nye figurer vs standard figurer', async () => {
     const {
       DEFAULT_SCENE_DEFINITIONS,
+      BATCH_1_SCENE_DEFINITIONS,
+      BATCH_2_SCENE_DEFINITIONS,
       getMissingScenesForPersona,
+      getBatch1MissingScenesForPersona,
+      getBatch2MissingScenesForPersona,
       getReadyScenesCount,
       buildScenePromptForPersona,
     } = await import('../services/characterSceneGenerator');
 
-    expect(DEFAULT_SCENE_DEFINITIONS.length).toBe(14);
+    expect(DEFAULT_SCENE_DEFINITIONS.length).toBe(40);
+    expect(BATCH_1_SCENE_DEFINITIONS.length).toBe(20);
+    expect(BATCH_2_SCENE_DEFINITIONS.length).toBe(20);
 
-    // Standard avatar_1 has all 14 scenes
+    // Standard avatar_1 has all 20 Batch 1 grundrutiner ready
     const { DEFAULT_PERSONAS } = await import('../services/personas');
     const defaultA1 = DEFAULT_PERSONAS[0];
-    const a1Missing = getMissingScenesForPersona(defaultA1);
-    expect(a1Missing.length).toBe(0);
+    const b1Missing = getBatch1MissingScenesForPersona(defaultA1);
+    expect(b1Missing.length).toBe(0);
+    const b2Missing = getBatch2MissingScenesForPersona(defaultA1);
+    expect(b2Missing.length).toBe(19); // forberede_mad is mapped to spisetid.webp alias
     const a1Ready = getReadyScenesCount(defaultA1);
-    expect(a1Ready.ready).toBe(14);
-    expect(a1Ready.total).toBe(14);
+    expect(a1Ready.batch1Ready).toBe(20);
+    expect(a1Ready.batch1Total).toBe(20);
+    expect(a1Ready.batch2Ready).toBe(1);
+    expect(a1Ready.batch2Total).toBe(20);
+    expect(a1Ready.total).toBe(40);
 
-    // A brand new custom persona has 0 scenes ready and 14 missing
+    // A brand new custom persona has 0 scenes ready and 40 missing
     const newPersona = {
       id: 'avatar_test_123',
       name: 'Min testfigur',
@@ -316,10 +317,10 @@ describe('Korte scene-titler og automatisk standardscene-generator', () => {
       activityScenes: {},
     };
     const missing = getMissingScenesForPersona(newPersona);
-    expect(missing.length).toBe(14);
+    expect(missing.length).toBe(40);
     const readyCount = getReadyScenesCount(newPersona);
     expect(readyCount.ready).toBe(0);
-    expect(readyCount.total).toBe(14);
+    expect(readyCount.total).toBe(40);
 
     // Test prompt construction for a scene
     const laundryDef = DEFAULT_SCENE_DEFINITIONS.find((d) => d.key === 'vaesketoeg')!;

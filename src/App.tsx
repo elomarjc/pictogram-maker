@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import type { WeekPlan, DayOfWeek, Pictogram, PrintLayoutMode, TemplateDefinition } from './types';
+import type { WeekPlan, DayOfWeek, Pictogram, PrintLayoutMode, TemplateDefinition, DayShift } from './types';
 import {
   loadPlansFromSession,
   savePlansToSession,
@@ -7,7 +7,13 @@ import {
   exportPlansToJsonFile,
   importPlansFromJsonFile,
 } from './services/storage';
-import { BUILTIN_TEMPLATES, createWeekPlanFromTemplate, generateUniqueId } from './data/templates';
+import {
+  BUILTIN_TEMPLATES,
+  createWeekPlanFromTemplate,
+  generateUniqueId,
+  switchDayScheduleShift,
+  syncActiveShiftState,
+} from './data/templates';
 import { Header } from './components/Header';
 import { DailyBoard } from './components/DailyBoard';
 import { WeekView } from './components/WeekView';
@@ -99,6 +105,57 @@ export const App: React.FC = () => {
     }));
   };
 
+  // Helper to update a specific day schedule and synchronize its active shift state
+  const updateDaySchedule = (dayId: DayOfWeek, updater: (day: any) => any) => {
+    updateCurrentPlan((prev) => {
+      const daySchedule = prev.days[dayId];
+      if (!daySchedule) return prev;
+      const updated = updater(daySchedule);
+      const synced = syncActiveShiftState(updated);
+      return {
+        ...prev,
+        days: {
+          ...prev.days,
+          [dayId]: synced,
+        },
+      };
+    });
+  };
+
+  // Toggle shift for an individual day (dag <-> aften)
+  const handleToggleDayShift = (dayId: DayOfWeek, targetShift?: DayShift) => {
+    updateCurrentPlan((prev) => {
+      const daySchedule = prev.days[dayId];
+      if (!daySchedule) return prev;
+      const currentShift = daySchedule.activeShift || 'dag';
+      const nextShift = targetShift || (currentShift === 'dag' ? 'aften' : 'dag');
+      return {
+        ...prev,
+        days: {
+          ...prev.days,
+          [dayId]: switchDayScheduleShift(daySchedule, nextShift),
+        },
+      };
+    });
+  };
+
+  // Toggle shift globally across all 7 days of the week plan
+  const handleToggleAllDaysShift = (targetShift: DayShift) => {
+    updateCurrentPlan((prev) => {
+      const updatedDays = { ...prev.days };
+      for (const dayKey of Object.keys(updatedDays) as DayOfWeek[]) {
+        const day = updatedDays[dayKey];
+        if (day) {
+          updatedDays[dayKey] = switchDayScheduleShift(day, targetShift);
+        }
+      }
+      return {
+        ...prev,
+        days: updatedDays,
+      };
+    });
+  };
+
   // --- Pictogram Operations ---
   const handleOpenAddPictogram = (targetDayId?: DayOfWeek) => {
     if (targetDayId) {
@@ -124,9 +181,8 @@ export const App: React.FC = () => {
 
   const handleSavePictogram = (pic: Pictogram) => {
     const activeDay = selectedDayId === 'week' ? 'mandag' : selectedDayId;
-    updateCurrentPlan((prev) => {
-      const daySchedule = prev.days[activeDay];
-      const existingIdx = daySchedule.pictograms.findIndex((p) => p.id === pic.id);
+    updateDaySchedule(activeDay, (daySchedule) => {
+      const existingIdx = daySchedule.pictograms.findIndex((p: Pictogram) => p.id === pic.id);
       let newPics: Pictogram[];
 
       if (existingIdx >= 0) {
@@ -137,23 +193,16 @@ export const App: React.FC = () => {
       }
 
       return {
-        ...prev,
-        days: {
-          ...prev.days,
-          [activeDay]: {
-            ...daySchedule,
-            pictograms: newPics,
-          },
-        },
+        ...daySchedule,
+        pictograms: newPics,
       };
     });
   };
 
   const handleDuplicatePictogram = (pic: Pictogram) => {
     const activeDay = selectedDayId === 'week' ? 'mandag' : selectedDayId;
-    updateCurrentPlan((prev) => {
-      const daySchedule = prev.days[activeDay];
-      const idx = daySchedule.pictograms.findIndex((p) => p.id === pic.id);
+    updateDaySchedule(activeDay, (daySchedule) => {
+      const idx = daySchedule.pictograms.findIndex((p: Pictogram) => p.id === pic.id);
       const cloned: Pictogram = {
         ...pic,
         id: generateUniqueId('pic_copy'),
@@ -164,46 +213,25 @@ export const App: React.FC = () => {
       newPics.splice(idx + 1, 0, cloned);
 
       return {
-        ...prev,
-        days: {
-          ...prev.days,
-          [activeDay]: {
-            ...daySchedule,
-            pictograms: newPics,
-          },
-        },
+        ...daySchedule,
+        pictograms: newPics,
       };
     });
   };
 
   const handleDeletePictogram = (id: string) => {
     const activeDay = selectedDayId === 'week' ? 'mandag' : selectedDayId;
-    updateCurrentPlan((prev) => {
-      const daySchedule = prev.days[activeDay];
-      return {
-        ...prev,
-        days: {
-          ...prev.days,
-          [activeDay]: {
-            ...daySchedule,
-            pictograms: daySchedule.pictograms.filter((p) => p.id !== id),
-          },
-        },
-      };
-    });
+    updateDaySchedule(activeDay, (daySchedule) => ({
+      ...daySchedule,
+      pictograms: daySchedule.pictograms.filter((p: Pictogram) => p.id !== id),
+    }));
   };
 
   const handleReorderPictograms = (newOrder: Pictogram[]) => {
     const activeDay = selectedDayId === 'week' ? 'mandag' : selectedDayId;
-    updateCurrentPlan((prev) => ({
-      ...prev,
-      days: {
-        ...prev.days,
-        [activeDay]: {
-          ...prev.days[activeDay],
-          pictograms: newOrder,
-        },
-      },
+    updateDaySchedule(activeDay, (daySchedule) => ({
+      ...daySchedule,
+      pictograms: newOrder,
     }));
   };
 
@@ -224,18 +252,22 @@ export const App: React.FC = () => {
 
       const newTargetPics = [...targetSchedule.pictograms, itemToAdd];
 
+      const updatedSource = syncActiveShiftState({
+        ...sourceSchedule,
+        pictograms: newSourcePics,
+      });
+
+      const updatedTarget = syncActiveShiftState({
+        ...targetSchedule,
+        pictograms: newTargetPics,
+      });
+
       return {
         ...prev,
         days: {
           ...prev.days,
-          [currentDay]: {
-            ...sourceSchedule,
-            pictograms: newSourcePics,
-          },
-          [targetDayId]: {
-            ...targetSchedule,
-            pictograms: newTargetPics,
-          },
+          [currentDay]: updatedSource,
+          [targetDayId]: updatedTarget,
         },
       };
     });
@@ -251,15 +283,17 @@ export const App: React.FC = () => {
         id: generateUniqueId('pic_day_copy'),
       }));
 
+      const updatedTarget = syncActiveShiftState({
+        ...targetDay,
+        headerSubtitle: sourceDay.headerSubtitle || targetDay.headerSubtitle,
+        pictograms: clonedPics,
+      });
+
       return {
         ...prev,
         days: {
           ...prev.days,
-          [toDay]: {
-            ...targetDay,
-            headerSubtitle: sourceDay.headerSubtitle || targetDay.headerSubtitle,
-            pictograms: clonedPics,
-          },
+          [toDay]: updatedTarget,
         },
       };
     });
@@ -270,8 +304,7 @@ export const App: React.FC = () => {
     const cleanTitle = title.trim();
     if (!cleanTitle) return;
 
-    updateCurrentPlan((prev) => {
-      const daySchedule = prev.days[dayId];
+    updateDaySchedule(dayId, (daySchedule) => {
       const currentCount = daySchedule?.pictograms.length || 0;
       const { iconId, bgColor } = guessIconAndColor(cleanTitle, currentCount);
 
@@ -285,14 +318,8 @@ export const App: React.FC = () => {
       };
 
       return {
-        ...prev,
-        days: {
-          ...prev.days,
-          [dayId]: {
-            ...daySchedule,
-            pictograms: [...(daySchedule?.pictograms || []), newPic],
-          },
-        },
+        ...daySchedule,
+        pictograms: [...(daySchedule?.pictograms || []), newPic],
       };
     });
   };
@@ -301,47 +328,25 @@ export const App: React.FC = () => {
     const cleanTitle = newTitle.trim();
     if (!cleanTitle) return;
 
-    updateCurrentPlan((prev) => {
-      const daySchedule = prev.days[dayId];
-      if (!daySchedule) return prev;
-      return {
-        ...prev,
-        days: {
-          ...prev.days,
-          [dayId]: {
-            ...daySchedule,
-            pictograms: daySchedule.pictograms.map((p) =>
-              p.id === cardId ? { ...p, title: cleanTitle } : p
-            ),
-          },
-        },
-      };
-    });
+    updateDaySchedule(dayId, (daySchedule) => ({
+      ...daySchedule,
+      pictograms: daySchedule.pictograms.map((p: Pictogram) =>
+        p.id === cardId ? { ...p, title: cleanTitle } : p
+      ),
+    }));
   };
 
   const handleQuickDeleteCard = (dayId: DayOfWeek, cardId: string) => {
-    updateCurrentPlan((prev) => {
-      const daySchedule = prev.days[dayId];
-      if (!daySchedule) return prev;
-      return {
-        ...prev,
-        days: {
-          ...prev.days,
-          [dayId]: {
-            ...daySchedule,
-            pictograms: daySchedule.pictograms.filter((p) => p.id !== cardId),
-          },
-        },
-      };
-    });
+    updateDaySchedule(dayId, (daySchedule) => ({
+      ...daySchedule,
+      pictograms: daySchedule.pictograms.filter((p: Pictogram) => p.id !== cardId),
+    }));
   };
 
   const handleQuickDuplicateCard = (dayId: DayOfWeek, cardId: string) => {
-    updateCurrentPlan((prev) => {
-      const daySchedule = prev.days[dayId];
-      if (!daySchedule) return prev;
-      const idx = daySchedule.pictograms.findIndex((p) => p.id === cardId);
-      if (idx === -1) return prev;
+    updateDaySchedule(dayId, (daySchedule) => {
+      const idx = daySchedule.pictograms.findIndex((p: Pictogram) => p.id === cardId);
+      if (idx === -1) return daySchedule;
 
       const original = daySchedule.pictograms[idx];
       const cloned: Pictogram = {
@@ -353,41 +358,27 @@ export const App: React.FC = () => {
       newPics.splice(idx + 1, 0, cloned);
 
       return {
-        ...prev,
-        days: {
-          ...prev.days,
-          [dayId]: {
-            ...daySchedule,
-            pictograms: newPics,
-          },
-        },
+        ...daySchedule,
+        pictograms: newPics,
       };
     });
   };
 
   const handleQuickMoveCard = (dayId: DayOfWeek, cardId: string, direction: 'up' | 'down') => {
-    updateCurrentPlan((prev) => {
-      const daySchedule = prev.days[dayId];
-      if (!daySchedule) return prev;
-      const idx = daySchedule.pictograms.findIndex((p) => p.id === cardId);
-      if (idx === -1) return prev;
+    updateDaySchedule(dayId, (daySchedule) => {
+      const idx = daySchedule.pictograms.findIndex((p: Pictogram) => p.id === cardId);
+      if (idx === -1) return daySchedule;
 
       const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
-      if (targetIdx < 0 || targetIdx >= daySchedule.pictograms.length) return prev;
+      if (targetIdx < 0 || targetIdx >= daySchedule.pictograms.length) return daySchedule;
 
       const newPics = [...daySchedule.pictograms];
       const [moved] = newPics.splice(idx, 1);
       newPics.splice(targetIdx, 0, moved);
 
       return {
-        ...prev,
-        days: {
-          ...prev.days,
-          [dayId]: {
-            ...daySchedule,
-            pictograms: newPics,
-          },
-        },
+        ...daySchedule,
+        pictograms: newPics,
       };
     });
   };
@@ -423,34 +414,24 @@ export const App: React.FC = () => {
         ...prev,
         days: {
           ...prev.days,
-          [fromDayId]: {
+          [fromDayId]: syncActiveShiftState({
             ...sourceSchedule,
             pictograms: newSourcePics,
-          },
-          [toDayId]: {
+          }),
+          [toDayId]: syncActiveShiftState({
             ...targetSchedule,
             pictograms: newTargetPics,
-          },
+          }),
         },
       };
     });
   };
 
   const handleQuickReorderCards = (dayId: DayOfWeek, newCards: Pictogram[]) => {
-    updateCurrentPlan((prev) => {
-      const daySchedule = prev.days[dayId];
-      if (!daySchedule) return prev;
-      return {
-        ...prev,
-        days: {
-          ...prev.days,
-          [dayId]: {
-            ...daySchedule,
-            pictograms: newCards,
-          },
-        },
-      };
-    });
+    updateDaySchedule(dayId, (daySchedule) => ({
+      ...daySchedule,
+      pictograms: newCards,
+    }));
   };
 
   const handleResetDay = (dayId: DayOfWeek) => {
@@ -468,19 +449,13 @@ export const App: React.FC = () => {
       confirmText: 'Ja, nulstil dag',
       onConfirm: () => {
         setAppConfirmModal((prev) => ({ ...prev, isOpen: false }));
-        updateCurrentPlan((prev) => ({
-          ...prev,
-          days: {
-            ...prev.days,
-            [dayId]: {
-              ...prev.days[dayId],
-              headerSubtitle: defaultDay.headerSubtitle || '',
-              pictograms: defaultDay.pictograms.map((p) => ({
-                ...p,
-                id: generateUniqueId('item'),
-              })),
-            },
-          },
+        updateDaySchedule(dayId, (daySchedule) => ({
+          ...daySchedule,
+          headerSubtitle: defaultDay.headerSubtitle || '',
+          pictograms: defaultDay.pictograms.map((p) => ({
+            ...p,
+            id: generateUniqueId('item'),
+          })),
         }));
       },
     });
@@ -496,15 +471,9 @@ export const App: React.FC = () => {
       confirmText: 'Ja, tøm dag',
       onConfirm: () => {
         setAppConfirmModal((prev) => ({ ...prev, isOpen: false }));
-        updateCurrentPlan((prev) => ({
-          ...prev,
-          days: {
-            ...prev.days,
-            [dayId]: {
-              ...prev.days[dayId],
-              pictograms: [],
-            },
-          },
+        updateDaySchedule(dayId, (daySchedule) => ({
+          ...daySchedule,
+          pictograms: [],
         }));
       },
     });
@@ -512,59 +481,34 @@ export const App: React.FC = () => {
 
   const handleUpdateHeaderSubtitle = (newSubtitle: string) => {
     const activeDay = selectedDayId === 'week' ? 'mandag' : selectedDayId;
-    updateCurrentPlan((prev) => ({
-      ...prev,
-      days: {
-        ...prev.days,
-        [activeDay]: {
-          ...prev.days[activeDay],
-          headerSubtitle: newSubtitle,
-        },
-      },
+    updateDaySchedule(activeDay, (daySchedule) => ({
+      ...daySchedule,
+      headerSubtitle: newSubtitle,
     }));
   };
 
   const handleUpdateDayName = (newName: string) => {
     const activeDay = selectedDayId === 'week' ? 'mandag' : selectedDayId;
-    updateCurrentPlan((prev) => ({
-      ...prev,
-      days: {
-        ...prev.days,
-        [activeDay]: {
-          ...prev.days[activeDay],
-          dayName: newName,
-        },
-      },
+    updateDaySchedule(activeDay, (daySchedule) => ({
+      ...daySchedule,
+      dayName: newName,
     }));
   };
 
   const handleUpdateHeaderIcons = (leftIcon: string, rightIcon: string) => {
     const activeDay = selectedDayId === 'week' ? 'mandag' : selectedDayId;
-    updateCurrentPlan((prev) => ({
-      ...prev,
-      days: {
-        ...prev.days,
-        [activeDay]: {
-          ...prev.days[activeDay],
-          headerLeftIcon: leftIcon,
-          headerRightIcon: rightIcon,
-        },
-      },
+    updateDaySchedule(activeDay, (daySchedule) => ({
+      ...daySchedule,
+      headerLeftIcon: leftIcon,
+      headerRightIcon: rightIcon,
     }));
   };
 
   const handleUpdateHeaderFontSize = (newSize: number) => {
     const activeDay = selectedDayId === 'week' ? 'mandag' : selectedDayId;
-    updateCurrentPlan((prev) => ({
-      ...prev,
+    updateDaySchedule(activeDay, (daySchedule) => ({
+      ...daySchedule,
       headerFontSize: newSize,
-      days: {
-        ...prev.days,
-        [activeDay]: {
-          ...prev.days[activeDay],
-          headerFontSize: newSize,
-        },
-      },
     }));
   };
 
@@ -575,13 +519,14 @@ export const App: React.FC = () => {
       for (const dayKey of Object.keys(updatedDays) as DayOfWeek[]) {
         const day = updatedDays[dayKey];
         if (day && day.pictograms) {
-          updatedDays[dayKey] = {
+          const withNewFontSize = {
             ...day,
             pictograms: day.pictograms.map((p) => ({
               ...p,
               fontSize: numSize,
             })),
           };
+          updatedDays[dayKey] = syncActiveShiftState(withNewFontSize);
         }
       }
       return {
@@ -686,6 +631,7 @@ export const App: React.FC = () => {
         onOpenPlanManager={() => setIsPlanManagerOpen(true)}
         onOpenTemplatePicker={() => setIsTemplatePickerOpen(true)}
         onOpenPrintModal={() => setIsPrintModalOpen(true)}
+        onToggleAllDaysShift={handleToggleAllDaysShift}
       />
 
       {/* Main Workspace Body */}
@@ -703,6 +649,8 @@ export const App: React.FC = () => {
             onQuickMoveCard={handleQuickMoveCard}
             onQuickMoveCardBetweenDays={handleQuickMoveCardBetweenDays}
             onQuickReorderCards={handleQuickReorderCards}
+            onToggleDayShift={handleToggleDayShift}
+            onToggleAllDaysShift={handleToggleAllDaysShift}
           />
         ) : (
           <DailyBoard
@@ -727,6 +675,7 @@ export const App: React.FC = () => {
             onUpdateAllCardsFontSize={handleApplyFontSizeToAll}
             headerFontSize={activeDaySchedule?.headerFontSize || currentPlan.headerFontSize || 28}
             onUpdateHeaderFontSize={handleUpdateHeaderFontSize}
+            onToggleShift={(shift) => handleToggleDayShift(selectedDayId, shift)}
           />
         )}
       </main>

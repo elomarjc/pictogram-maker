@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import type { Pictogram, Persona } from '../types';
-import { getPersona } from '../services/personas';
+import { getPersona, SCENE_ALIAS_MAP } from '../services/personas';
 import { PictogramCard } from './PictogramCard';
 import {
   X,
@@ -11,32 +11,17 @@ import {
   Loader2,
   AlertCircle,
   ChevronDown,
-  Image as ImageIcon,
   Clock,
   Crop,
   Wand2,
-  Copy,
-  Download,
   ExternalLink,
-  Layers,
-  FileText,
   Play,
   Plus,
   Edit3,
+  ArrowLeft,
 } from 'lucide-react';
-import {
-  buildCloudflareAiPrompt,
-  buildDanishMasterPrompt,
-  buildEnglishMasterPrompt,
-  optimizeScenePrompt,
-} from '../data/scenePrompts';
-import { PICTO_STYLE_REF_URL } from '../services/personas';
 import { CropSceneModal, type CropSceneResult } from './CropSceneModal';
-import {
-  generateSceneImage,
-  removeImageBackground,
-  autoFitSceneToStandardFormat,
-} from '../services/imageGenerationApi';
+import { generateSingleSceneWithChatGPT, openChatGPTLogin } from '../services/chatgptGeneration';
 import { getShortSceneTitle } from '../utils/sceneTitleHelper';
 import { getDbItem, setDbItem } from '../services/storageDb';
 import { getReadyScenesCount } from '../services/characterSceneGenerator';
@@ -70,20 +55,49 @@ const SCENE_DESCRIPTIONS: Record<string, string> = {
   kaffe: 'The & Kaffe',
   medicin: 'Medicin',
   badetid: 'Badetid',
-  spisetid: 'Spisetid (Frokost/Aftensmad)',
+  spisetid: 'Aftensmad / Spisetid',
+  morgenmad: 'Morgenmad',
+  frokost: 'Frokost (rugbrød)',
+  boerste_taender: 'Børste tænder',
   aktiviteter: 'Aktiviteter & Hobby',
   vaske_op: 'Vaske op',
-  bolle: 'Bolle / Eftermiddag',
+  bolle: 'Bolle / Mellemmåltid',
   sengetid: 'Sengetid & Sove',
   gatur: 'Gåtur / Frisk luft',
   rede_seng: 'Rede seng',
   pause_sofa: 'Pause på sofa / TV',
-  skraldespand: 'Skrald & Flasker',
+  skraldespand: 'Skrald & Pant',
   handle: 'Handle indkøb',
+  cykeltur: 'Cykeltur / Motion',
+  weekend: 'Weekendhygge',
+  skifte_sengetoj: 'Skifte sengetøj',
+  stovsuge: 'Støvsuge gulv',
+  torre_bord: 'Tørre bord af',
+  tomme_opvaskemaskine: 'Tømme opvaskemaskine',
+  legge_toj_sammen: 'Lægge tøj sammen',
+  forberede_mad: 'Forberede mad',
+  hore_musik: 'Høre musik',
+  ipad_tablet: 'iPad & Tablet',
+  perler: 'Lave perleplade',
+  havearbejde: 'Havearbejde & Vande',
+  svommehal: 'Svømmehal',
+  bus_tog: 'Bus & Tog',
+  pakke_taske: 'Pakke taske',
+  besog_far: 'Besøg hos familie',
+  aflevere_flasker: 'Aflevere pantflasker',
+  tage_jakke_paa: 'Tage overtøj på',
+  drikke_vand: 'Drikke et glas vand',
+  braetspil: 'Spille brætspil',
+  rydde_op: 'Rydde op på værelset',
+  sansehus: 'Sansehus & Sanserum',
 };
 
 // Auto-match scenes based on activity title keywords (checked in priority order)
 const SCENE_MATCH_RULES: Array<{ sceneId: string; keywords: string[] }> = [
+  {
+    sceneId: 'boerste_taender',
+    keywords: ['børste tænder', 'tandbørste', 'børst tænder', 'børste tand', 'tandbørstning', 'tandpasta', 'tænder'],
+  },
   {
     sceneId: 'vaske_op',
     keywords: ['opvask', 'vaske op', 'opvaskemaskine', 'tømme opvask', 'fylde opvask'],
@@ -110,11 +124,19 @@ const SCENE_MATCH_RULES: Array<{ sceneId: string; keywords: string[] }> = [
   },
   {
     sceneId: 'badetid',
-    keywords: ['bad', 'bade', 'brusebad', 'bruse', 'karbad', 'bruser', 'vaske sig', 'tand', 'tænder', 'børste tænder', 'toilet', 'wc'],
+    keywords: ['bad', 'bade', 'brusebad', 'bruse', 'karbad', 'bruser', 'vaske sig', 'toilet', 'wc'],
+  },
+  {
+    sceneId: 'morgenmad',
+    keywords: ['morgenmad', 'havregryn', 'cornflakes', 'cereal', 'morgenmåltid'],
+  },
+  {
+    sceneId: 'frokost',
+    keywords: ['frokost', 'rugbrød', 'rugbrødsmad', 'madpakke', 'frokostpause'],
   },
   {
     sceneId: 'spisetid',
-    keywords: ['spis', 'spise', 'spisetid', 'mad', 'frokost', 'aftensmad', 'morgenmad', 'middagsmad', 'måltid', 'aftenmad', 'lave mad', 'tilberede mad', 'spisning', 'snack'],
+    keywords: ['spis', 'spise', 'spisetid', 'mad', 'aftensmad', 'middagsmad', 'måltid', 'aftenmad', 'lave mad', 'tilberede mad', 'spisning', 'snack'],
   },
   {
     sceneId: 'bolle',
@@ -126,7 +148,7 @@ const SCENE_MATCH_RULES: Array<{ sceneId: string; keywords: string[] }> = [
   },
   {
     sceneId: 'pause_sofa',
-    keywords: ['sofa', 'tv', 'fjernsyn', 'film', 'serie', 'slappe af', 'afslapning', 'pause', 'læse', 'bog', 'ipad', 'computer', 'skærm', 'gaming'],
+    keywords: ['sofa', 'tv', 'fjernsyn', 'film', 'serie', 'slappe af', 'afslapning', 'pause', 'læse', 'bog', 'ipad', 'computer', 'skærm', 'gaming', 'screen', 'fladskærm', 'tv-skærm'],
   },
   {
     sceneId: 'skraldespand',
@@ -135,6 +157,14 @@ const SCENE_MATCH_RULES: Array<{ sceneId: string; keywords: string[] }> = [
   {
     sceneId: 'handle',
     keywords: ['handle', 'indkøb', 'købe ind', 'supermarked', 'netto', 'rema', 'føtex', 'købmand', 'butik', 'handle ind'],
+  },
+  {
+    sceneId: 'cykeltur',
+    keywords: ['cykeltur', 'cykle', 'cykel', 'cykling'],
+  },
+  {
+    sceneId: 'weekend',
+    keywords: ['weekend', 'weekendhygge', 'søndagshygge', 'lørdagshygge'],
   },
   {
     sceneId: 'aktiviteter',
@@ -147,7 +177,10 @@ const SCENE_COLOR_MAP: Record<string, string> = {
   kaffe: '#fdef8c',
   medicin: '#c1ea9a',
   badetid: '#9adafd',
+  boerste_taender: '#9adafd',
   spisetid: '#fdc67c',
+  morgenmad: '#fdef8c',
+  frokost: '#fdc67c',
   aktiviteter: '#ccadfb',
   vaske_op: '#9ceacc',
   bolle: '#cdb7f8',
@@ -157,6 +190,28 @@ const SCENE_COLOR_MAP: Record<string, string> = {
   pause_sofa: '#fdef8c',
   skraldespand: '#c1ea9a',
   handle: '#fdc67c',
+  cykeltur: '#9adafd',
+  weekend: '#ccadfb',
+  skifte_sengetoj: '#97d9fc',
+  stovsuge: '#fbb6db',
+  torre_bord: '#9ceacc',
+  tomme_opvaskemaskine: '#9ceacc',
+  legge_toj_sammen: '#fbb6db',
+  forberede_mad: '#fdc67c',
+  hore_musik: '#ccadfb',
+  ipad_tablet: '#fdef8c',
+  perler: '#ccadfb',
+  havearbejde: '#c1ea9a',
+  svommehal: '#9adafd',
+  bus_tog: '#9adafd',
+  pakke_taske: '#cdb7f8',
+  besog_far: '#fdc67c',
+  aflevere_flasker: '#c1ea9a',
+  tage_jakke_paa: '#9adafd',
+  drikke_vand: '#9adafd',
+  braetspil: '#ccadfb',
+  rydde_op: '#fbb6db',
+  sansehus: '#cdb7f8',
 };
 
 function findMatchingScene(text: string): string | null {
@@ -343,14 +398,14 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
   const [fontSizeNum, setFontSizeNum] = useState<number>(initialPixelSize);
   const [activeTab, setActiveTab] = useState<'illustrations' | 'upload'>('illustrations');
   const [inlineSceneText, setInlineSceneText] = useState<string>('');
+  const [isManuallySelected, setIsManuallySelected] = useState<boolean>(
+    Boolean(pictogram.illustrationId || pictogram.customImageUrl || pictogram.sceneImageUrl)
+  );
 
-  // Master prompt & reference copying state
-  const [copiedPrompt, setCopiedPrompt] = useState(false);
-  const [copiedRef1, setCopiedRef1] = useState(false);
-  const [copiedRef2, setCopiedRef2] = useState(false);
-  const [showPromptPreview, setShowPromptPreview] = useState(false);
-  const [masterPromptLang, setMasterPromptLang] = useState<'en' | 'da'>('en');
-  const uploadInputRef = useRef<HTMLInputElement>(null);
+  // ChatGPT generation state
+  const [isGeneratingAi, setIsGeneratingAi] = useState(false);
+  const [aiProgressMessage, setAiProgressMessage] = useState<string | null>(null);
+  const [aiError, setAiError] = useState<string | null>(null);
 
   // Dropdown states for compact time, color and font size pickers
   const [isTimeOpen, setIsTimeOpen] = useState(false);
@@ -378,168 +433,63 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
 
   const handleTitleChange = (newTitle: string) => {
     setTitle(newTitle);
-    const matched = findMatchingScene(newTitle);
-    if (matched) {
-      setIllustrationId(matched);
-      setCustomImageUrl('');
-      setSceneImageUrl('');
-      if (SCENE_COLOR_MAP[matched]) {
-        setBgColor(SCENE_COLOR_MAP[matched]);
-      }
+    if (!newTitle.trim()) {
+      setIsManuallySelected(false);
+      return;
     }
-  };
-
-  const handleCopyImage = async (imageUrl: string, type: 'ref1' | 'ref2') => {
-    try {
-      const res = await fetch(imageUrl);
-      const blob = await res.blob();
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      const blobUrl = URL.createObjectURL(blob);
-      img.src = blobUrl;
-      await new Promise((resolve, reject) => {
-        img.onload = resolve;
-        img.onerror = reject;
-      });
-      const canvas = document.createElement('canvas');
-      canvas.width = img.naturalWidth || img.width;
-      canvas.height = img.naturalHeight || img.height;
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.drawImage(img, 0, 0);
-        URL.revokeObjectURL(blobUrl);
-        const pngBlob = await new Promise<Blob | null>((resolve) =>
-          canvas.toBlob((b) => resolve(b), 'image/png')
-        );
-        if (pngBlob && navigator.clipboard && navigator.clipboard.write) {
-          await navigator.clipboard.write([new ClipboardItem({ 'image/png': pngBlob })]);
-          if (type === 'ref1') {
-            setCopiedRef1(true);
-            setTimeout(() => setCopiedRef1(false), 2000);
-          } else {
-            setCopiedRef2(true);
-            setTimeout(() => setCopiedRef2(false), 2000);
-          }
-          return;
-        }
-      }
-    } catch (err) {
-      console.warn('Kunne ikke kopiere billede til udklipsholder:', err);
-    }
-    // Fallback: trigger download
-    const link = document.createElement('a');
-    link.href = imageUrl;
-    link.download = type === 'ref1' ? 'Ref1_Figur_Avatar.png' : 'Ref2_Piktogram_Stil.jpg';
-    link.click();
-  };
-
-  const handleCopyMasterPrompt = async () => {
-    const promptFn = masterPromptLang === 'en' ? buildEnglishMasterPrompt : buildDanishMasterPrompt;
-    const defaultDesc =
-      masterPromptLang === 'en'
-        ? 'The character performs the daily activity happily.'
-        : 'Figuren udfører aktiviteten glad og naturligt.';
-    const promptText = promptFn({
-      sceneDescription: inlineSceneText.trim() || defaultDesc,
-      personaName: activePersona.name,
-    });
-    try {
-      await navigator.clipboard.writeText(promptText);
-    } catch {
-      // fallback
-    }
-    setCopiedPrompt(true);
-    setTimeout(() => setCopiedPrompt(false), 2500);
-  };
-
-  const handleDropGeneratedImage = (e: React.DragEvent) => {
-    e.preventDefault();
-    const file = e.dataTransfer.files?.[0];
-    if (!file || !file.type.startsWith('image/')) return;
-
-    const reader = new FileReader();
-    reader.onload = async () => {
-      if (typeof reader.result === 'string') {
-        const baseName = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
-        const sceneTitle = getShortSceneTitle(
-          inlineSceneText,
-          title.trim() && title !== 'Aktivitetsnavn' ? title.trim() : baseName
-        );
-
-        let processedUrl = reader.result;
-        try {
-          processedUrl = await removeImageBackground(processedUrl);
-        } catch {
-          // ignore
-        }
-        try {
-          processedUrl = await autoFitSceneToStandardFormat(processedUrl);
-        } catch {
-          // ignore
-        }
-
-        const updatedCustom = saveCustomScene({
-          url: processedUrl,
-          name: sceneTitle,
-        });
-        setCustomScenes(updatedCustom);
-        setSceneImageUrl(processedUrl);
-        setIllustrationId('');
+    if (!isManuallySelected) {
+      const matched = findMatchingScene(newTitle);
+      if (matched) {
+        setIllustrationId(matched);
         setCustomImageUrl('');
+        setSceneImageUrl('');
+        if (SCENE_COLOR_MAP[matched]) {
+          setBgColor(SCENE_COLOR_MAP[matched]);
+        }
       }
-    };
-    reader.readAsDataURL(file);
+    }
   };
-
-  // Cloudflare Workers AI integration state
-  const [isGeneratingAi, setIsGeneratingAi] = useState(false);
-  const [aiError, setAiError] = useState<string | null>(null);
-  const [aiRotationNotice, setAiRotationNotice] = useState<string | null>(null);
 
   const handleGenerateWithAi = async () => {
     setAiError(null);
-    setAiRotationNotice(null);
+    setAiProgressMessage('Forbereder ChatGPT session...');
     setIsGeneratingAi(true);
 
     try {
-      const promptToUse = buildCloudflareAiPrompt({
-        sceneDescription: inlineSceneText,
-        personaName: activePersona.name,
-        personaId: activePersona.id,
-        personaDescription: activePersona.description,
-      });
+      const userText = inlineSceneText.trim() || title.trim();
+      const sceneTitle = getShortSceneTitle(userText, title);
+      const safeKey = sceneTitle.toLowerCase().replace(/[^a-z0-9]/g, '_') || `scene_${Date.now()}`;
 
-      const generatedDataUrl = await generateSceneImage(promptToUse, {
-        onAccountRotated: (rot) => {
-          setAiRotationNotice(rot.message);
-        },
-      });
-
-      // Automatically fit and format to exact 2126x740 wide rectangle (matching reference/scenes/vaesketoeg.webp)
-      let finalDataUrl = generatedDataUrl;
-      try {
-        finalDataUrl = await autoFitSceneToStandardFormat(generatedDataUrl);
-      } catch {
-        // keep generatedDataUrl if auto-fit fails
+      const res = await generateSingleSceneWithChatGPT(
+        activePersona.id,
+        safeKey,
+        userText,
+        (progress) => {
+          setAiProgressMessage(progress.message);
+        }
+      );
+      if (res.sceneUrl) {
+        if (activePersona.activityScenes) {
+          activePersona.activityScenes[safeKey] = res.sceneUrl;
+        }
+        setSceneImageUrl(res.sceneUrl);
+        setIllustrationId(safeKey);
+        setCustomImageUrl('');
+        setIsManuallySelected(true);
+        if (!title.trim() || title === 'Aktivitetsnavn') {
+          setTitle(sceneTitle);
+        }
+        setActiveTab('illustrations');
+      } else {
+        throw new Error('Kunne ikke hente genereret scene fra ChatGPT.');
       }
-
-      const sceneTitle = getShortSceneTitle(inlineSceneText, title);
-
-      // Automatically save and apply to card without forcing manual crop!
-      const updatedCustom = saveCustomScene({
-        url: finalDataUrl,
-        name: sceneTitle,
-      });
-      setCustomScenes(updatedCustom);
-      setSceneImageUrl(finalDataUrl);
-      setIllustrationId('');
-      setCustomImageUrl('');
     } catch (err) {
       setAiError(
-        `AI-fejl: ${err instanceof Error ? err.message : String(err)}. Brug gerne den idiotsikre ChatGPT-metode ovenfor med Masterprompt + Ref 1 & 2!`
+        `ChatGPT Fejl: ${err instanceof Error ? err.message : String(err)}. Sørg for at du er logget ind på chatgpt.com i browseren.`
       );
     } finally {
       setIsGeneratingAi(false);
+      setAiProgressMessage(null);
     }
   };
 
@@ -931,35 +881,27 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
 
           {/* Visual asset picker */}
           <div className="space-y-2 pt-2 border-t border-slate-200">
-            {/* Prominent segmented tab bar */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-2xl border border-slate-200">
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('illustrations')}
-                  className={`px-3 py-1.5 rounded-xl font-bold text-xs transition-all cursor-pointer flex items-center gap-1.5 ${
-                    activeTab === 'illustrations'
-                      ? 'bg-white text-slate-900 shadow-xs border border-slate-300'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  <ImageIcon size={14} />
-                  <span>Scene</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('upload')}
-                  className={`px-3 py-1.5 rounded-xl font-black text-xs transition-all cursor-pointer flex items-center gap-1.5 ${
-                    activeTab === 'upload'
-                      ? 'bg-amber-400 text-slate-900 shadow-xs border border-slate-900'
-                      : 'text-amber-800 hover:text-amber-950 hover:bg-amber-100/50'
-                  }`}
-                >
-                  <Plus size={14} className={activeTab === 'upload' ? 'text-slate-900' : 'text-amber-600'} />
-                  <span>Opret en ny scene</span>
-                </button>
+            {/* Header when choosing scenes */}
+            {activeTab === 'illustrations' && (
+              <div className="flex items-center justify-between px-0.5">
+                <span className="text-xs font-black text-slate-800">
+                  Vælg scene
+                </span>
+                <span className="text-[11px] font-bold text-slate-500">
+                  {(() => {
+                    const seenUrls = new Set<string>();
+                    const count = Object.entries(activePersona.activityScenes || {}).filter(([k, url]) => {
+                      if (!url || SCENE_ALIAS_MAP[k]) return false;
+                      const clean = url.split('?')[0].trim();
+                      if (seenUrls.has(clean)) return false;
+                      seenUrls.add(clean);
+                      return true;
+                    }).length + customScenes.length;
+                    return `${count} scener tilgængelige`;
+                  })()}
+                </span>
               </div>
-            </div>
+            )}
 
             {/* TAB 1: Icons & Scenes grid */}
             {activeTab === 'illustrations' && (
@@ -1005,8 +947,12 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
                 {/* Quick new scene button tile in the grid */}
                 <button
                   type="button"
-                  onClick={() => setActiveTab('upload')}
+                  onClick={() => {
+                    setActiveTab('upload');
+                    setAiError(null);
+                  }}
                   className="flex flex-col items-center justify-center p-2 rounded-xl border-2 border-dashed border-amber-400 hover:border-amber-600 bg-amber-50/60 hover:bg-amber-100/80 cursor-pointer transition-all group aspect-[2126/740]"
+                  title="Opret en ny scene med ChatGPT"
                 >
                   <div className="flex items-center gap-1.5 text-amber-950 font-black text-xs">
                     <Plus size={14} className="stroke-[2.5]" />
@@ -1014,7 +960,7 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
                   </div>
                 </button>
 
-                {/* Custom uploaded & generated scenes (with custom names, cropping & delete) */}
+                {/* Custom uploaded & generated scenes (clean unobstructed image, tooltip title) */}
                 {customScenes.map((scene) => {
                   const isSelected = customImageUrl === scene.url;
                   return (
@@ -1024,7 +970,9 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
                         setCustomImageUrl(scene.url);
                         setIllustrationId('');
                         setSceneImageUrl('');
+                        setIsManuallySelected(true);
                       }}
+                      title={scene.name}
                       className={`relative group flex flex-col items-center justify-between p-1 rounded-xl border-2 transition-all cursor-pointer aspect-[2126/740] ${
                         isSelected
                           ? 'bg-amber-100 border-slate-900 ring-2 ring-amber-400 shadow-xs'
@@ -1033,9 +981,6 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
                     >
                       <div className="w-full h-full rounded-lg border border-slate-900/20 overflow-hidden bg-white relative flex items-center justify-center">
                         <img src={scene.url} alt={scene.name} className="w-full h-full object-cover object-center" />
-                        <span className="absolute bottom-0 inset-x-0 bg-slate-900/75 text-white text-[9.5px] font-bold text-center py-0.5 px-1 truncate backdrop-blur-xs">
-                          {scene.name}
-                        </span>
                       </div>
 
                       {isSelected && (
@@ -1077,165 +1022,137 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
                   );
                 })}
 
-                {/* Persona Activity Scenes */}
-                {Object.entries(activePersona.activityScenes).map(([key, imgUrl]) => {
-                  const isSelected = !customImageUrl && illustrationId === key;
-                  const label = SCENE_DESCRIPTIONS[key] || key;
-                  return (
-                    <button
-                      key={key}
-                      type="button"
-                      onClick={() => {
-                        setIllustrationId(key);
-                        setSceneImageUrl('');
-                        setCustomImageUrl('');
-                      }}
-                      className={`relative group flex flex-col items-center justify-between p-1 rounded-xl border-2 transition-all cursor-pointer aspect-[2126/740] ${
-                        isSelected
-                          ? 'bg-amber-100 border-slate-900 ring-2 ring-amber-400 shadow-xs'
-                          : 'bg-slate-50 border-slate-300 hover:border-slate-500 hover:bg-white'
-                      }`}
-                    >
-                      <div className="w-full h-full rounded-lg border border-slate-900/30 overflow-hidden bg-white relative flex items-center justify-center">
-                        <img src={imgUrl} alt={label} className="w-full h-full object-cover object-center" />
-                        <span className="absolute bottom-0 inset-x-0 bg-slate-900/75 text-white text-[9.5px] font-bold text-center py-0.5 px-1 truncate backdrop-blur-xs">
-                          {label}
-                        </span>
-                      </div>
-                      {isSelected && (
-                        <span className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-slate-900 text-white flex items-center justify-center shadow-xs z-10 pointer-events-none">
-                          <Check size={10} className="stroke-[3]" />
-                        </span>
-                      )}
-                    </button>
+                {/* Persona Activity Scenes — deduplicated canonical scenes without text banner blocking image */}
+                {(() => {
+                  const seenUrls = new Set<string>();
+                  const uniquePersonaScenes = Object.entries(activePersona.activityScenes || {}).filter(
+                    ([key, imgUrl]) => {
+                      if (!imgUrl) return false;
+                      if (SCENE_ALIAS_MAP[key]) return false;
+                      const cleanUrl = imgUrl.split('?')[0].trim();
+                      if (seenUrls.has(cleanUrl)) return false;
+                      seenUrls.add(cleanUrl);
+                      return true;
+                    }
                   );
-                })}
+
+                  return uniquePersonaScenes.map(([key, imgUrl]) => {
+                    const isSelected =
+                      !customImageUrl &&
+                      (illustrationId === key || SCENE_ALIAS_MAP[illustrationId] === key);
+                    const label = SCENE_DESCRIPTIONS[key] || key;
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => {
+                          setIllustrationId(key);
+                          setSceneImageUrl('');
+                          setCustomImageUrl('');
+                          setIsManuallySelected(true);
+                        }}
+                        title={label}
+                        aria-label={label}
+                        className={`relative group flex flex-col items-center justify-between p-1 rounded-xl border-2 transition-all cursor-pointer aspect-[2126/740] ${
+                          isSelected
+                            ? 'bg-amber-100 border-slate-900 ring-2 ring-amber-400 shadow-xs'
+                            : 'bg-slate-50 border-slate-300 hover:border-slate-500 hover:bg-white'
+                        }`}
+                      >
+                        <div className="w-full h-full rounded-lg border border-slate-900/30 overflow-hidden bg-white relative flex items-center justify-center">
+                          <img src={imgUrl} alt={label} className="w-full h-full object-cover object-center" />
+                        </div>
+                        {isSelected && (
+                          <span className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-slate-900 text-white flex items-center justify-center shadow-xs z-10 pointer-events-none">
+                            <Check size={10} className="stroke-[3]" />
+                          </span>
+                        )}
+                      </button>
+                    );
+                  });
+                })()}
               </div>
             )}
 
-            {/* TAB 2: Opret en ny scene (Masterprompt + Figur + Scenebeskrivelse + Piktogram-ref) */}
+            {/* TAB 2: Opret en ny scene — Automated ChatGPT Scene Creation with Back Button */}
             {activeTab === 'upload' && (
               <div className="space-y-3 p-1">
-                {/* 1. Referencebilleder (Figur Ref 1 + Piktogram Ref 2) */}
-                <div className="bg-slate-50 border-2 border-slate-900 rounded-2xl p-3 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-black text-slate-900 flex items-center gap-1.5">
-                      <Layers size={14} className="text-amber-500" />
-                      Referencebilleder til AI (Ref 1 & Ref 2)
-                    </span>
-                    <span className="text-[11px] font-bold text-slate-500">
-                      Vedhæftes i ChatGPT / DALL-E
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {/* Ref 1: Figur / Avatar */}
-                    <div className="flex items-center justify-between gap-2 p-2 bg-white rounded-xl border border-slate-300">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <div className="w-10 h-10 rounded-lg border-2 border-slate-900 overflow-hidden shrink-0 bg-amber-50">
-                          <img src={activePersona.avatarUrl} alt="Ref 1" className="w-full h-full object-cover" />
-                        </div>
-                        <div className="min-w-0">
-                          <span className="text-[10px] font-black text-amber-800 uppercase tracking-wider block">
-                            Billede 1 (Ref 1)
-                          </span>
-                          <span className="text-xs font-bold text-slate-900 truncate block">
-                            Figur: {activePersona.name}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-1 shrink-0">
-                        <button
-                          type="button"
-                          onClick={() => handleCopyImage(activePersona.avatarUrl, 'ref1')}
-                          className="p-1.5 rounded-lg border border-slate-300 hover:border-slate-900 bg-slate-50 hover:bg-amber-100 text-slate-700 hover:text-slate-900 transition-colors cursor-pointer text-xs flex items-center gap-1"
-                          title="Kopiér Billede 1 til udklipsholder"
-                        >
-                          {copiedRef1 ? <Check size={13} className="text-emerald-600 stroke-[3]" /> : <Copy size={13} />}
-                          <span className="hidden xs:inline text-[11px] font-bold">{copiedRef1 ? 'Kopieret' : 'Kopiér'}</span>
-                        </button>
-                        <a
-                          href={activePersona.avatarUrl}
-                          download="Ref1_Figur_Avatar.png"
-                          className="p-1.5 rounded-lg border border-slate-300 hover:border-slate-900 bg-slate-50 hover:bg-slate-200 text-slate-700 hover:text-slate-900 transition-colors cursor-pointer"
-                          title="Download Billede 1"
-                        >
-                          <Download size={13} />
-                        </a>
-                      </div>
-                    </div>
-
-                    {/* Ref 2: Piktogram-stil reference */}
-                    <div className="flex items-center justify-between gap-2 p-2 bg-white rounded-xl border border-slate-300">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <div className="w-10 h-10 rounded-lg border-2 border-slate-900 overflow-hidden shrink-0 bg-slate-100">
-                          <img src={PICTO_STYLE_REF_URL} alt="Ref 2" className="w-full h-full object-cover" />
-                        </div>
-                        <div className="min-w-0">
-                          <span className="text-[10px] font-black text-blue-800 uppercase tracking-wider block">
-                            Billede 2 (Ref 2)
-                          </span>
-                          <span className="text-xs font-bold text-slate-900 truncate block">
-                            Piktogram tegneseriestil
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-1 shrink-0">
-                        <button
-                          type="button"
-                          onClick={() => handleCopyImage(PICTO_STYLE_REF_URL, 'ref2')}
-                          className="p-1.5 rounded-lg border border-slate-300 hover:border-slate-900 bg-slate-50 hover:bg-amber-100 text-slate-700 hover:text-slate-900 transition-colors cursor-pointer text-xs flex items-center gap-1"
-                          title="Kopiér Billede 2 til udklipsholder"
-                        >
-                          {copiedRef2 ? <Check size={13} className="text-emerald-600 stroke-[3]" /> : <Copy size={13} />}
-                          <span className="hidden xs:inline text-[11px] font-bold">{copiedRef2 ? 'Kopieret' : 'Kopiér'}</span>
-                        </button>
-                        <a
-                          href={PICTO_STYLE_REF_URL}
-                          download="Ref2_Piktogram_Stil.jpg"
-                          className="p-1.5 rounded-lg border border-slate-300 hover:border-slate-900 bg-slate-50 hover:bg-slate-200 text-slate-700 hover:text-slate-900 transition-colors cursor-pointer"
-                          title="Download Billede 2"
-                        >
-                          <Download size={13} />
-                        </a>
-                      </div>
-                    </div>
-                  </div>
+                {/* Back button header */}
+                <div className="flex items-center justify-between pb-1.5 border-b border-slate-200">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveTab('illustrations');
+                      setAiError(null);
+                    }}
+                    className="inline-flex items-center gap-1.5 text-xs font-black text-slate-800 hover:text-slate-950 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-xl border border-slate-300 transition-colors cursor-pointer"
+                  >
+                    <ArrowLeft size={15} className="stroke-[2.5]" />
+                    <span>Tilbage til scener</span>
+                  </button>
+                  <span className="text-xs font-black text-slate-800">
+                    Opret ny scene med AI
+                  </span>
                 </div>
 
-                {/* 2. Scenebeskrivelse */}
-                <div className="bg-amber-50/70 border-2 border-amber-300 rounded-2xl p-3 space-y-2.5">
+                {/* Input block */}
+                <div className="bg-amber-50/70 border-2 border-amber-300 rounded-2xl p-3.5 space-y-2.5">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-black text-slate-900 flex items-center gap-1.5">
-                      <FileText size={14} className="text-amber-600" />
+                      <Wand2 size={14} className="text-amber-600" />
                       Hvad skal figuren lave i scenen?
                     </span>
-                    <button
-                      type="button"
-                      onClick={() => setInlineSceneText((prev) => optimizeScenePrompt(prev))}
-                      className="text-[11px] font-black text-amber-950 bg-amber-200 hover:bg-amber-300 px-2.5 py-0.5 rounded-lg border border-amber-400 flex items-center gap-1 cursor-pointer transition-colors shadow-2xs"
-                      title="Formater og optimer din tekst automatisk til tegneseriestil"
-                    >
-                      <Wand2 size={12} className="text-amber-700" />
-                      <span>Optimer beskrivelse</span>
-                    </button>
                   </div>
 
                   <div className="flex flex-wrap items-center gap-1.5">
                     <span className="text-[10.5px] font-bold text-amber-900">Ideer:</span>
                     {[
-                      { label: 'Brætspil', prompt: 'Figuren sidder ved stuebordet og spiller et farverigt brætspil, smilende og koncentreret.' },
-                      { label: 'Læse en bog', prompt: 'Figuren sidder behageligt i en blød lænestol og fordyber sig i en god bog med et varmt smil.' },
-                      { label: 'Cykeltur', prompt: 'Figuren cykler glad på en cykelsti i godt vejr med cykelhjelm på hovedet.' },
-                      { label: 'Vande blomster', prompt: 'Figuren vander grønne stueplanter med en lille vandkande, smilende og tilfreds.' },
-                      { label: 'Bage kage', prompt: 'Figuren står i køkkenet med et forklæde og bager lækre kager ved køkkenbordet.' },
-                      { label: 'Høre musik', prompt: 'Figuren sidder afslappet i sofaen med store høretelefoner på og lytter fornøjet til musik.' },
+                      {
+                        label: 'Brætspil',
+                        prompt:
+                          'Figuren sidder ved stuebordet og spiller et farverigt brætspil, smilende og koncentreret.',
+                      },
+                      {
+                        label: 'Læse en bog',
+                        prompt:
+                          'Figuren sidder behageligt i en blød lænestol og fordyber sig i en god bog med et varmt smil.',
+                      },
+                      {
+                        label: 'Cykeltur',
+                        prompt:
+                          'Figuren cykler glad på en cykelsti i godt vejr med cykelhjelm på hovedet.',
+                      },
+                      {
+                        label: 'Vande blomster',
+                        prompt:
+                          'Figuren vander grønne stueplanter med en lille vandkande, smilende og tilfreds.',
+                      },
+                      {
+                        label: 'Bage kage',
+                        prompt:
+                          'Figuren står i køkkenet med et forklæde og bager lækre kager ved køkkenbordet.',
+                      },
+                      {
+                        label: 'Høre musik',
+                        prompt:
+                          'Figuren sidder afslappet i sofaen med store høretelefoner på og lytter fornøjet til musik.',
+                      },
+                      {
+                        label: 'Spille trommer',
+                        prompt:
+                          'Figuren sidder bag et trommesæt og spiller rytmisk og glad med trommestikker.',
+                      },
+                      {
+                        label: 'Svømmehal',
+                        prompt:
+                          'Figuren er i svømmehallen med badehætte og svømmebriller og bader glad i bassinet.',
+                      },
                     ].map((idea) => (
                       <button
                         key={idea.label}
                         type="button"
                         onClick={() => setInlineSceneText(idea.prompt)}
-                        className="px-2 py-0.5 rounded-lg text-[10.5px] font-bold bg-amber-100/70 hover:bg-amber-300 border border-amber-300 text-amber-950 transition-colors cursor-pointer"
+                        className="px-2 py-0.5 rounded-lg text-[10.5px] font-bold bg-amber-100/80 hover:bg-amber-300 border border-amber-300 text-amber-950 transition-colors cursor-pointer"
                       >
                         {idea.label}
                       </button>
@@ -1245,177 +1162,62 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
                   <textarea
                     value={inlineSceneText}
                     onChange={(e) => setInlineSceneText(e.target.value)}
-                    rows={2}
-                    placeholder="F.eks.: Figuren sidder ved bordet og lægger et puslespil..."
+                    rows={3}
+                    placeholder={
+                      title && title !== 'Aktivitetsnavn'
+                        ? `F.eks.: Figuren udfører "${title}"...`
+                        : 'F.eks.: Figuren sidder ved bordet og lægger et puslespil...'
+                    }
                     className="w-full p-2.5 rounded-xl border-2 border-slate-900 focus:border-amber-500 font-bold text-xs text-slate-900 resize-none bg-white outline-hidden"
                   />
                 </div>
 
-                {/* 3. Masterprompt & ChatGPT handlinger */}
-                <div className="bg-slate-900 text-white rounded-2xl p-3.5 space-y-2.5 border-2 border-slate-900 shadow-sm">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="flex items-center gap-1.5">
-                      <FileText size={15} className="text-amber-400" />
-                      <span className="text-xs font-black text-white">
-                        Generer i ChatGPT / DALL-E (Anbefalet)
-                      </span>
-                    </div>
+                {/* Primary Automated Generate Button */}
+                <div>
+                  <button
+                    type="button"
+                    disabled={
+                      isGeneratingAi ||
+                      (!inlineSceneText.trim() && (!title.trim() || title === 'Aktivitetsnavn'))
+                    }
+                    onClick={handleGenerateWithAi}
+                    className="w-full py-3 px-4 bg-amber-400 hover:bg-amber-500 disabled:opacity-50 disabled:cursor-not-allowed text-slate-900 font-black text-sm rounded-2xl border-2 border-slate-900 shadow-md flex items-center justify-center gap-2 transition-all cursor-pointer"
+                  >
+                    {isGeneratingAi ? (
+                      <>
+                        <Loader2 size={16} className="animate-spin text-slate-900" />
+                        <span>{aiProgressMessage || 'Genererer scene i ChatGPT...'}</span>
+                      </>
+                    ) : (
+                      <>
+                        <Wand2 size={16} className="text-slate-900" />
+                        <span>Generer scene med ChatGPT</span>
+                      </>
+                    )}
+                  </button>
 
-                    <div className="flex items-center gap-2">
-                      {/* Language switcher for Masterprompt */}
-                      <div className="flex items-center bg-slate-800 p-0.5 rounded-lg border border-slate-700 text-[10px]">
-                        <button
-                          type="button"
-                          onClick={() => setMasterPromptLang('en')}
-                          className={`px-2 py-0.5 rounded font-bold transition-all cursor-pointer ${
-                            masterPromptLang === 'en'
-                              ? 'bg-amber-400 text-slate-950 shadow-xs'
-                              : 'text-slate-300 hover:text-white'
-                          }`}
-                        >
-                          English (Bedst til AI)
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setMasterPromptLang('da')}
-                          className={`px-2 py-0.5 rounded font-bold transition-all cursor-pointer ${
-                            masterPromptLang === 'da'
-                              ? 'bg-amber-400 text-slate-950 shadow-xs'
-                              : 'text-slate-300 hover:text-white'
-                          }`}
-                        >
-                          Dansk
-                        </button>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() => setShowPromptPreview((prev) => !prev)}
-                        className="text-[11px] font-bold text-amber-300 hover:text-amber-200 cursor-pointer underline"
-                      >
-                        {showPromptPreview ? 'Skjul' : 'Vis'}
-                      </button>
-                    </div>
-                  </div>
-
-                  <p className="text-[11px] text-slate-300 leading-snug">
-                    Kopiér Masterprompten på {masterPromptLang === 'en' ? 'engelsk (anbefalet til AI)' : 'dansk'} herunder og vedhæft <strong>Ref 1</strong> (Figur) og <strong>Ref 2</strong> (Piktogram-stil) i ChatGPT.
-                  </p>
-
-                  {showPromptPreview && (
-                    <pre className="p-2.5 rounded-xl bg-slate-950 text-slate-200 text-[10.5px] font-mono whitespace-pre-wrap max-h-36 overflow-y-auto border border-slate-800">
-                      {masterPromptLang === 'en'
-                        ? buildEnglishMasterPrompt({
-                            sceneDescription: inlineSceneText || 'The character performs the daily activity happily.',
-                            personaName: activePersona.name,
-                          })
-                        : buildDanishMasterPrompt({
-                            sceneDescription: inlineSceneText || 'Figuren udfører aktiviteten glad og naturligt.',
-                            personaName: activePersona.name,
-                          })}
-                    </pre>
-                  )}
-
-                  <div className="flex flex-wrap items-center gap-2 pt-1">
-                    <button
-                      type="button"
-                      onClick={handleCopyMasterPrompt}
-                      className={`flex-1 py-2.5 px-3 rounded-xl font-black text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer border-2 ${
-                        copiedPrompt
-                          ? 'bg-emerald-400 text-slate-950 border-emerald-300 shadow-md'
-                          : 'bg-amber-400 hover:bg-amber-300 text-slate-950 border-amber-300 shadow-xs'
-                      }`}
-                    >
-                      {copiedPrompt ? (
-                        <>
-                          <Check size={16} className="stroke-[3]" />
-                          <span>Masterprompt kopieret!</span>
-                        </>
-                      ) : (
-                        <>
-                          <Copy size={15} />
-                          <span>Kopiér Masterprompt</span>
-                        </>
-                      )}
-                    </button>
-
-                    <a
-                      href="https://chatgpt.com"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="py-2.5 px-3 rounded-xl font-black text-xs bg-slate-800 hover:bg-slate-700 text-white border-2 border-slate-700 transition-colors flex items-center gap-1.5 cursor-pointer"
-                    >
-                      <span>Åbn ChatGPT</span>
-                      <ExternalLink size={13} />
-                    </a>
-                  </div>
-                </div>
-
-                {/* 4. Dropzone for det færdige billede */}
-                <div
-                  onDragOver={(e) => e.preventDefault()}
-                  onDrop={handleDropGeneratedImage}
-                  className="p-3 rounded-2xl border-2 border-dashed border-slate-400 hover:border-slate-900 bg-white hover:bg-amber-50/50 transition-colors flex flex-col items-center justify-center text-center cursor-pointer group"
-                  onClick={() => uploadInputRef.current?.click()}
-                >
-                  <input
-                    ref={uploadInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                    className="hidden"
-                  />
-                  <div className="w-8 h-8 rounded-xl bg-amber-100 group-hover:bg-amber-400 flex items-center justify-center text-slate-900 transition-colors mb-1.5">
-                    <Upload size={16} />
-                  </div>
-                  <span className="text-xs font-black text-slate-900">
-                    Har du fået billedet fra ChatGPT? Træk eller upload det her
-                  </span>
-                  <span className="text-[10.5px] font-semibold text-slate-500 mt-0.5">
-                    Åbner straks beskæring og navngivning, så det passer perfekt i piktogramkortet
-                  </span>
-                </div>
-
-                {/* 5. Direkte 1-klik AI generering i appen */}
-                <div className="pt-1 border-t border-slate-200">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-bold text-slate-500">
-                      Eller prøv direkte i browseren:
-                    </span>
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        type="button"
-                        disabled={isGeneratingAi || !inlineSceneText.trim()}
-                        onClick={handleGenerateWithAi}
-                        className="py-1.5 px-3 bg-slate-100 hover:bg-amber-100 disabled:opacity-50 text-slate-800 font-bold text-xs rounded-xl border border-slate-300 hover:border-slate-900 flex items-center gap-1.5 transition-colors cursor-pointer"
-                      >
-                        {isGeneratingAi ? (
-                          <>
-                            <Loader2 size={13} className="animate-spin text-amber-600" />
-                            <span>Genererer...</span>
-                          </>
-                        ) : (
-                          <>
-                            <Wand2 size={13} className="text-amber-500" />
-                            <span>Direkte AI (1-klik)</span>
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  </div>
-
-                  {aiRotationNotice && (
-                    <div className="mt-2 p-2 rounded-xl bg-sky-50 border border-sky-300 text-xs font-bold text-sky-800 flex items-center gap-1.5 animate-pulse">
-                      <Clock size={13} className="text-sky-600 shrink-0" />
-                      <span>{aiRotationNotice}</span>
+                  {isGeneratingAi && (
+                    <div className="mt-2 p-2.5 bg-amber-50 border border-amber-300 rounded-xl flex items-center gap-2 text-xs font-bold text-slate-800 animate-pulse">
+                      <Clock size={14} className="text-amber-600 shrink-0" />
+                      <span>Automation kører i baggrunden via din browser. Det tager normalt ca. 15-30 sekunder.</span>
                     </div>
                   )}
 
                   {aiError && (
-                    <div className="mt-2 p-2.5 rounded-xl bg-amber-50 border border-amber-300 text-xs font-bold text-amber-900 flex flex-col gap-1.5">
+                    <div className="mt-2.5 p-3 rounded-2xl bg-rose-50 border-2 border-rose-300 text-xs font-bold text-rose-900 flex flex-col gap-2">
                       <div className="flex items-start gap-2">
-                        <AlertCircle size={15} className="text-amber-700 shrink-0 mt-0.5" />
+                        <AlertCircle size={16} className="text-rose-700 shrink-0 mt-0.5" />
                         <span>{aiError}</span>
+                      </div>
+                      <div className="flex items-center justify-end">
+                        <button
+                          type="button"
+                          onClick={() => openChatGPTLogin()}
+                          className="px-3 py-1 bg-white hover:bg-rose-100 text-rose-900 font-black text-xs rounded-xl border border-rose-300 shadow-xs cursor-pointer flex items-center gap-1.5"
+                        >
+                          <ExternalLink size={12} />
+                          <span>Åbn ChatGPT og tjek login</span>
+                        </button>
                       </div>
                     </div>
                   )}

@@ -530,15 +530,8 @@ export function buildCloudflareAiPrompt(options: {
   personaId?: string;
   personaDescription?: string;
 }): string {
-  const isAvatar2 =
-    options.personaId === 'avatar_2' ||
-    options.personaId === 'woman_a';
-
   let characterDesc: string;
-  if (isAvatar2) {
-    characterDesc =
-      'A cheerful friendly cartoon character with brown hair tied in a neat ponytail, round friendly face, rosy cheeks, warm smile, wearing a turquoise teal hoodie jacket over a t-shirt';
-  } else if (
+  if (
     options.personaDescription &&
     options.personaId !== 'avatar_1' &&
     options.personaId !== 'man_k' &&

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import type { WeekPlan, DayOfWeek, Pictogram } from '../types';
+import type { WeekPlan, DayOfWeek, Pictogram, DayShift } from '../types';
 import { DAYS_OF_WEEK } from '../types';
 import { ICONS } from '../data/icons';
 import {
@@ -11,6 +11,8 @@ import {
   Copy,
   Check,
   X,
+  Sun,
+  Moon,
 } from 'lucide-react';
 
 interface WeekViewProps {
@@ -30,6 +32,8 @@ interface WeekViewProps {
     targetIndex?: number
   ) => void;
   onQuickReorderCards: (dayId: DayOfWeek, newCards: Pictogram[]) => void;
+  onToggleDayShift?: (dayId: DayOfWeek, shift: DayShift) => void;
+  onToggleAllDaysShift?: (shift: DayShift) => void;
 }
 
 export const WeekView: React.FC<WeekViewProps> = ({
@@ -44,6 +48,8 @@ export const WeekView: React.FC<WeekViewProps> = ({
   onQuickMoveCard: _onQuickMoveCard,
   onQuickMoveCardBetweenDays,
   onQuickReorderCards,
+  onToggleDayShift,
+  onToggleAllDaysShift,
 }) => {
   // Quick add inputs per day
   const [quickAddTexts, setQuickAddTexts] = useState<Record<string, string>>({});
@@ -184,8 +190,33 @@ export const WeekView: React.FC<WeekViewProps> = ({
             </p>
           </div>
         </div>
-        <div className="text-xs font-bold text-slate-600 bg-amber-50 border border-amber-300 px-2.5 py-1 rounded-xl shrink-0">
-          Tip: Træk kort for at flytte mellem dage
+        <div className="flex flex-wrap items-center gap-2">
+          {onToggleAllDaysShift && (
+            <div className="flex items-center bg-white p-0.5 rounded-xl border-2 border-slate-900 shadow-2xs text-xs font-black">
+              <span className="text-[10px] text-slate-500 font-bold px-2">Skift alle:</span>
+              <button
+                type="button"
+                onClick={() => onToggleAllDaysShift('dag')}
+                title="Sæt alle ugedage til Dagplaner"
+                className="flex items-center gap-1 px-2.5 py-1 rounded-lg hover:bg-amber-100 text-slate-800 transition-colors cursor-pointer"
+              >
+                <Sun size={13} className="text-amber-600 stroke-[2.5]" />
+                <span>Dag</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => onToggleAllDaysShift('aften')}
+                title="Sæt alle ugedage til Aftenplaner"
+                className="flex items-center gap-1 px-2.5 py-1 rounded-lg hover:bg-indigo-100 text-slate-800 transition-colors cursor-pointer"
+              >
+                <Moon size={13} className="text-indigo-600 stroke-[2.5]" />
+                <span>Aften</span>
+              </button>
+            </div>
+          )}
+          <div className="text-xs font-bold text-slate-600 bg-amber-50 border border-amber-300 px-2.5 py-1 rounded-xl shrink-0">
+            Tip: Træk kort for at flytte mellem dage
+          </div>
         </div>
       </div>
 
@@ -196,6 +227,9 @@ export const WeekView: React.FC<WeekViewProps> = ({
           const pictograms = schedule?.pictograms || [];
           const count = pictograms.length;
           const isSelectedDay = selectedDayId === day.id;
+          const shift = schedule?.activeShift || 'dag';
+          const cleanBase = day.name.replace(/\s*[-–—]?\s*(Dag|Aften)\s*$/i, '').trim() || day.name;
+          const displayDayTitle = `${cleanBase} - ${shift === 'aften' ? 'Aften' : 'Dag'}`;
 
           return (
             <div
@@ -211,15 +245,51 @@ export const WeekView: React.FC<WeekViewProps> = ({
               {/* Day column header */}
               <div
                 onClick={() => onSelectDay(day.id)}
-                className="bg-[#BAE6FD] border-b-2 border-slate-900 p-2.5 text-center cursor-pointer hover:bg-sky-200 transition-colors"
+                className="bg-[#BAE6FD] border-b-2 border-slate-900 p-2 text-center cursor-pointer hover:bg-sky-200 transition-colors"
                 title="Klik for at åbne dagsplanen"
               >
-                <span className="text-sm font-black text-slate-900 block truncate font-rounded">
-                  {day.name}
-                </span>
-                <span className="inline-block mt-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-white text-slate-800 border border-slate-900/20">
-                  {count} {count === 1 ? 'kort' : 'kort'}
-                </span>
+                <div className="flex items-center justify-between gap-1 mb-1">
+                  <span className="text-sm font-black text-slate-900 truncate font-rounded text-left" title={displayDayTitle}>
+                    {displayDayTitle}
+                  </span>
+                  <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-white text-slate-800 border border-slate-900/20 shrink-0">
+                    {count}
+                  </span>
+                </div>
+
+                {onToggleDayShift && (
+                  <div
+                    onClick={(e) => e.stopPropagation()}
+                    className="flex items-center justify-center bg-white/70 p-0.5 rounded-lg border border-slate-900/30 shadow-2xs"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => onToggleDayShift(day.id, 'dag')}
+                      title="Skift til Dagplan"
+                      className={`flex-1 flex items-center justify-center gap-1 py-0.5 rounded text-[10px] font-black transition-all cursor-pointer ${
+                        shift === 'dag'
+                          ? 'bg-amber-400 text-slate-900 shadow-2xs'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      <Sun size={10} className="text-amber-800 stroke-[2.5]" />
+                      <span>Dag</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onToggleDayShift(day.id, 'aften')}
+                      title="Skift til Aftenplan"
+                      className={`flex-1 flex items-center justify-center gap-1 py-0.5 rounded text-[10px] font-black transition-all cursor-pointer ${
+                        shift === 'aften'
+                          ? 'bg-slate-900 text-amber-300 shadow-2xs'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      <Moon size={10} className="text-amber-300 stroke-[2.5]" />
+                      <span>Aften</span>
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Day pictogram list */}

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import type { WeekPlan, PrintSettings, DayOfWeek } from '../types';
 import { DAYS_OF_WEEK } from '../types';
 import { exportElementToPdf, exportElementToImage, downloadWeekPlanPdf } from '../services/pdfExport';
+import { switchDayScheduleShift } from '../data/templates';
 import {
   Printer,
   Download,
@@ -10,6 +11,8 @@ import {
   Loader2,
   CheckCircle2,
   FileImage,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import { PictogramCard } from './PictogramCard';
 import { getPersona } from '../services/personas';
@@ -32,9 +35,16 @@ export const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
 
   const [scope, setScope] = useState<'current' | 'selected' | 'all'>('current');
   const [targetDayId, setTargetDayId] = useState<DayOfWeek>(currentDayId);
+  const [shiftFilter, setShiftFilter] = useState<'active' | 'dag' | 'aften' | 'both'>('active');
   const [isExporting, setIsExporting] = useState(false);
 
-  const activeDaySchedule = plan.days[scope === 'all' ? currentDayId : (scope === 'selected' ? targetDayId : currentDayId)];
+  const rawDaySchedule = plan.days[scope === 'all' ? currentDayId : (scope === 'selected' ? targetDayId : currentDayId)];
+  const activeDaySchedule =
+    shiftFilter === 'dag'
+      ? switchDayScheduleShift(rawDaySchedule, 'dag')
+      : shiftFilter === 'aften'
+      ? switchDayScheduleShift(rawDaySchedule, 'aften')
+      : rawDaySchedule;
   const activePics = activeDaySchedule?.pictograms || [];
   const activePersona = getPersona(plan.personaId);
 
@@ -60,45 +70,36 @@ export const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
     try {
       setIsExporting(true);
 
-      if (scope === 'all') {
+      const printSettings: PrintSettings = {
+        layoutMode: 'board',
+        cardWidthCm: 6.5,
+        cardHeightCm: 10.0,
+        showDayHeader: true,
+        showHeaderIcons: true,
+        showCutLines: false,
+        colorMode: 'color',
+        scope: scope === 'all' ? 'all' : (scope === 'selected' ? 'selected' : 'current'),
+        targetDayId,
+        shiftFilter,
+      };
+
+      if (scope === 'all' || shiftFilter === 'both') {
         // Multi-page clean board generation
-        const printSettings: PrintSettings = {
-          layoutMode: 'board',
-          cardWidthCm: 6.5,
-          cardHeightCm: 10.0,
-          showDayHeader: true,
-          showHeaderIcons: true,
-          showCutLines: false,
-          colorMode: 'color',
-          scope: 'all',
-          targetDayId,
-        };
         await downloadWeekPlanPdf(plan, printSettings);
       } else {
         // 1:1 Exact capture: Renders preview to image first, then places image into PDF
         const previewEl = document.getElementById('print-sheet-exact-preview');
         const dayName = activeDaySchedule?.dayName || 'piktogram-dagsplan';
-        const fallbackSettings: PrintSettings = {
-          layoutMode: 'board',
-          cardWidthCm: 6.5,
-          cardHeightCm: 10.0,
-          showDayHeader: true,
-          showHeaderIcons: true,
-          showCutLines: false,
-          colorMode: 'color',
-          scope: scope === 'selected' ? 'selected' : 'current',
-          targetDayId,
-        };
 
         if (previewEl) {
           try {
             await exportElementToPdf(previewEl, `${dayName}-piktogrammer.pdf`);
           } catch (captureErr) {
             console.warn('Canvas PDF export failed, falling back to direct jsPDF generation:', captureErr);
-            await downloadWeekPlanPdf(plan, fallbackSettings);
+            await downloadWeekPlanPdf(plan, printSettings);
           }
         } else {
-          await downloadWeekPlanPdf(plan, fallbackSettings);
+          await downloadWeekPlanPdf(plan, printSettings);
         }
       }
     } catch (err) {
@@ -229,6 +230,62 @@ export const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
                 </select>
               </div>
             )}
+
+            {/* Shift Filter Option */}
+            <div className="pt-2">
+              <label className="text-xs font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5 mb-1.5">
+                <Sun size={15} className="text-amber-500" />
+                Vagt / Plan type:
+              </label>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShiftFilter('active')}
+                  className={`p-2.5 rounded-xl border-2 text-center text-xs font-bold transition-all cursor-pointer ${
+                    shiftFilter === 'active'
+                      ? 'border-slate-900 bg-amber-200 text-slate-900 shadow-xs'
+                      : 'border-slate-300 hover:border-slate-500 bg-white text-slate-700'
+                  }`}
+                >
+                  Aktiv vagt (som vist)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShiftFilter('dag')}
+                  className={`p-2.5 rounded-xl border-2 text-center text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                    shiftFilter === 'dag'
+                      ? 'border-slate-900 bg-amber-200 text-slate-900 shadow-xs'
+                      : 'border-slate-300 hover:border-slate-500 bg-white text-slate-700'
+                  }`}
+                >
+                  <Sun size={13} className="text-amber-600 stroke-[2.5]" />
+                  <span>Kun Dag (☀️)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShiftFilter('aften')}
+                  className={`p-2.5 rounded-xl border-2 text-center text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                    shiftFilter === 'aften'
+                      ? 'border-slate-900 bg-indigo-100 text-slate-900 shadow-xs'
+                      : 'border-slate-300 hover:border-slate-500 bg-white text-slate-700'
+                  }`}
+                >
+                  <Moon size={13} className="text-indigo-600 stroke-[2.5]" />
+                  <span>Kun Aften (🌙)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShiftFilter('both')}
+                  className={`p-2.5 rounded-xl border-2 text-center text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                    shiftFilter === 'both'
+                      ? 'border-slate-900 bg-amber-200 text-slate-900 shadow-xs'
+                      : 'border-slate-300 hover:border-slate-500 bg-white text-slate-700'
+                  }`}
+                >
+                  <span>Både Dag & Aften</span>
+                </button>
+              </div>
+            </div>
           </div>
 
           {/* 2. Exact 1:1 Live Preview (Matches DailyBoard exactly) */}

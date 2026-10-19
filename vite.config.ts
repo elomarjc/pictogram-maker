@@ -10,6 +10,11 @@ import {
   deleteAllScenesOnDisk,
   deletePersonaPermanentlyOnDisk,
 } from './scripts/manage-personas.mjs';
+import {
+  checkChatGPTStatus,
+  openChatGPTInBrowser,
+  runChatGPTGeneration,
+} from './scripts/generate-with-chatgpt.mjs';
 
 function parseJsonBody<T = any>(req: any): Promise<T> {
   return new Promise((resolve, reject) => {
@@ -104,6 +109,63 @@ function personaFileSaverPlugin(): Plugin {
             sendJson(res, 200, { success: true, ...result });
           } catch (err: any) {
             sendJson(res, 500, { success: false, error: err.message || String(err) });
+          }
+          return;
+        }
+
+        if (url === '/api/chatgpt/status' && req.method === 'GET') {
+          try {
+            const status = checkChatGPTStatus();
+            sendJson(res, 200, { success: true, ...status });
+          } catch (err: any) {
+            sendJson(res, 500, { success: false, error: err.message || String(err) });
+          }
+          return;
+        }
+
+        if (url === '/api/chatgpt/open' && req.method === 'POST') {
+          try {
+            const result = openChatGPTInBrowser();
+            sendJson(res, 200, result);
+          } catch (err: any) {
+            sendJson(res, 500, { success: false, error: err.message || String(err) });
+          }
+          return;
+        }
+
+        if (url === '/api/chatgpt/generate' && req.method === 'POST') {
+          try {
+            const body = await parseJsonBody(req);
+            const personaId = body.personaId || 'avatar_1';
+            const scene = body.scene || '--grid';
+            const customPrompt = body.customPrompt || body.sceneDescription || null;
+
+            // Use Server-Sent Events (SSE) for real-time progress streaming
+            res.statusCode = 200;
+            res.setHeader('Content-Type', 'text/event-stream');
+            res.setHeader('Cache-Control', 'no-cache, no-transform');
+            res.setHeader('Connection', 'keep-alive');
+
+            const sendEvent = (event: string, data: any) => {
+              res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+            };
+
+            sendEvent('progress', { stage: 'init', percent: 5, message: 'Forbereder ChatGPT session...' });
+
+            const result = await runChatGPTGeneration({
+              avatar: personaId,
+              scene,
+              customPrompt,
+              onProgress: (p: any) => {
+                sendEvent('progress', p);
+              },
+            });
+
+            sendEvent('complete', result);
+            res.end();
+          } catch (err: any) {
+            res.write(`event: error\ndata: ${JSON.stringify({ error: err.message || String(err) })}\n\n`);
+            res.end();
           }
           return;
         }

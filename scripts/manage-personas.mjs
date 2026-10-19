@@ -78,7 +78,6 @@ export function savePersonaToDisk(persona) {
 
   let cleanId = persona.id;
   if (cleanId === 'man_k' || cleanId === 'man') cleanId = 'avatar_1';
-  if (cleanId === 'woman_a' || cleanId === 'woman') cleanId = 'avatar_2';
 
   // Safe folder name for ID
   const safeId = String(cleanId).replace(/[^a-zA-Z0-9_-]/g, '_');
@@ -89,7 +88,7 @@ export function savePersonaToDisk(persona) {
   let cleanShortCode = persona.shortCode || safeId;
   let cleanDescription = persona.description || safeId;
 
-  if (safeId === 'avatar_1' || safeId === 'avatar_2') {
+  if (safeId === 'avatar_1') {
     cleanName = safeId;
     cleanShortCode = safeId;
     cleanDescription = safeId;
