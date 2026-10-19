@@ -1,0 +1,28 @@
+{
+  "id": "avatar_1",
+  "name": "Avatar 1",
+  "shortCode": "K.",
+  "avatarUrl": "reference/personas/avatar_1/avatar.webp",
+  "description": "Avatar 1: Mandlig tegneseriefigur med kort hår",
+  "activityScenes": {
+    "vaesketoeg": "reference/personas/avatar_1/scenes/vaesketoeg.webp",
+    "kaffe": "reference/personas/avatar_1/scenes/kaffe.webp",
+    "medicin": "reference/personas/avatar_1/scenes/medicin.webp",
+    "badetid": "reference/personas/avatar_1/scenes/badetid.webp",
+    "spisetid": "reference/personas/avatar_1/scenes/spisetid.webp",
+    "morgenmad": "reference/personas/avatar_1/scenes/spisetid.webp",
+    "frokost": "reference/personas/avatar_1/scenes/spisetid.webp",
+    "aftensmad": "reference/personas/avatar_1/scenes/spisetid.webp",
+    "aktiviteter": "reference/personas/avatar_1/scenes/aktiviteter.webp",
+    "vaske_op": "reference/personas/avatar_1/scenes/vaske_op.webp",
+    "bolle": "reference/personas/avatar_1/scenes/bolle.webp",
+    "sengetid": "reference/personas/avatar_1/scenes/sengetid.webp",
+    "gatur": "reference/personas/avatar_1/scenes/gatur.webp",
+    "rede_seng": "reference/personas/avatar_1/scenes/rede_seng.webp",
+    "pause_sofa": "reference/personas/avatar_1/scenes/pause_sofa.webp",
+    "tv_skaerm": "reference/personas/avatar_1/scenes/pause_sofa.webp",
+    "skraldespand": "reference/personas/avatar_1/scenes/skraldespand.webp",
+    "handle": "reference/personas/avatar_1/scenes/handle.webp",
+    "forberede_mad": "reference/personas/avatar_1/scenes/spisetid.webp"
+  }
+}

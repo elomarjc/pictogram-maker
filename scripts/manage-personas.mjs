@@ -19,6 +19,15 @@ const __dirname = path.dirname(__filename);
 const PERSONAS_ROOT = path.resolve(__dirname, '../public/reference/personas');
 const ARCHIVE_ROOT = path.resolve(PERSONAS_ROOT, '.archive');
 const MANIFEST_FILE = path.resolve(PERSONAS_ROOT, 'personas_manifest.json');
+const ROOT_PERSONAS_DIR = path.resolve(__dirname, '../reference/personas');
+
+function syncToRootPersonas() {
+  if (fs.existsSync(ROOT_PERSONAS_DIR) && fs.existsSync(PERSONAS_ROOT)) {
+    try {
+      fs.cpSync(PERSONAS_ROOT, ROOT_PERSONAS_DIR, { recursive: true });
+    } catch {}
+  }
+}
 
 export function ensureDirectories() {
   if (!fs.existsSync(PERSONAS_ROOT)) {
@@ -26,6 +35,9 @@ export function ensureDirectories() {
   }
   if (!fs.existsSync(ARCHIVE_ROOT)) {
     fs.mkdirSync(ARCHIVE_ROOT, { recursive: true });
+  }
+  if (!fs.existsSync(ROOT_PERSONAS_DIR)) {
+    fs.mkdirSync(ROOT_PERSONAS_DIR, { recursive: true });
   }
 }
 
@@ -132,6 +144,8 @@ export function savePersonaToDisk(persona) {
   // 4. Update manifest
   updateManifest(updatedPersona);
 
+  syncToRootPersonas();
+
   return updatedPersona;
 }
 
@@ -157,6 +171,8 @@ export function archivePersonaOnDisk(id) {
 
   // Update manifest to remove active persona
   removeFromManifest(safeId);
+
+  syncToRootPersonas();
 
   return { success: true, id: safeId, archivedPath: targetDir };
 }
@@ -192,6 +208,8 @@ export function restorePersonaOnDisk(id) {
   }
 
   updateManifest(personaData);
+
+  syncToRootPersonas();
 
   return { success: true, persona: personaData };
 }

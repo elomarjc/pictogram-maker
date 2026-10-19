@@ -8,7 +8,7 @@ export const BUILTIN_TEMPLATES: TemplateDefinition[] = [
     name: 'K. – Komplet Ugeplan (Anbefalet)',
     description: 'Den autentiske ugeplan baseret på referencebilledet og de 18 dagsplaner for K. med personlige rutiner, dag- og aftenprogrammer.',
     icon: 'Calendar',
-    personaId: 'man_k',
+    personaId: 'avatar_1',
     shortCode: 'K.',
     days: {
       mandag: {
@@ -565,7 +565,7 @@ export const BUILTIN_TEMPLATES: TemplateDefinition[] = [
     name: 'K. – Dagsprogrammer (Hverdag & Weekend)',
     description: 'Fokuseret på formiddags- og eftermiddagsrutiner, rengøring, gåture, bad og frokost.',
     icon: 'Sun',
-    personaId: 'man_k',
+    personaId: 'avatar_1',
     shortCode: 'K.',
     days: {
       mandag: {
@@ -690,7 +690,7 @@ export const BUILTIN_TEMPLATES: TemplateDefinition[] = [
     name: 'K. – Aftenprogrammer (Mandag–Søndag Aften)',
     description: 'Struktur for aftenhygge: kaffe, skrald, madlavning, opvask, TV, medicin-bolle og sengetid.',
     icon: 'Moon',
-    personaId: 'man_k',
+    personaId: 'avatar_1',
     shortCode: 'K.',
     days: {
       mandag: {
@@ -816,7 +816,7 @@ export const BUILTIN_TEMPLATES: TemplateDefinition[] = [
     name: 'K. – Hjem til far & Ophold',
     description: 'Skabelon til weekendbesøg: Forberedelse, afhentning af far, tilbagekomst til ophold og aftenro.',
     icon: 'Heart',
-    personaId: 'man_k',
+    personaId: 'avatar_1',
     shortCode: 'K.',
     days: {
       fredag: {
@@ -923,7 +923,7 @@ export function createWeekPlanFromTemplate(template: TemplateDefinition, name?: 
     id: planId,
     name: name || template.name.split(' (')[0],
     description: template.description,
-    personaId: template.personaId || 'man_k',
+    personaId: template.personaId || 'avatar_1',
     shortCode: template.shortCode || 'K.',
     days: daysRecord,
     createdAt: now,

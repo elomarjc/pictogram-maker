@@ -18,63 +18,63 @@ export const BASE = import.meta.env.BASE_URL.endsWith('/')
   ? import.meta.env.BASE_URL
   : `${import.meta.env.BASE_URL}/`;
 
-export const PICTO_STYLE_REF_URL = `${BASE}reference/ref2_example.jpg`;
+export const PICTO_STYLE_REF_URL = `${BASE}reference/style_guide/ref2_example.jpg`;
 
 export const DEFAULT_PERSONAS: Persona[] = [
   {
-    id: 'man_k',
-    name: 'Mand',
+    id: 'avatar_1',
+    name: 'Avatar 1',
     shortCode: 'K.',
-    avatarUrl: `${BASE}reference/personas/man/avatar.webp`,
-    description: 'Mandlig figur med kort hår og grå hættetrøje',
+    avatarUrl: `${BASE}reference/personas/avatar_1/avatar.webp`,
+    description: 'Avatar 1 (K.): Mandlig figur med kort hår',
     activityScenes: {
-      vaesketoeg: `${BASE}reference/personas/man/scenes/vaesketoeg.webp`,
-      kaffe: `${BASE}reference/personas/man/scenes/kaffe.webp`,
-      medicin: `${BASE}reference/personas/man/scenes/medicin.webp`,
-      badetid: `${BASE}reference/personas/man/scenes/badetid.webp`,
-      spisetid: `${BASE}reference/personas/man/scenes/spisetid.webp`,
-      morgenmad: `${BASE}reference/personas/man/scenes/spisetid.webp`,
-      frokost: `${BASE}reference/personas/man/scenes/spisetid.webp`,
-      aftensmad: `${BASE}reference/personas/man/scenes/spisetid.webp`,
-      aktiviteter: `${BASE}reference/personas/man/scenes/aktiviteter.webp`,
-      vaske_op: `${BASE}reference/personas/man/scenes/vaske_op.webp`,
-      bolle: `${BASE}reference/personas/man/scenes/bolle.webp`,
-      sengetid: `${BASE}reference/personas/man/scenes/sengetid.webp`,
-      gatur: `${BASE}reference/personas/man/scenes/gatur.webp`,
-      rede_seng: `${BASE}reference/personas/man/scenes/rede_seng.webp`,
-      pause_sofa: `${BASE}reference/personas/man/scenes/pause_sofa.webp`,
-      tv_skaerm: `${BASE}reference/personas/man/scenes/pause_sofa.webp`,
-      skraldespand: `${BASE}reference/personas/man/scenes/skraldespand.webp`,
-      handle: `${BASE}reference/personas/man/scenes/handle.webp`,
-      forberede_mad: `${BASE}reference/personas/man/scenes/spisetid.webp`,
+      vaesketoeg: `${BASE}reference/personas/avatar_1/scenes/vaesketoeg.webp`,
+      kaffe: `${BASE}reference/personas/avatar_1/scenes/kaffe.webp`,
+      medicin: `${BASE}reference/personas/avatar_1/scenes/medicin.webp`,
+      badetid: `${BASE}reference/personas/avatar_1/scenes/badetid.webp`,
+      spisetid: `${BASE}reference/personas/avatar_1/scenes/spisetid.webp`,
+      morgenmad: `${BASE}reference/personas/avatar_1/scenes/spisetid.webp`,
+      frokost: `${BASE}reference/personas/avatar_1/scenes/spisetid.webp`,
+      aftensmad: `${BASE}reference/personas/avatar_1/scenes/spisetid.webp`,
+      aktiviteter: `${BASE}reference/personas/avatar_1/scenes/aktiviteter.webp`,
+      vaske_op: `${BASE}reference/personas/avatar_1/scenes/vaske_op.webp`,
+      bolle: `${BASE}reference/personas/avatar_1/scenes/bolle.webp`,
+      sengetid: `${BASE}reference/personas/avatar_1/scenes/sengetid.webp`,
+      gatur: `${BASE}reference/personas/avatar_1/scenes/gatur.webp`,
+      rede_seng: `${BASE}reference/personas/avatar_1/scenes/rede_seng.webp`,
+      pause_sofa: `${BASE}reference/personas/avatar_1/scenes/pause_sofa.webp`,
+      tv_skaerm: `${BASE}reference/personas/avatar_1/scenes/pause_sofa.webp`,
+      skraldespand: `${BASE}reference/personas/avatar_1/scenes/skraldespand.webp`,
+      handle: `${BASE}reference/personas/avatar_1/scenes/handle.webp`,
+      forberede_mad: `${BASE}reference/personas/avatar_1/scenes/spisetid.webp`,
     },
   },
   {
-    id: 'woman_a',
-    name: 'Kvinde',
+    id: 'avatar_2',
+    name: 'Avatar 2',
     shortCode: 'A.',
-    avatarUrl: `${BASE}reference/personas/woman/avatar.webp?v=transparent`,
-    description: 'Kvindelig figur med hestehale og turkis hættetrøje',
+    avatarUrl: `${BASE}reference/personas/avatar_2/avatar.webp?v=transparent`,
+    description: 'Avatar 2 (A.): Kvindelig figur med hestehale',
     activityScenes: {
-      vaesketoeg: `${BASE}reference/personas/woman/scenes/woman_vasketoj.webp`,
-      kaffe: `${BASE}reference/personas/woman/scenes/woman_kaffe.webp`,
-      medicin: `${BASE}reference/personas/woman/scenes/woman_medicin.webp`,
-      badetid: `${BASE}reference/personas/woman/scenes/woman_badetid.webp`,
-      spisetid: `${BASE}reference/personas/woman/scenes/woman_spisetid.webp`,
-      morgenmad: `${BASE}reference/personas/woman/scenes/woman_spisetid.webp`,
-      frokost: `${BASE}reference/personas/woman/scenes/woman_spisetid.webp`,
-      aftensmad: `${BASE}reference/personas/woman/scenes/woman_spisetid.webp`,
-      aktiviteter: `${BASE}reference/personas/man/scenes/aktiviteter.webp`,
-      vaske_op: `${BASE}reference/personas/woman/scenes/woman_vasketoj.webp`,
-      bolle: `${BASE}reference/personas/woman/scenes/woman_kaffe.webp`,
-      sengetid: `${BASE}reference/personas/woman/scenes/woman_sengetid.webp`,
-      gatur: `${BASE}reference/personas/man/scenes/gatur.webp`,
-      rede_seng: `${BASE}reference/personas/man/scenes/rede_seng.webp`,
-      pause_sofa: `${BASE}reference/personas/man/scenes/pause_sofa.webp`,
-      tv_skaerm: `${BASE}reference/personas/man/scenes/pause_sofa.webp`,
-      skraldespand: `${BASE}reference/personas/man/scenes/skraldespand.webp`,
-      handle: `${BASE}reference/personas/man/scenes/handle.webp`,
-      forberede_mad: `${BASE}reference/personas/woman/scenes/woman_spisetid.webp`,
+      vaesketoeg: `${BASE}reference/personas/avatar_2/scenes/vaesketoeg.webp`,
+      kaffe: `${BASE}reference/personas/avatar_2/scenes/kaffe.webp`,
+      medicin: `${BASE}reference/personas/avatar_2/scenes/medicin.webp`,
+      badetid: `${BASE}reference/personas/avatar_2/scenes/badetid.webp`,
+      spisetid: `${BASE}reference/personas/avatar_2/scenes/spisetid.webp`,
+      morgenmad: `${BASE}reference/personas/avatar_2/scenes/spisetid.webp`,
+      frokost: `${BASE}reference/personas/avatar_2/scenes/spisetid.webp`,
+      aftensmad: `${BASE}reference/personas/avatar_2/scenes/spisetid.webp`,
+      aktiviteter: `${BASE}reference/personas/avatar_1/scenes/aktiviteter.webp`,
+      vaske_op: `${BASE}reference/personas/avatar_2/scenes/vaesketoeg.webp`,
+      bolle: `${BASE}reference/personas/avatar_2/scenes/kaffe.webp`,
+      sengetid: `${BASE}reference/personas/avatar_2/scenes/sengetid.webp`,
+      gatur: `${BASE}reference/personas/avatar_1/scenes/gatur.webp`,
+      rede_seng: `${BASE}reference/personas/avatar_1/scenes/rede_seng.webp`,
+      pause_sofa: `${BASE}reference/personas/avatar_1/scenes/pause_sofa.webp`,
+      tv_skaerm: `${BASE}reference/personas/avatar_1/scenes/pause_sofa.webp`,
+      skraldespand: `${BASE}reference/personas/avatar_1/scenes/skraldespand.webp`,
+      handle: `${BASE}reference/personas/avatar_1/scenes/handle.webp`,
+      forberede_mad: `${BASE}reference/personas/avatar_2/scenes/spisetid.webp`,
     },
   },
 ];
@@ -132,7 +132,17 @@ export function resolveAssetUrl(url?: string): string {
   if (url.startsWith(BASE)) {
     return url;
   }
-  const clean = url.startsWith('/') ? url.slice(1) : url;
+  let clean = url.startsWith('/') ? url.slice(1) : url;
+  // Backward compatibility for legacy paths
+  if (clean === 'reference/ref2_example.jpg') {
+    clean = 'reference/style_guide/ref2_example.jpg';
+  }
+  if (clean.includes('personas/man/')) {
+    clean = clean.replace('personas/man/', 'personas/avatar_1/');
+  }
+  if (clean.includes('personas/woman/')) {
+    clean = clean.replace('personas/woman/', 'personas/avatar_2/');
+  }
   return `${BASE}${clean}`;
 }
 
@@ -349,13 +359,14 @@ export function permanentlyDeletePersona(id: string): void {
 }
 
 export function isDefaultPersona(id: string): boolean {
-  return DEFAULT_PERSONAS.some((p) => p.id === id);
+  const normId = id === 'man_k' ? 'avatar_1' : id === 'woman_a' ? 'avatar_2' : id;
+  return DEFAULT_PERSONAS.some((p) => p.id === normId || p.id === id);
 }
 
 export function getAllPersonas(): Persona[] {
   const custom = getCustomPersonas();
   const defaultList = DEFAULT_PERSONAS.map((def) => {
-    const override = custom.find((c) => c.id === def.id);
+    const override = custom.find((c) => c.id === def.id || (def.id === 'avatar_1' && c.id === 'man_k') || (def.id === 'avatar_2' && c.id === 'woman_a'));
     const p = override || def;
     return {
       ...p,
@@ -363,7 +374,7 @@ export function getAllPersonas(): Persona[] {
     };
   });
   const purelyCustom = custom
-    .filter((c) => !DEFAULT_PERSONAS.some((d) => d.id === c.id))
+    .filter((c) => !DEFAULT_PERSONAS.some((d) => d.id === c.id || (d.id === 'avatar_1' && c.id === 'man_k') || (d.id === 'avatar_2' && c.id === 'woman_a')))
     .map((p) => ({
       ...p,
       avatarUrl: resolveAssetUrl(p.avatarUrl),
@@ -373,7 +384,8 @@ export function getAllPersonas(): Persona[] {
 
 export function getPersona(id?: string): Persona {
   const all = getAllPersonas();
-  const found = all.find((p) => p.id === id);
+  const normId = id === 'man_k' ? 'avatar_1' : id === 'woman_a' ? 'avatar_2' : id;
+  const found = all.find((p) => p.id === normId || p.id === id);
   return found || DEFAULT_PERSONAS[0];
 }
 
@@ -382,8 +394,17 @@ export function resolveSceneImage(pic: Pictogram, persona: Persona): string | nu
   if (pic.sceneImageUrl) return resolveAssetUrl(pic.sceneImageUrl);
 
   const key = pic.illustrationId;
-  if (key && persona.activityScenes[key]) {
-    return resolveAssetUrl(persona.activityScenes[key]);
+  if (key && persona.activityScenes) {
+    if (persona.activityScenes[key]) {
+      return resolveAssetUrl(persona.activityScenes[key]);
+    }
+    // Fallbacks for common aliases
+    if (key === 'vaesketoeg' && persona.activityScenes['vasketoj']) {
+      return resolveAssetUrl(persona.activityScenes['vasketoj']);
+    }
+    if (key === 'vasketoj' && persona.activityScenes['vaesketoeg']) {
+      return resolveAssetUrl(persona.activityScenes['vaesketoeg']);
+    }
   }
   return null;
 }

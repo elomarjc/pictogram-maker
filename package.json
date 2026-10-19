@@ -12,7 +12,9 @@
     "accounts": "node scripts/manage-accounts.mjs list",
     "add-account": "node scripts/manage-accounts.mjs add",
     "personas": "node scripts/manage-personas.mjs list",
-    "personas:restore": "node scripts/manage-personas.mjs restore"
+    "personas:restore": "node scripts/manage-personas.mjs restore",
+    "slice:sheet": "python3 scripts/slice-sheet-2x10.py",
+    "pack:sheet": "python3 scripts/pack-sheet-2x10.py"
   },
   "dependencies": {
     "html2canvas": "^1.4.1",

@@ -26,8 +26,8 @@ export const DAYS_OF_WEEK: DayInfo[] = [
 export type CardFontSize = 'sm' | 'base' | 'lg' | 'xl' | number | string;
 
 export interface Persona {
-  id: string; // 'man_k' | 'woman_a' | 'custom'
-  name: string; // 'Mand (K.)' | 'Kvinde (A.)' | 'Tilpasset'
+  id: string; // 'avatar_1' | 'avatar_2' | 'custom'
+  name: string; // 'Avatar 1' | 'Avatar 2' | 'Tilpasset'
   shortCode: string; // 'K.' | 'A.' | ...
   avatarUrl: string;
   description?: string;

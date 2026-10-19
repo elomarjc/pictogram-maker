@@ -159,7 +159,7 @@ export function getReadyScenesCount(persona: Persona): { ready: number; total: n
  * Constructs a prompt for Cloudflare Workers AI for a specific scene and persona.
  */
 export function buildScenePromptForPersona(persona: Persona, sceneDef: DefaultSceneDef): string {
-  const isWoman = persona.id === 'woman_a' || /kvinde/i.test(persona.name);
+  const isWoman = persona.id === 'avatar_2' || persona.id === 'woman_a' || /kvinde/i.test(persona.name);
   const nameStr =
     persona.name && !persona.name.startsWith('avatar_') ? persona.name : 'the friendly character';
   let characterDesc: string;
@@ -167,9 +167,9 @@ export function buildScenePromptForPersona(persona: Persona, sceneDef: DefaultSc
   if (isWoman) {
     characterDesc =
       'A cheerful friendly cartoon woman with brown hair tied in a neat ponytail, round friendly face, rosy cheeks, warm smile, wearing a turquoise teal hoodie jacket over a t-shirt';
-  } else if (persona.description && persona.description.trim() && persona.id !== 'man_k') {
+  } else if (persona.description && persona.description.trim() && persona.id !== 'avatar_1' && persona.id !== 'man_k') {
     characterDesc = `A cheerful friendly cartoon character (${nameStr}), ${persona.description}`;
-  } else if (persona.id === 'man_k') {
+  } else if (persona.id === 'avatar_1' || persona.id === 'man_k') {
     characterDesc =
       'A cheerful friendly cartoon man with closely shaved buzzcut hair, round friendly face, rosy cheeks, warm open smile, wearing a grey hoodie jacket over a white t-shirt';
   } else {

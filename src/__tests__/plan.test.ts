@@ -95,11 +95,11 @@ describe('Persona & Figursystem samt Navnebeskyttelse', () => {
     const { DEFAULT_PERSONAS, getPersona, resolveSceneImage } = await import('../services/personas');
     expect(DEFAULT_PERSONAS.length).toBeGreaterThanOrEqual(2);
 
-    const man = getPersona('man_k');
+    const man = getPersona('avatar_1');
     expect(man.shortCode).toBe('K.');
     expect(man.activityScenes.kaffe).toBeDefined();
 
-    const woman = getPersona('woman_a');
+    const woman = getPersona('avatar_2');
     expect(woman.shortCode).toBe('A.');
     expect(woman.activityScenes.kaffe).toBeDefined();
 
@@ -115,8 +115,8 @@ describe('Persona & Figursystem samt Navnebeskyttelse', () => {
     const manScene = resolveSceneImage(testPic, man);
     const womanScene = resolveSceneImage(testPic, woman);
     expect(manScene).not.toBe(womanScene);
-    expect(manScene).toContain('kaffe');
-    expect(womanScene).toContain('woman_kaffe');
+    expect(manScene).toContain('personas/avatar_1/scenes/kaffe');
+    expect(womanScene).toContain('personas/avatar_2/scenes/kaffe');
   });
 });
 

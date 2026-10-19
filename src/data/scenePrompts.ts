@@ -6,8 +6,86 @@ export interface ScenePromptItem {
 }
 
 /**
- * Dansk Master Prompt Generator til ChatGPT / DALL-E.
- * Tager højde for den valgte figur (Mand, Kvinde eller Tilpasset).
+ * Trin 1 Prompt: Foto til 2D Tegneserie Avatar.
+ * Forvandler et virkeligt fotografi af enhver person til den officielle 2D cartoon avatar (Ref 1),
+ * hvor personens virkelige ansigtstræk, frisure og faktiske tøj bevares (uden at antage en hættetrøje).
+ */
+export function buildPhotoToAvatarPrompt(options?: { language?: 'da' | 'en' }): string {
+  const isEn = options?.language === 'en';
+  if (isEn) {
+    return `# Stage 1 Prompt — Turn Real Photo into 2D Cartoon Avatar
+
+## Reference Images to Attach in ChatGPT / DALL-E:
+- **Image 1 — Real Photo:** A real photograph of the person to convert into a cartoon avatar.
+- **Image 2 — Art Style Reference:** The official 2D cartoon style example (bold smooth black outlines, flat saturated colors, subtle cel-shading, friendly approachable aesthetic).
+
+## Instructions for ChatGPT / DALL-E:
+Transform the real person in Image 1 into ONE clean, friendly 2D cartoon avatar portrait that will serve as the master character reference for an autism routine schedule.
+
+### 1. Accurate Likeness & Authentic Clothing (DO NOT DEFAULT TO A HOODIE)
+- **Face & Identity:** Capture the person's real facial structure, eye shape, smile, skin tone, and distinguishing facial features.
+- **Hair:** Replicate the person's exact hairstyle, hair length, hair color, and texture as seen in Image 1.
+- **Clothing:** Strictly reproduce whatever clothing the person is ACTUALLY wearing in Image 1 (e.g. sweater, t-shirt, buttoned shirt, polo, dress, jacket, or glasses). DO NOT change their clothing to a hoodie, sweatshirt, or generic cartoon uniform unless they are actually wearing one in the photo.
+- **Expression:** Warm, kind, cheerful, smiling, and approachable.
+
+### 2. Illustration Style (Matching Image 2)
+- Clean, crisp 2D cartoon vector illustration style exactly matching Image 2.
+- Bold, thick, smooth black outlines around the character and clothing.
+- Clean flat saturated colors with minimal, simple cel-shading (no 3D, no photorealism, no airbrushing).
+- Friendly rounded proportions and clear silhouette.
+
+### 3. Composition & Framing
+- Centered upper-body portrait (chest up or waist up), facing slightly toward the viewer.
+- Balanced composition fitting within an avatar portrait circle or square.
+
+### 4. 100% Genuine Transparent Background (Critical)
+- The entire background surrounding the character MUST be completely transparent (PNG alpha channel).
+- NO white background, NO background scenery, NO circle borders, NO card frames, NO fake checkerboard pattern.
+- Only the person and their clothing should be visible.
+
+### 5. Final Requirements
+- One image only.
+- No text, letters, names, or watermarks.`;
+  }
+
+  return `# Trin 1 Prompt — Konverter Virkeligt Foto til 2D Tegneserie Avatar
+
+## Referencebilleder der SKAL vedhæftes i ChatGPT / DALL-E:
+- **Billede 1 — Virkeligt Foto:** Et almindeligt foto af personen, der skal forvandles til en tegneserie-avatar.
+- **Billede 2 — Tegnestilsreference:** Den officielle piktogram-tegnestil (tykke sorte omrids, mættede flade farver, cel-shading og venligt udtryk).
+
+## Instruktioner til ChatGPT / DALL-E:
+Forvandl den virkelige person fra Billede 1 til ÉT venligt, klart 2D tegneserie-portræt (avatar), som skal bruges som den faste karakterreference til piktogramkort.
+
+### 1. Præcis Lighed & Autentisk Tøj (ANTAG IKKE EN HÆTTETRØJE)
+- **Ansigt & Træk:** Aflæs personens virkelige ansigtsform, øjenform, smil, hudtone og eventuelle briller.
+- **Frisure:** Genskab personens faktiske frisure, hårlængde, hårfarve og tekstur direkte fra Billede 1.
+- **Tøj:** Genskab PRÆCIS det tøj, personen rent faktisk har på i fotoet (f.eks. striktrøje, t-shirt, skjorte, kjole, jakke osv.). Du må IKKE automatisk give personen en hættetrøje/hoodie på, medmindre de faktisk bærer en på fotoet.
+- **Ansigtsudtryk:** Varmt, venligt, smilende og imødekommende.
+
+### 2. Tegnestil (Matcher Billede 2)
+- Ren, skarp 2D tegneseriestil der matcher Billede 2 100%.
+- Tydelige, tykke og bløde sorte omrids (outlines) rundt om figuren og tøjet.
+- Klare, mættede farver med enkel cel-shading (ingen 3D, ingen fotorealisme, ingen airbrush).
+- Runde former, klare silhuetter og venlige proportioner.
+
+### 3. Komposition
+- Centreret brystbillede / overkrop (chest-up), vendt mod beskueren.
+- Figuren skal passe harmonisk i en avatar-cirkel eller firkant.
+
+### 4. 100% Gennemsigtig Baggrund (Kritisk krav)
+- Hele baggrunden rundt om figuren SKAL være ægte gennemsigtig (transparent PNG med alpha-kanal).
+- INGEN hvid baggrund, INGEN væg eller baggrundsfarve, INGEN ramme, cirkel eller kant.
+- Kun figuren og personens tøj må være synligt.
+
+### 5. Aflevering
+- Kun ét enkelt billede.
+- Ingen tekst, ingen bogstaver, ingen navne og ingen vandmærker.`;
+}
+
+/**
+ * Dansk Master Prompt Generator til ChatGPT / DALL-E (Trin 2: Scener).
+ * Tager højde for den valgte figur og bevarer figurens specifikke tøj fra Billede 1.
  */
 export function buildDanishMasterPrompt(options: {
   sceneDescription: string;
@@ -29,6 +107,7 @@ Skab **én enkeltstående 2D cartoon illustration** af den angivne scene. Result
 ### 1. Karakter- & Tøjkonsistens (Ref 1)
 - Hovedpersonen er figuren fra Referencebillede 1 (Ref 1).
 - Figurens udseende, ansigtstræk, frisure, hudtone og tøj SKAL være 100% konsistent med figuren/avataren i Referencebillede 1 (Ref 1).
+- Bevar PRÆCIS det tøj, som figuren bærer i Billede 1 (f.eks. skjorte, kjole, strik eller jakke). Du må IKKE antage standardtøj eller ændre tøjet; tøjet skal holdes fuldstændig tro mod Billede 1.
 - Tilpas figurens kropsstilling, ansigtsudtryk og håndstillinger naturligt til den ønskede aktivitet.
 - Udtrykket skal være venligt, glad, imødekommende og let at afkode med et enkelt blik.
 
@@ -76,6 +155,7 @@ Create ONE standalone 2D cartoon illustration of the specified scene for a visua
 ### 1. Character & Clothing Consistency (Ref 1)
 - Main subject is the character from Reference Image 1 (Ref 1).
 - The character's face, hairstyle, skin tone, and clothing MUST be 100% consistent with the avatar in Reference Image 1 (Ref 1).
+- Strictly maintain WHATEVER clothing the character is wearing in Image 1 (e.g. shirt, sweater, dress, jacket, glasses). DO NOT assume default clothing or a generic outfit; stay 100% faithful to the clothing shown on the avatar in Image 1.
 - Adapt body posture, facial expression, and hands naturally to the activity.
 - Expression must be warm, friendly, smiling, and easy to understand at a glance.
 
@@ -525,4 +605,334 @@ export function optimizeScenePrompt(input: string): string {
   return formatted;
 }
 
+export interface BatchSheetDefinition {
+  id: string;
+  name: string;
+  description: string;
+  scenes: {
+    key: string;
+    title: string;
+    description: string;
+  }[];
+}
 
+export const PRESET_BATCH_SHEETS: BatchSheetDefinition[] = [
+  {
+    id: 'sheet_dagplan_1',
+    name: 'Ark 1: Morgen & Formiddag (K. Dagplan)',
+    description: 'De første 4 scener fra K.s officielle dagsplan: Vasketøj, Kaffe, Medicin og Badetid.',
+    scenes: [
+      { key: 'vaesketoeg', title: 'Hænge vasketøj op', description: 'Hænger vasketøj op med tøjklemmer foran vaskemaskine med vasketøjskurv' },
+      { key: 'kaffe', title: 'The & Kaffe', description: 'Sidder hyggeligt ved bord med dampende kaffekop og kande' },
+      { key: 'medicin', title: 'Medicin', description: 'Tager pille ved bord med et glas vand og blisterpakke' },
+      { key: 'badetid', title: 'Badetid', description: 'Står under bruseren med sæbeskum i håret og sprøjtende vanddråber' },
+    ],
+  },
+  {
+    id: 'sheet_dagplan_2',
+    name: 'Ark 2: Middag & Eftermiddag (K. Dagplan)',
+    description: 'De næste 4 scener fra K.s officielle dagsplan: Spisetid, Aktiviteter, Vaske op og Bolle.',
+    scenes: [
+      { key: 'spisetid', title: 'Spisetid', description: 'Sidder ved spisebord med tallerken mad, bestik og smiler' },
+      { key: 'aktiviteter', title: 'Aktiviteter', description: 'Laver kreativ aktivitet ved arbejdsbord (tegner eller perler)' },
+      { key: 'vaske_op', title: 'Vaske op', description: 'Vasker tallerkener i køkkenvask med opvaskebørste og skum' },
+      { key: 'bolle', title: 'Bolle', description: 'Nyder en friskbagt bolle med smør ved bordet' },
+    ],
+  },
+  {
+    id: 'sheet_dagplan_3',
+    name: 'Ark 3: Aften & Ugeplan (K. Dagplan)',
+    description: 'Aftenrutine og ekstra ugentlige aktiviteter: Sengetid, Rede seng, Gåtur og Sofa-pause.',
+    scenes: [
+      { key: 'sengetid', title: 'Sengetid', description: 'Ligger i seng under blå dyne på hvid pude med ZZZ sovebobler' },
+      { key: 'rede_seng', title: 'Rede seng', description: 'Ryster puden og glatter dynen pænt på plads' },
+      { key: 'gatur', title: 'Gåtur', description: 'Går en frisk gåtur udendørs i frisk luft med et muntert smil' },
+      { key: 'pause_sofa', title: 'Pause på sofa', description: 'Slapper behageligt af på sofaen og ser fjernsyn eller hviler sig' },
+    ],
+  },
+];
+
+export function buildBatchSpriteSheetPrompt(sheet: BatchSheetDefinition): string {
+  const scenesList = sheet.scenes
+    .map((s, idx) => `${idx + 1}. [Scene ${idx + 1}: ${s.title}] — ${s.description}.`)
+    .join('\n');
+
+  return `# Master Prompt — Multi-Scene Character Sheet (4-in-1 Batch)
+
+## Reference Images (Attach in ChatGPT / DALL-E)
+- **Image 1 — Avatar (Ref 1):** Exact character and clothing reference. Face, hair, skin tone, clothing, and proportions must strictly match Image 1.
+- **Image 2 — Art Style (Ref 2):** 2D cartoon pictogram style reference: bold smooth black outlines, flat saturated colors, soft cel shading, friendly rounded shapes.
+
+## Request:
+Create ONE single wide sticker/sprite sheet containing exactly 4 separate standalone scenes of the character arranged in a clear, well-spaced 2x2 grid on a pure white, 100% transparent background (no floor, no wall, no background scenery):
+
+${scenesList}
+
+## Requirements:
+1. Character & Clothing Consistency: The exact same character from Image 1 in all 4 scenes. Strictly preserve whatever clothing the character is wearing in Image 1 (do NOT default to a hoodie or generic uniform; faithfully maintain their specific clothing from Image 1).
+2. Spacing: Leave plenty of empty transparent space between the 4 scenes so each scene can easily be cropped out without touching neighboring elements.
+3. Props: Include only essential props for each scene (cup, laundry basket, pill glass, etc.).
+4. Art Style: Crisp 2D cartoon matching Image 2 with clear outlines.
+5. 100% Transparent Background: Only the character and immediate activity props should be visible.
+6. No text, labels, or numbers.`;
+}
+
+export interface Sheet2x10Slot {
+  key: string;
+  title: string;
+  row: number;
+  col: number;
+  descriptionEn: string;
+  descriptionDa: string;
+}
+
+export const DEFAULT_2X10_SLOTS: Sheet2x10Slot[] = [
+  // Række 1
+  {
+    key: 'morgenmad',
+    title: 'Morgenmad',
+    row: 1,
+    col: 1,
+    descriptionEn: 'Character sitting at the dining table eating breakfast from a bowl with a spoon and milk carton, smiling',
+    descriptionDa: 'Figuren sidder ved spisebordet og spiser morgenmad fra en skål med ske og mælkekarton, smilende',
+  },
+  {
+    key: 'rede_seng',
+    title: 'Rede seng',
+    row: 1,
+    col: 2,
+    descriptionEn: 'Character making the bed, neatly smoothing out the duvet and fluffing the white pillow',
+    descriptionDa: 'Figuren reder sengen pænt, glatter dynen ud og puffer den hvide pude på plads',
+  },
+  // Række 2
+  {
+    key: 'badetid',
+    title: 'Badetid',
+    row: 2,
+    col: 1,
+    descriptionEn: 'Character happily taking a shower, washing hair with shampoo foam and gentle water droplets',
+    descriptionDa: 'Figuren står glad under bruseren og vasker hår med shampoo-skum og fine vanddråber',
+  },
+  {
+    key: 'boerste_taender',
+    title: 'Børste tænder',
+    row: 2,
+    col: 2,
+    descriptionEn: 'Character brushing teeth with a toothbrush and white foam in front of the bathroom sink',
+    descriptionDa: 'Figuren børster tænder foran badeværelsesvasken med tandbørste og hvidt skum',
+  },
+  // Række 3
+  {
+    key: 'tage_toej_paa',
+    title: 'Tage tøj på',
+    row: 3,
+    col: 1,
+    descriptionEn: 'Character putting on their authentic clothes and adjusting them with a pleased smile',
+    descriptionDa: 'Figuren tager sit tøj på og retter trøjen til med et tilfreds smil',
+  },
+  {
+    key: 'medicin',
+    title: 'Medicin',
+    row: 3,
+    col: 2,
+    descriptionEn: 'Character taking daily medicine at the table with a glass of water and pill blister pack',
+    descriptionDa: 'Figuren tager daglig medicin ved bordet med et glas vand og en pille-blisterpakke',
+  },
+  // Række 4
+  {
+    key: 'kaffe',
+    title: 'The & Kaffe',
+    row: 4,
+    col: 1,
+    descriptionEn: 'Character sitting cozily holding a steaming hot coffee mug with both hands, kettle on table',
+    descriptionDa: 'Figuren sidder hyggeligt og holder en dampende varm kaffekop med en kaffekande på bordet',
+  },
+  {
+    key: 'bolle',
+    title: 'Bolle / Formiddagssnack',
+    row: 4,
+    col: 2,
+    descriptionEn: 'Character enjoying a freshly baked buttered bread roll, holding it cheerfully with both hands',
+    descriptionDa: 'Figuren spiser en friskbagt bolle med smør og holder den glad med begge hænder',
+  },
+  // Række 5
+  {
+    key: 'spisetid',
+    title: 'Frokost / Spisetid',
+    row: 5,
+    col: 1,
+    descriptionEn: 'Character eating lunch with open-faced sandwiches on a plate with knife and fork',
+    descriptionDa: 'Figuren spiser frokost med rugbrødsmadder fra en tallerken med kniv og gaffel',
+  },
+  {
+    key: 'vaske_op',
+    title: 'Vaske op',
+    row: 5,
+    col: 2,
+    descriptionEn: 'Character washing plates in the kitchen sink with a dish brush, gentle suds, and dish rack',
+    descriptionDa: 'Figuren vasker op i køkkenvasken med opvaskebørste, skum og rene tallerkener',
+  },
+  // Række 6
+  {
+    key: 'vaesketoeg',
+    title: 'Hænge vasketøj op',
+    row: 6,
+    col: 1,
+    descriptionEn: 'Character hanging clean wet laundry with clothes pegs on a drying rack next to a basket',
+    descriptionDa: 'Figuren hænger rent vådt vasketøj op på et tørrestativ med tøjklemmer ved en vasketøjskurv',
+  },
+  {
+    key: 'aktiviteter',
+    title: 'Aktiviteter / Hobby',
+    row: 6,
+    col: 2,
+    descriptionEn: 'Character sitting at a hobby desk drawing with colorful markers or listening to music',
+    descriptionDa: 'Figuren laver en hyggelig hobbyaktivitet ved bordet (tegner med tuscher eller hører musik)',
+  },
+  // Række 7
+  {
+    key: 'gatur',
+    title: 'Gåtur',
+    row: 7,
+    col: 1,
+    descriptionEn: 'Character walking outdoors in fresh air along a peaceful park path with a relaxed smile',
+    descriptionDa: 'Figuren går en dejlig tur på en sti i parken med et roligt og glad smil',
+  },
+  {
+    key: 'handle',
+    title: 'Handle indkøb',
+    row: 7,
+    col: 2,
+    descriptionEn: 'Character carrying a grocery shopping basket filled with daily groceries in a supermarket',
+    descriptionDa: 'Figuren bærer en indkøbskurv med dagligvarer i supermarkedet med et muntert smil',
+  },
+  // Række 8
+  {
+    key: 'pause_sofa',
+    title: 'Pause på sofa / TV',
+    row: 8,
+    col: 1,
+    descriptionEn: 'Character resting comfortably on a living room sofa holding a TV remote control',
+    descriptionDa: 'Figuren slapper af på en blød sofa med fjernbetjening i hånden og ser fjernsyn',
+  },
+  {
+    key: 'skraldespand',
+    title: 'Skraldespand & Pant',
+    row: 8,
+    col: 2,
+    descriptionEn: 'Character carrying a green garbage bag and empty returnable bottles to the recycle bin',
+    descriptionDa: 'Figuren bærer en skraldepose og tomme pantflasker ud til affaldscontaineren',
+  },
+  // Række 9
+  {
+    key: 'forberede_mad',
+    title: 'Lave aftensmad',
+    row: 9,
+    col: 1,
+    descriptionEn: 'Character preparing evening meal at the kitchen counter with a cutting board and pot',
+    descriptionDa: 'Figuren gør aftensmad klar ved køkkenbordet med et skærebræt og en gryde',
+  },
+  {
+    key: 'toej_af',
+    title: 'Aftenhygiejne / Gøre klar til nat',
+    row: 9,
+    col: 2,
+    descriptionEn: 'Character washing hands and face at the bathroom sink, getting ready for the night',
+    descriptionDa: 'Figuren vasker hænder og ansigt ved badeværelsesvasken og gør sig klar til sengetid',
+  },
+  // Række 10
+  {
+    key: 'sengetid',
+    title: 'Sengetid / Sove',
+    row: 10,
+    col: 1,
+    descriptionEn: 'Character sleeping peacefully tucked in bed under a soft duvet with head on pillow',
+    descriptionDa: 'Figuren sover trygt og godt under en blød dyne med hovedet hvilende på puden',
+  },
+  {
+    key: 'weekend',
+    title: 'Weekendhygge / Frisk luft',
+    row: 10,
+    col: 2,
+    descriptionEn: 'Character enjoying a relaxed weekend outdoor moment with relaxed posture and a warm smile',
+    descriptionDa: 'Figuren nyder en afslappet weekendstund med rolige skuldre og godt humør',
+  },
+];
+
+/**
+ * 20-in-1 Master Sheet Prompt Generator (2x10 Grid).
+ * Generates all 20 daily routine scenes in one single ChatGPT image (1080x1920 portrait).
+ */
+export function buildBatch20SheetPrompt(options?: { language?: 'da' | 'en' }): string {
+  const isEn = options?.language !== 'da';
+
+  if (isEn) {
+    const rowsText = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+      .map((r) => {
+        const col1 = DEFAULT_2X10_SLOTS.find((s) => s.row === r && s.col === 1)!;
+        const col2 = DEFAULT_2X10_SLOTS.find((s) => s.row === r && s.col === 2)!;
+        return `### Row ${r}:
+- **[Row ${r}, Col 1 — ${col1.title}]:** ${col1.descriptionEn}.
+- **[Row ${r}, Col 2 — ${col2.title}]:** ${col2.descriptionEn}.`;
+      })
+      .join('\n\n');
+
+    return `# 20-in-1 Master Sheet Prompt — 2x10 Daily Schedule Grid (Transparent Background)
+
+## Reference Images to Attach in ChatGPT / DALL-E:
+- **Image 1 — Avatar & Clothing Reference (Ref 1):** The 2D cartoon avatar. All physical appearance, facial identity, hairstyle, skin tone, AND WHATEVER SPECIFIC CLOTHING the character wears in Image 1 must be strictly replicated across all 20 scenes. Do NOT default to generic clothes or any outfit different from Image 1.
+- **Image 2 — Art Style Reference (Ref 2):** 2D cartoon pictogram style: bold smooth black outlines, flat saturated colors, soft cel shading, friendly rounded proportions.
+- **Image 3 (Optional) — Layout Grid Example:** \`sheet_2x10_example.png\` showing the 2 columns x 10 rows grid layout.
+
+## Format & Canvas Layout:
+- **Canvas Orientation:** One tall portrait sheet (9:16 aspect ratio, 1080 x 1920 pixels).
+- **Grid Layout:** Exactly 2 columns × 10 rows (20 distinct standalone scenes in total).
+- **Cell Proportion:** Each scene cell is wide/horizontal (aspect ratio ~2.8:1, approx 531 x 185 px at 25% scale of 2126x740), arranged side-by-side in 2 clean vertical columns.
+- **100% Genuine Transparent Background:** Pure alpha transparency between and around all 20 scenes. NO background panels, NO boxes, NO white card frames, NO background walls or floors. Only the character and immediate activity props.
+- **Spacing:** Generous clear transparent space between rows and columns so each scene can be sliced cleanly without touching adjacent scenes.
+
+## The 20 Distinct Scenes (Organized Morning to Night):
+
+${rowsText}
+
+## Critical Requirements:
+1. All 20 scenes MUST be generated on this single 1080x1920 image in the exact 2x10 grid order.
+2. Character must be 100% identical to Image 1 across all 20 cells, wearing the EXACT same clothing shown in Image 1.
+3. Completely transparent background (PNG alpha). Only the character and direct scene props are visible.
+4. No text, labels, numbers, or border lines.`;
+  }
+
+  const rowsTextDa = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    .map((r) => {
+      const col1 = DEFAULT_2X10_SLOTS.find((s) => s.row === r && s.col === 1)!;
+      const col2 = DEFAULT_2X10_SLOTS.find((s) => s.row === r && s.col === 2)!;
+      return `### Række ${r}:
+- **[Række ${r}, Søjle 1 — ${col1.title}]:** ${col1.descriptionDa}.
+- **[Række ${r}, Søjle 2 — ${col2.title}]:** ${col2.descriptionDa}.`;
+    })
+    .join('\n\n');
+
+  return `# 20-i-1 Master Ark Prompt — 2x10 Dagsplan Gitter (Gennemsigtig Baggrund)
+
+## Referencebilleder der SKAL vedhæftes i ChatGPT / DALL-E:
+- **Billede 1 — Figur / Avatar (Ref 1):** Din færdige cartoon avatar. Alt vedrørende personens udseende, ansigt, hudtone, frisure og DET PRÆCISE TØJ fra Billede 1 skal holdes 100% konsistent på tværs af alle 20 scener.
+- **Billede 2 — Stilreference (Ref 2):** 2D tegneseriestil: tykke sorte omrids, flade mættede farver, cel-shading og venligt udtryk.
+- **Billede 3 (Valgfrit) — Layout-reference:** \`sheet_2x10_example.png\` der viser 2 søjler x 10 rækker layoutet.
+
+## Format & Komposition:
+- **Lærred:** Ét højformat ark (9:16 format, 1080 x 1920 pixels).
+- **Gitter:** Nøjagtig 2 søjler × 10 rækker (20 separate selvstændige scener).
+- **Celle-proportion:** Hver scene er i aflangt bredformat (~2.8:1, ca. 531 x 185 px ved 25% skalering af 2126x740), placeret pænt ved siden af hinanden i 2 lodrette søjler.
+- **100% Gennemsigtig Baggrund:** Ægte gennemsigtighed (alpha-kanal). INGEN baggrundskasser, INGEN hvide rammer, INGEN vægge eller gulve. Kun figuren og de nødvendige rekvisitter.
+- **Afstand:** God luft imellem scenerne, så hver scene kan beskæres automatisk uden overlap.
+
+## De 20 Forskellige Scener (Morgen til Aften):
+
+${rowsTextDa}
+
+## Vigtige Krav:
+1. Alle 20 scener SKAL være på dette ene 1080x1920 billede i den angivne 2x10 rækkefølge.
+2. Figuren skal være 100% identisk med Billede 1 og have det SAMME tøj på i alle 20 felter.
+3. 100% gennemsigtig baggrund uden baggrundsfarve eller rammer.
+4. Ingen tekst, ingen bogstaver, ingen tal og ingen kantstreger.`;
+}
