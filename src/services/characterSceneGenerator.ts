@@ -159,22 +159,22 @@ export function getReadyScenesCount(persona: Persona): { ready: number; total: n
  * Constructs a prompt for Cloudflare Workers AI for a specific scene and persona.
  */
 export function buildScenePromptForPersona(persona: Persona, sceneDef: DefaultSceneDef): string {
-  const isWoman = persona.id === 'avatar_2' || persona.id === 'woman_a' || /kvinde/i.test(persona.name);
-  const nameStr =
-    persona.name && !persona.name.startsWith('avatar_') ? persona.name : 'the friendly character';
+  const isAvatar2 = persona.id === 'avatar_2' || persona.id === 'woman_a';
   let characterDesc: string;
 
-  if (isWoman) {
+  if (isAvatar2) {
     characterDesc =
-      'A cheerful friendly cartoon woman with brown hair tied in a neat ponytail, round friendly face, rosy cheeks, warm smile, wearing a turquoise teal hoodie jacket over a t-shirt';
-  } else if (persona.description && persona.description.trim() && persona.id !== 'avatar_1' && persona.id !== 'man_k') {
-    characterDesc = `A cheerful friendly cartoon character (${nameStr}), ${persona.description}`;
+      'A cheerful friendly cartoon character with brown hair tied in a neat ponytail, round friendly face, rosy cheeks, warm smile, wearing a turquoise teal hoodie jacket over a t-shirt';
   } else if (persona.id === 'avatar_1' || persona.id === 'man_k') {
     characterDesc =
-      'A cheerful friendly cartoon man with closely shaved buzzcut hair, round friendly face, rosy cheeks, warm open smile, wearing a grey hoodie jacket over a white t-shirt';
+      'A cheerful friendly cartoon character with closely shaved buzzcut hair, round friendly face, rosy cheeks, warm open smile, wearing a grey hoodie jacket over a white t-shirt';
+  } else if (persona.description && persona.description.trim() && persona.description !== persona.id) {
+    const nameStr = persona.name && !persona.name.startsWith('avatar_') ? ` (${persona.name})` : '';
+    characterDesc = `A cheerful friendly cartoon character${nameStr}, ${persona.description}`;
   } else {
     // Custom avatar persona
-    characterDesc = `A cheerful friendly 2D cartoon character (${nameStr}), round friendly face, rosy cheeks, warm open smile, dressed in comfortable casual clothes matching avatar style`;
+    const nameStr = persona.name && !persona.name.startsWith('avatar_') ? ` (${persona.name})` : '';
+    characterDesc = `A cheerful friendly 2D cartoon character${nameStr}, round friendly face, rosy cheeks, warm open smile, dressed in comfortable casual clothes matching avatar style`;
   }
 
   return `Clean 2D cartoon pictogram vector illustration, horizontal aspect ratio. ${characterDesc}, ${sceneDef.englishActivity}. Bold thick smooth black outlines, simple flat cel-shading, colorful and cheerful, isolated on pure solid white background, cute visual schedule pictogram, no text, no frame, wide horizontal composition.`;

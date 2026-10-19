@@ -1,6 +1,6 @@
 # Trin 1: Foto til 2D Tegneserie Avatar (Master Prompt)
 
-Dette prompt bruges til at forvandle et **almindeligt fotografi af enhver person** (voksen, barn, mand, kvinde, briller, særlige frisurer osv.) til det officielle 2D cartoon avatar format, som herefter bruges som den faste karakterreference (**Ref 1** / `avatar.webp`) til alle piktogrammer.
+Dette prompt bruges til at forvandle et **almindeligt fotografi af enhver person** (voksen, barn, briller, særlige frisurer osv.) til det officielle 2D cartoon avatar format, som herefter bruges som den faste karakterreference (**Ref 1** / `avatar.webp`) til alle piktogrammer.
 
 > [!IMPORTANT]
 > **Tøjet fra fotoet bevares:** Modellen må **IKKE** automatisk give personen en grå hættetrøje eller standardtegneserie-tøj på. Personens virkelige tøj (skjorte, kjole, striktrøje, t-shirt, jakke osv.) genskabes i tegneseriestilen!

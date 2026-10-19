@@ -90,7 +90,6 @@ Forvandl den virkelige person fra Billede 1 til ÉT venligt, klart 2D tegneserie
 export function buildDanishMasterPrompt(options: {
   sceneDescription: string;
   personaName?: string;
-  isWoman?: boolean;
 }): string {
   return `# Master Prompt — Piktogram Generator (Dansk)
 
@@ -138,7 +137,6 @@ Skab **én enkeltstående 2D cartoon illustration** af den angivne scene. Result
 export function buildEnglishMasterPrompt(options: {
   sceneDescription: string;
   personaName?: string;
-  isWoman?: boolean;
 }): string {
   return `# Master Prompt — Transparent Cartoon Pictogram Generator
 
@@ -531,23 +529,26 @@ export function buildCloudflareAiPrompt(options: {
   personaName?: string;
   personaId?: string;
   personaDescription?: string;
-  isWoman?: boolean;
 }): string {
-  const isWoman =
-    options.isWoman ||
-    options.personaId === 'woman_a' ||
-    (options.personaName ? /kvinde/i.test(options.personaName) : false);
+  const isAvatar2 =
+    options.personaId === 'avatar_2' ||
+    options.personaId === 'woman_a';
 
   let characterDesc: string;
-  if (isWoman) {
+  if (isAvatar2) {
     characterDesc =
-      'A cheerful friendly cartoon woman with brown hair tied in a neat ponytail, round friendly face, rosy cheeks, warm smile, wearing a turquoise teal hoodie jacket over a t-shirt';
-  } else if (options.personaDescription && options.personaId !== 'man_k') {
+      'A cheerful friendly cartoon character with brown hair tied in a neat ponytail, round friendly face, rosy cheeks, warm smile, wearing a turquoise teal hoodie jacket over a t-shirt';
+  } else if (
+    options.personaDescription &&
+    options.personaId !== 'avatar_1' &&
+    options.personaId !== 'man_k' &&
+    options.personaDescription !== options.personaId
+  ) {
     characterDesc = `A cheerful friendly cartoon character, ${options.personaDescription}`;
   } else {
-    // Default man (man_k) matching persona_man_avatar.webp
+    // Default avatar_1
     characterDesc =
-      'A cheerful friendly cartoon man with closely shaved buzzcut hair, round friendly face, rosy cheeks, warm open smile, wearing a grey hoodie jacket over a white t-shirt';
+      'A cheerful friendly cartoon character with closely shaved buzzcut hair, round friendly face, rosy cheeks, warm open smile, wearing a grey hoodie jacket over a white t-shirt';
   }
 
   const activity = translateActivityToEnglish(options.sceneDescription);

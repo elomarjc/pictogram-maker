@@ -23,10 +23,10 @@ export const PICTO_STYLE_REF_URL = `${BASE}reference/style_guide/ref2_example.jp
 export const DEFAULT_PERSONAS: Persona[] = [
   {
     id: 'avatar_1',
-    name: 'Avatar 1',
-    shortCode: 'K.',
+    name: 'avatar_1',
+    shortCode: 'avatar_1',
     avatarUrl: `${BASE}reference/personas/avatar_1/avatar.webp`,
-    description: 'Avatar 1 (K.): Mandlig figur med kort hår',
+    description: 'avatar_1',
     activityScenes: {
       vaesketoeg: `${BASE}reference/personas/avatar_1/scenes/vaesketoeg.webp`,
       kaffe: `${BASE}reference/personas/avatar_1/scenes/kaffe.webp`,
@@ -51,10 +51,10 @@ export const DEFAULT_PERSONAS: Persona[] = [
   },
   {
     id: 'avatar_2',
-    name: 'Avatar 2',
-    shortCode: 'A.',
+    name: 'avatar_2',
+    shortCode: 'avatar_2',
     avatarUrl: `${BASE}reference/personas/avatar_2/avatar.webp?v=transparent`,
-    description: 'Avatar 2 (A.): Kvindelig figur med hestehale',
+    description: 'avatar_2',
     activityScenes: {
       vaesketoeg: `${BASE}reference/personas/avatar_2/scenes/vaesketoeg.webp`,
       kaffe: `${BASE}reference/personas/avatar_2/scenes/kaffe.webp`,
@@ -78,34 +78,6 @@ export const DEFAULT_PERSONAS: Persona[] = [
     },
   },
 ];
-
-export const REFERENCE_ICONS: Record<string, string> = {
-  toej_snor: `${BASE}reference/icons/toej_snor.webp`,
-  kop: `${BASE}reference/icons/kop.webp`,
-  piller: `${BASE}reference/icons/piller.webp`,
-  bruser: `${BASE}reference/icons/bruser.webp`,
-  tallerken_bestik: `${BASE}reference/icons/tallerken_bestik.webp`,
-  opvask: `${BASE}reference/icons/opvask.webp`,
-  bolle_ikon: `${BASE}reference/icons/bolle_ikon.webp`,
-  seng_ikon: `${BASE}reference/icons/seng_ikon.webp`,
-  sun: `${BASE}reference/icons/sun.webp`,
-  cloud: `${BASE}reference/icons/cloud.webp`,
-};
-
-// Activity key to standard icon mapping
-export const ACTIVITY_DEFAULT_ICONS: Record<string, string> = {
-  vaesketoeg: `${BASE}reference/icons/toej_snor.webp`,
-  kaffe: `${BASE}reference/icons/kop.webp`,
-  medicin: `${BASE}reference/icons/piller.webp`,
-  badetid: `${BASE}reference/icons/bruser.webp`,
-  spisetid: `${BASE}reference/icons/tallerken_bestik.webp`,
-  morgenmad: `${BASE}reference/icons/tallerken_bestik.webp`,
-  frokost: `${BASE}reference/icons/tallerken_bestik.webp`,
-  aftensmad: `${BASE}reference/icons/tallerken_bestik.webp`,
-  vaske_op: `${BASE}reference/icons/opvask.webp`,
-  bolle: `${BASE}reference/icons/bolle_ikon.webp`,
-  sengetid: `${BASE}reference/icons/seng_ikon.webp`,
-};
 
 import { getDbItem, setDbItem } from './storageDb';
 
@@ -143,6 +115,12 @@ export function resolveAssetUrl(url?: string): string {
   if (clean.includes('personas/woman/')) {
     clean = clean.replace('personas/woman/', 'personas/avatar_2/');
   }
+  if (clean.includes('personas/man_k/')) {
+    clean = clean.replace('personas/man_k/', 'personas/avatar_1/');
+  }
+  if (clean.includes('personas/woman_a/')) {
+    clean = clean.replace('personas/woman_a/', 'personas/avatar_2/');
+  }
   return `${BASE}${clean}`;
 }
 
@@ -157,6 +135,7 @@ export async function syncPersonasFromManifest(): Promise<void> {
     let changed = false;
     for (const item of manifest) {
       if (!item || !item.id) continue;
+      if (item.id === 'man' || item.id === 'woman' || item.id === 'man_k' || item.id === 'woman_a') continue;
       const existingIndex = current.findIndex((p) => p.id === item.id);
       if (existingIndex === -1) {
         current.push(item);
@@ -195,21 +174,40 @@ if (typeof window !== 'undefined') {
 }
 
 export function getCustomPersonas(): Persona[] {
+  let list: Persona[] = [];
   if (memoryCustomPersonas) {
-    return memoryCustomPersonas;
-  }
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY_CUSTOM_PERSONAS);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed)) {
-      memoryCustomPersonas = parsed;
-      return parsed;
+    list = memoryCustomPersonas;
+  } else {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY_CUSTOM_PERSONAS);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          list = parsed;
+        }
+      }
+    } catch {
+      list = [];
     }
-    return [];
-  } catch {
-    return [];
   }
+
+  // Filter out any legacy IDs and enforce clean avatar_1 / avatar_2 names without gender
+  const cleanList = list
+    .filter((p) => p && p.id && p.id !== 'man' && p.id !== 'woman' && p.id !== 'man_k' && p.id !== 'woman_a')
+    .map((p) => {
+      if (p.id === 'avatar_1' || p.id === 'avatar_2') {
+        return {
+          ...p,
+          name: p.id,
+          shortCode: p.id,
+          description: p.id,
+        };
+      }
+      return p;
+    });
+
+  memoryCustomPersonas = cleanList;
+  return cleanList;
 }
 
 export function getDeletedPersonas(): DeletedPersona[] {
@@ -388,14 +386,13 @@ export function permanentlyDeletePersona(id: string): void {
 }
 
 export function isDefaultPersona(id: string): boolean {
-  const normId = id === 'man_k' ? 'avatar_1' : id === 'woman_a' ? 'avatar_2' : id;
-  return DEFAULT_PERSONAS.some((p) => p.id === normId || p.id === id);
+  return DEFAULT_PERSONAS.some((p) => p.id === id);
 }
 
 export function getAllPersonas(): Persona[] {
   const custom = getCustomPersonas();
   const defaultList = DEFAULT_PERSONAS.map((def) => {
-    const override = custom.find((c) => c.id === def.id || (def.id === 'avatar_1' && c.id === 'man_k') || (def.id === 'avatar_2' && c.id === 'woman_a'));
+    const override = custom.find((c) => c.id === def.id);
     const p = override || def;
     return {
       ...p,
@@ -403,7 +400,7 @@ export function getAllPersonas(): Persona[] {
     };
   });
   const purelyCustom = custom
-    .filter((c) => !DEFAULT_PERSONAS.some((d) => d.id === c.id || (d.id === 'avatar_1' && c.id === 'man_k') || (d.id === 'avatar_2' && c.id === 'woman_a')))
+    .filter((c) => !DEFAULT_PERSONAS.some((d) => d.id === c.id))
     .map((p) => ({
       ...p,
       avatarUrl: resolveAssetUrl(p.avatarUrl),
@@ -413,8 +410,8 @@ export function getAllPersonas(): Persona[] {
 
 export function getPersona(id?: string): Persona {
   const all = getAllPersonas();
-  const normId = id === 'man_k' ? 'avatar_1' : id === 'woman_a' ? 'avatar_2' : id;
-  const found = all.find((p) => p.id === normId || p.id === id);
+  const cleanId = id === 'man_k' || id === 'man' ? 'avatar_1' : id === 'woman_a' || id === 'woman' ? 'avatar_2' : id;
+  const found = all.find((p) => p.id === cleanId || p.id === id);
   return found || DEFAULT_PERSONAS[0];
 }
 
@@ -440,10 +437,6 @@ export function resolveSceneImage(pic: Pictogram, persona: Persona): string | nu
 
 export function resolveRightIcon(pic: Pictogram): string | null {
   if (pic.rightIconUrl) return resolveAssetUrl(pic.rightIconUrl);
-  const key = pic.illustrationId;
-  if (key && ACTIVITY_DEFAULT_ICONS[key]) {
-    return resolveAssetUrl(ACTIVITY_DEFAULT_ICONS[key]);
-  }
   return null;
 }
 

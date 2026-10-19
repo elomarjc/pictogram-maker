@@ -148,6 +148,9 @@ def slice_sheet(sheet_path: str, avatar_id: str = "avatar_1"):
                 pdata["activityScenes"] = {}
             pdata["activityScenes"].update(updated_scenes)
             pdata["id"] = avatar_id
+            pdata["name"] = avatar_id
+            pdata["shortCode"] = avatar_id
+            pdata["description"] = avatar_id
 
             with open(persona_json_path, "w", encoding="utf-8") as f:
                 json.dump(pdata, f, indent=2, ensure_ascii=False)
@@ -156,6 +159,29 @@ def slice_sheet(sheet_path: str, avatar_id: str = "avatar_1"):
             print("\n🔄 Opdaterede persona.json med nye scener!")
         except Exception as e:
             print(f"Advarsel ved opdatering af persona.json: {e}")
+
+    # Opdater også manifest-filer
+    for mpath in [
+        repo_root / "reference" / "personas" / "personas_manifest.json",
+        repo_root / "public" / "reference" / "personas" / "personas_manifest.json",
+    ]:
+        if mpath.exists():
+            try:
+                with open(mpath, "r", encoding="utf-8") as f:
+                    manifest = json.load(f)
+                if isinstance(manifest, list):
+                    item = next((p for p in manifest if p.get("id") == avatar_id), None)
+                    if item:
+                        item["name"] = avatar_id
+                        item["shortCode"] = avatar_id
+                        item["description"] = avatar_id
+                        if "activityScenes" not in item:
+                            item["activityScenes"] = {}
+                        item["activityScenes"].update(updated_scenes)
+                        with open(mpath, "w", encoding="utf-8") as f:
+                            json.dump(manifest, f, indent=2, ensure_ascii=False)
+            except Exception:
+                pass
 
     print(f"\n🎉 Færdig! Skar {saved_count} af 20 scener ud til {TARGET_WIDTH}x{TARGET_HEIGHT} WebP-format med gennemsigtig baggrund.")
 

@@ -76,10 +76,24 @@ export function savePersonaToDisk(persona) {
     throw new Error('Persona mangler et gyldigt ID.');
   }
 
+  let cleanId = persona.id;
+  if (cleanId === 'man_k' || cleanId === 'man') cleanId = 'avatar_1';
+  if (cleanId === 'woman_a' || cleanId === 'woman') cleanId = 'avatar_2';
+
   // Safe folder name for ID
-  const safeId = String(persona.id).replace(/[^a-zA-Z0-9_-]/g, '_');
+  const safeId = String(cleanId).replace(/[^a-zA-Z0-9_-]/g, '_');
   const personaDir = path.resolve(PERSONAS_ROOT, safeId);
   const scenesDir = path.resolve(personaDir, 'scenes');
+
+  let cleanName = persona.name || safeId;
+  let cleanShortCode = persona.shortCode || safeId;
+  let cleanDescription = persona.description || safeId;
+
+  if (safeId === 'avatar_1' || safeId === 'avatar_2') {
+    cleanName = safeId;
+    cleanShortCode = safeId;
+    cleanDescription = safeId;
+  }
 
   if (!fs.existsSync(scenesDir)) {
     fs.mkdirSync(scenesDir, { recursive: true });
@@ -129,6 +143,9 @@ export function savePersonaToDisk(persona) {
   const updatedPersona = {
     ...persona,
     id: safeId,
+    name: cleanName,
+    shortCode: cleanShortCode,
+    description: cleanDescription,
     avatarUrl: relativeAvatarUrl,
     activityScenes: updatedScenes,
     updatedAt: new Date().toISOString(),
@@ -436,6 +453,11 @@ function updateManifest(persona) {
       manifest = [];
     }
   }
+
+  // Filter out any legacy IDs
+  manifest = manifest.filter(
+    (p) => p && p.id !== 'man' && p.id !== 'woman' && p.id !== 'man_k' && p.id !== 'woman_a'
+  );
 
   const idx = manifest.findIndex((p) => p.id === persona.id);
   if (idx >= 0) {

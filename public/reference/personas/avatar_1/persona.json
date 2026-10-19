@@ -1,9 +1,9 @@
 {
   "id": "avatar_1",
-  "name": "Avatar 1",
-  "shortCode": "K.",
+  "name": "avatar_1",
+  "shortCode": "avatar_1",
   "avatarUrl": "reference/personas/avatar_1/avatar.webp",
-  "description": "Avatar 1: Mandlig tegneseriefigur med kort hår",
+  "description": "avatar_1",
   "activityScenes": {
     "vaesketoeg": "reference/personas/avatar_1/scenes/vaesketoeg.webp",
     "kaffe": "reference/personas/avatar_1/scenes/kaffe.webp",

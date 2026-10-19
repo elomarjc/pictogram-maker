@@ -442,7 +442,6 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
     const promptText = promptFn({
       sceneDescription: inlineSceneText.trim() || defaultDesc,
       personaName: activePersona.name,
-      isWoman: activePersona.id === 'avatar_2' || activePersona.id === 'woman_a',
     });
     try {
       await navigator.clipboard.writeText(promptText);
@@ -508,7 +507,6 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
         personaName: activePersona.name,
         personaId: activePersona.id,
         personaDescription: activePersona.description,
-        isWoman: activePersona.id === 'avatar_2' || activePersona.id === 'woman_a',
       });
 
       const generatedDataUrl = await generateSceneImage(promptToUse, {
@@ -1310,12 +1308,10 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
                         ? buildEnglishMasterPrompt({
                             sceneDescription: inlineSceneText || 'The character performs the daily activity happily.',
                             personaName: activePersona.name,
-                            isWoman: activePersona.id === 'avatar_2' || activePersona.id === 'woman_a',
                           })
                         : buildDanishMasterPrompt({
                             sceneDescription: inlineSceneText || 'Figuren udfører aktiviteten glad og naturligt.',
                             personaName: activePersona.name,
-                            isWoman: activePersona.id === 'avatar_2' || activePersona.id === 'woman_a',
                           })}
                     </pre>
                   )}

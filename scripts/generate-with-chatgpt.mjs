@@ -100,36 +100,63 @@ Tilgængelige standardscener:
     process.exit(1);
   }
 
-  const sceneDesc = STANDARD_SCENE_PROMPTS[scene] || `Figuren udfører aktiviteten "${scene}" glad og venligt.`;
-  const prompt = buildPrompt(scene, sceneDesc);
+  const isGrid = scene === '--grid' || scene === 'grid' || scene === 'all';
 
-  const targetScenesDir = path.resolve(avatarDir, 'scenes');
-  if (!fs.existsSync(targetScenesDir)) {
-    fs.mkdirSync(targetScenesDir, { recursive: true });
+  let prompt = '';
+  let outputFilePath = '';
+  let webpOutputPath = '';
+
+  if (isGrid) {
+    prompt = `# 20-in-1 Master Sheet Prompt — 2x10 Daily Schedule Grid (Transparent Background)
+
+## Reference Images:
+- Image 1 (Subject): Exact character and authentic clothing from avatar reference.
+- Image 2 (Style): 2D cartoon pictogram illustration with thick black outlines, flat saturated colors, friendly appearance.
+
+## Format & Composition:
+- One tall portrait image (9:16 aspect ratio, 1080 x 1920 pixels).
+- Exactly 2 columns × 10 rows (20 distinct standalone scene cells).
+- Each cell is wide/horizontal aspect ratio (~2.8:1, ~531 x 185 px at 25% scale).
+- 100% Genuine Transparent Background (PNG alpha channel). NO background color, NO walls, NO card frames.
+- Ample space between cells so each scene can be sliced cleanly.
+
+## The 20 Distinct Scenes (2x10 Grid):
+Row 1: Col 1 = Hænge vasketøj op, Col 2 = The & Kaffe
+Row 2: Col 1 = Medicin, Col 2 = Badetid
+Row 3: Col 1 = Spisetid, Col 2 = Børste tænder
+Row 4: Col 1 = Vaske op, Col 2 = Bolle
+Row 5: Col 1 = Sengetid / Sove, Col 2 = Gåtur
+Row 6: Col 1 = Rede seng, Col 2 = Pause på sofa / TV
+Row 7: Col 1 = Skraldespand & Pant, Col 2 = Handle indkøb
+Row 8: Col 1 = Morgenmad, Col 2 = Frokost (rugbrød)
+Row 9: Col 1 = Lave aftensmad, Col 2 = Aktiviteter / Hobby
+Row 10: Col 1 = Cykeltur, Col 2 = Weekendhygge
+
+## Requirements:
+All 20 scenes on this single image, same clothing in all cells, transparent background, no text.`;
+    outputFilePath = path.resolve(avatarDir, 'sheet_2x10.png');
+  } else {
+    const sceneDesc = STANDARD_SCENE_PROMPTS[scene] || `Figuren udfører aktiviteten "${scene}" glad og venligt.`;
+    prompt = buildPrompt(scene, sceneDesc);
+    const targetScenesDir = path.resolve(avatarDir, 'scenes');
+    if (!fs.existsSync(targetScenesDir)) {
+      fs.mkdirSync(targetScenesDir, { recursive: true });
+    }
+    outputFilePath = path.resolve(targetScenesDir, `${scene}.png`);
+    webpOutputPath = path.resolve(targetScenesDir, `${scene}.webp`);
   }
 
-  const outputFilePath = path.resolve(targetScenesDir, `${scene}.png`);
-  const webpOutputPath = path.resolve(targetScenesDir, `${scene}.webp`);
-
   console.log('\n======================================================');
-  console.log(`🤖 Genererer scene: "${scene}" for figur: "${avatar}"`);
+  console.log(`🤖 Genererer ${isGrid ? '2x10 SCENEARK (20 scener på én gang)' : `scene: "${scene}"`} for figur: "${avatar}"`);
   console.log('======================================================');
   console.log(`👤 Figur Reference (Ref 1): ${avatarImgPath}`);
   console.log(`🎨 Stil Reference (Ref 2):  ${STYLE_REF_PATH}`);
-  console.log(`📝 Beskrivelse:              ${sceneDesc}`);
-  console.log(`🎯 Gemmes i:                 ${webpOutputPath}\n`);
+  console.log(`🎯 Output:                   ${outputFilePath}\n`);
 
   const hasTool = checkImageUseInstalled();
   if (!hasTool) {
-    console.log(`ℹ️ "image-use" er ikke installeret på dit system endnu.`);
-    console.log(`Sådan installerer du det hurtigt (gratis til ChatGPT web-login):`);
-    console.log(`\n  1. Kør installationsscriptet:`);
-    console.log(`     curl -fsSL https://raw.githubusercontent.com/leeguooooo/image-use/main/install.sh | sh`);
-    console.log(`\n  2. Installer browser-motoren (chrome-use):`);
-    console.log(`     curl -fsSL https://raw.githubusercontent.com/leeguooooo/chrome-use/main/install.sh | sh`);
-    console.log(`\n  3. Log ind på din gratis ChatGPT-konto i Google Chrome / Brave.`);
-    console.log(`\nDerefter kan du køre denne kommando direkte, og billederne gemmes automatisk i dit avatar-bibliotek!`);
-    console.log('\n--- Kommando der vil blive udført ---');
+    console.log(`ℹ️ "image-use" er ikke installeret.`);
+    console.log(`Du kan kopiere prompten og generere manuelt i ChatGPT, eller køre:`);
     console.log(`image-use "${prompt.replace(/"/g, '\\"')}" -i "${avatarImgPath}" --composition-ref "${STYLE_REF_PATH}" -o "${outputFilePath}"\n`);
     return;
   }
@@ -149,17 +176,27 @@ Tilgængelige standardscener:
   child.on('close', (code) => {
     if (code === 0 && fs.existsSync(outputFilePath)) {
       console.log(`\n✅ Billedet blev genereret: ${outputFilePath}`);
-      // Kopier til webp og public mappe
-      try {
-        fs.copyFileSync(outputFilePath, webpOutputPath);
-        const publicScenesDir = path.resolve(PUBLIC_PERSONAS_ROOT, avatar, 'scenes');
-        if (!fs.existsSync(publicScenesDir)) {
-          fs.mkdirSync(publicScenesDir, { recursive: true });
+      if (isGrid) {
+        console.log(`✂️  Beskærer automatisk de 20 scener med scripts/slice-sheet-2x10.py...`);
+        try {
+          execSync(`python3 scripts/slice-sheet-2x10.py "${outputFilePath}" "${avatar}"`, {
+            stdio: 'inherit',
+          });
+        } catch (err) {
+          console.error('Fejl ved automatisk beskæring:', err.message);
         }
-        fs.copyFileSync(webpOutputPath, path.resolve(publicScenesDir, `${scene}.webp`));
-        console.log(`🔄 Synkroniseret til public/reference/personas/${avatar}/scenes/${scene}.webp`);
-      } catch (err) {
-        console.error('Advarsel ved synkronisering:', err.message);
+      } else {
+        try {
+          fs.copyFileSync(outputFilePath, webpOutputPath);
+          const publicScenesDir = path.resolve(PUBLIC_PERSONAS_ROOT, avatar, 'scenes');
+          if (!fs.existsSync(publicScenesDir)) {
+            fs.mkdirSync(publicScenesDir, { recursive: true });
+          }
+          fs.copyFileSync(webpOutputPath, path.resolve(publicScenesDir, `${scene}.webp`));
+          console.log(`🔄 Synkroniseret til public/reference/personas/${avatar}/scenes/${scene}.webp`);
+        } catch (err) {
+          console.error('Advarsel ved synkronisering:', err.message);
+        }
       }
     } else {
       console.error(`\n❌ image-use afsluttede med fejlkode: ${code}`);

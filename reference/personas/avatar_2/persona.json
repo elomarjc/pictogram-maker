@@ -1,9 +1,9 @@
 {
   "id": "avatar_2",
-  "name": "Avatar 2",
-  "shortCode": "A.",
+  "name": "avatar_2",
+  "shortCode": "avatar_2",
   "avatarUrl": "reference/personas/avatar_2/avatar.webp?v=transparent",
-  "description": "Avatar 2: Kvindelig tegneseriefigur med hestehale",
+  "description": "avatar_2",
   "activityScenes": {
     "vaesketoeg": "reference/personas/avatar_2/scenes/vaesketoeg.webp",
     "kaffe": "reference/personas/avatar_2/scenes/kaffe.webp",
@@ -12,7 +12,7 @@
     "spisetid": "reference/personas/avatar_2/scenes/spisetid.webp",
     "morgenmad": "reference/personas/avatar_2/scenes/spisetid.webp",
     "frokost": "reference/personas/avatar_2/scenes/spisetid.webp",
-    "aftensmad": "reference/personas/avatar_2/scenes/spisetid.webp",
+    "aftensmad": "reference/personas/avatar_2/scenes/aftensmad.webp",
     "aktiviteter": "reference/personas/avatar_1/scenes/aktiviteter.webp",
     "vaske_op": "reference/personas/avatar_2/scenes/vaesketoeg.webp",
     "bolle": "reference/personas/avatar_2/scenes/kaffe.webp",
