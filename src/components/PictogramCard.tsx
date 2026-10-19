@@ -1,9 +1,10 @@
-import type React from 'react';
+import React, { useState } from 'react';
 import type { Pictogram, Persona } from '../types';
 import { ICONS } from '../data/icons';
 import { ILLUSTRATIONS } from '../data/illustrations';
 import { resolveSceneImage, getPersona } from '../services/personas';
 import { darkenColor } from '../services/colorUtils';
+import { ConfirmModal } from './ConfirmModal';
 import {
   Pencil,
   Copy,
@@ -56,6 +57,7 @@ export const PictogramCard: React.FC<PictogramCardProps> = ({
   onDragOver,
   onDrop,
 }) => {
+  const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
   const activePersona = persona || getPersona();
   const sceneImageUrl = resolveSceneImage(pictogram, activePersona);
   const IconComponent = ICONS[pictogram.iconId]?.icon;
@@ -233,9 +235,7 @@ export const PictogramCard: React.FC<PictogramCardProps> = ({
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
-                if (window.confirm(`Er du sikker på, at du vil slette "${pictogram.title}"?`)) {
-                  onDelete(pictogram.id);
-                }
+                setIsConfirmDeleteOpen(true);
               }}
               title="Slet piktogram"
               aria-label="Slet"
@@ -245,6 +245,22 @@ export const PictogramCard: React.FC<PictogramCardProps> = ({
             </button>
           </div>
         )}
+
+        <ConfirmModal
+          isOpen={isConfirmDeleteOpen}
+          title={`Slet "${pictogram.title}"?`}
+          subtitle="Fjern piktogram fra dagsplanen"
+          message="Er du sikker på, at du vil slette dette piktogramkort fra din plan?"
+          previewImage={sceneImageUrl || undefined}
+          confirmText="Ja, slet kort"
+          cancelText="Annuller"
+          variant="danger"
+          onConfirm={() => {
+            setIsConfirmDeleteOpen(false);
+            onDelete(pictogram.id);
+          }}
+          onCancel={() => setIsConfirmDeleteOpen(false)}
+        />
       </div>
     );
   }
@@ -395,9 +411,7 @@ export const PictogramCard: React.FC<PictogramCardProps> = ({
             type="button"
             onClick={(e) => {
               e.stopPropagation();
-              if (window.confirm(`Er du sikker på, at du vil slette "${pictogram.title}"?`)) {
-                onDelete(pictogram.id);
-              }
+              setIsConfirmDeleteOpen(true);
             }}
             title="Slet"
             aria-label="Slet"
@@ -407,6 +421,22 @@ export const PictogramCard: React.FC<PictogramCardProps> = ({
           </button>
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={isConfirmDeleteOpen}
+        title={`Slet "${pictogram.title}"?`}
+        subtitle="Fjern piktogram fra dagsplanen"
+        message="Er du sikker på, at du vil slette dette piktogramkort fra din plan?"
+        previewImage={sceneImageUrl || undefined}
+        confirmText="Ja, slet kort"
+        cancelText="Annuller"
+        variant="danger"
+        onConfirm={() => {
+          setIsConfirmDeleteOpen(false);
+          onDelete(pictogram.id);
+        }}
+        onCancel={() => setIsConfirmDeleteOpen(false)}
+      />
     </div>
   );
 };

@@ -1,7 +1,8 @@
-import type React from 'react';
+import React, { useState } from 'react';
 import type { TemplateDefinition } from '../types';
 import { BUILTIN_TEMPLATES } from '../data/templates';
 import { LayoutTemplate, X, Calendar, Sun, FileText } from 'lucide-react';
+import { ConfirmModal } from './ConfirmModal';
 
 interface TemplatePickerModalProps {
   isOpen: boolean;
@@ -14,6 +15,8 @@ export const TemplatePickerModal: React.FC<TemplatePickerModalProps> = ({
   onClose,
   onApplyTemplate,
 }) => {
+  const [templateToOverwrite, setTemplateToOverwrite] = useState<TemplateDefinition | null>(null);
+
   if (!isOpen) return null;
 
   return (
@@ -92,12 +95,7 @@ export const TemplatePickerModal: React.FC<TemplatePickerModalProps> = ({
                     Opret som ny plan
                   </button>
                   <button
-                    onClick={() => {
-                      if (confirm(`Vil du overskrive den aktuelle plan med skabelonen "${tpl.name}"?`)) {
-                        onApplyTemplate(tpl, 'overwrite_current');
-                        onClose();
-                      }
-                    }}
+                    onClick={() => setTemplateToOverwrite(tpl)}
                     className="px-3.5 py-2 rounded-xl border-2 border-slate-900 bg-amber-400 hover:bg-amber-500 text-xs font-black text-slate-900 shadow-2xs transition-colors cursor-pointer text-center min-h-[36px]"
                   >
                     Brug på aktuel plan
@@ -118,6 +116,24 @@ export const TemplatePickerModal: React.FC<TemplatePickerModalProps> = ({
           </button>
         </div>
       </div>
+
+      {/* In-app Confirm Modal */}
+      <ConfirmModal
+        isOpen={Boolean(templateToOverwrite)}
+        title={`Brug "${templateToOverwrite?.name}"?`}
+        subtitle="Overskriv den aktuelle plan"
+        message="Er du sikker på, at du vil overskrive din aktuelle dagsplan med denne skabelon? Eventuelle ændringer overskrives."
+        variant="warning"
+        confirmText="Ja, overskriv plan"
+        cancelText="Annuller"
+        onConfirm={() => {
+          if (!templateToOverwrite) return;
+          onApplyTemplate(templateToOverwrite, 'overwrite_current');
+          setTemplateToOverwrite(null);
+          onClose();
+        }}
+        onCancel={() => setTemplateToOverwrite(null)}
+      />
     </div>
   );
 };

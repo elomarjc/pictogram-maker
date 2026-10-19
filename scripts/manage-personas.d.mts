@@ -29,3 +29,22 @@ export function listPersonasOnDisk(): {
     isArchived: boolean;
   }>;
 };
+
+export function deletePersonaPermanentlyOnDisk(id: string): {
+  success: boolean;
+  id?: string;
+  removedFolders?: number;
+};
+
+export function deleteSceneOnDisk(personaId: string, sceneKey: string): {
+  success: boolean;
+  personaId?: string;
+  sceneKey?: string;
+  deletedFiles?: string[];
+};
+
+export function deleteAllScenesOnDisk(personaId: string): {
+  success: boolean;
+  personaId?: string;
+  totalDeleted?: number;
+};

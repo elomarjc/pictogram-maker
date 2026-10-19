@@ -20,6 +20,7 @@ import { CopyDayModal } from './components/CopyDayModal';
 import { PrivacyInfoModal } from './components/PrivacyInfoModal';
 import { PersonaSelectorModal } from './components/PersonaSelectorModal';
 import { SceneGenerationModal } from './components/SceneGenerationModal';
+import { ConfirmModal } from './components/ConfirmModal';
 import { getPersona } from './services/personas';
 import type { Persona } from './types';
 import { guessIconAndColor } from './utils/quickCardHelper';
@@ -51,6 +52,21 @@ export const App: React.FC = () => {
   const [copyingSourceDayId, setCopyingSourceDayId] = useState<DayOfWeek | null>(null);
   const [sceneGenPersona, setSceneGenPersona] = useState<Persona | null>(null);
   const [sceneGenAutoStart, setSceneGenAutoStart] = useState(false);
+
+  const [appConfirmModal, setAppConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    subtitle?: string;
+    message: string | React.ReactNode;
+    variant?: 'danger' | 'warning' | 'info';
+    confirmText?: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+  });
 
   // Sync state to sessionStorage whenever plans change
   useEffect(() => {
@@ -443,37 +459,55 @@ export const App: React.FC = () => {
 
     if (!defaultDay) return;
 
-    if (confirm(`Vil du nulstille ${currentPlan.days[dayId].dayName} til standardskabelonen?`)) {
-      updateCurrentPlan((prev) => ({
-        ...prev,
-        days: {
-          ...prev.days,
-          [dayId]: {
-            ...prev.days[dayId],
-            headerSubtitle: defaultDay.headerSubtitle || '',
-            pictograms: defaultDay.pictograms.map((p) => ({
-              ...p,
-              id: generateUniqueId('item'),
-            })),
+    setAppConfirmModal({
+      isOpen: true,
+      title: `Nulstil ${currentPlan.days[dayId].dayName}?`,
+      subtitle: 'Gendan standard piktogrammer',
+      message: `Vil du nulstille ${currentPlan.days[dayId].dayName} til standardskabelonen? Eventuelle personlige ændringer på denne dag overskrives.`,
+      variant: 'warning',
+      confirmText: 'Ja, nulstil dag',
+      onConfirm: () => {
+        setAppConfirmModal((prev) => ({ ...prev, isOpen: false }));
+        updateCurrentPlan((prev) => ({
+          ...prev,
+          days: {
+            ...prev.days,
+            [dayId]: {
+              ...prev.days[dayId],
+              headerSubtitle: defaultDay.headerSubtitle || '',
+              pictograms: defaultDay.pictograms.map((p) => ({
+                ...p,
+                id: generateUniqueId('item'),
+              })),
+            },
           },
-        },
-      }));
-    }
+        }));
+      },
+    });
   };
 
   const handleClearDay = (dayId: DayOfWeek) => {
-    if (confirm(`Er du sikker på, at du vil tømme alle piktogrammer for ${currentPlan.days[dayId].dayName}?`)) {
-      updateCurrentPlan((prev) => ({
-        ...prev,
-        days: {
-          ...prev.days,
-          [dayId]: {
-            ...prev.days[dayId],
-            pictograms: [],
+    setAppConfirmModal({
+      isOpen: true,
+      title: `Tøm ${currentPlan.days[dayId].dayName}?`,
+      subtitle: 'Fjern alle piktogrammer',
+      message: `Er du sikker på, at du vil tømme alle piktogrammer for ${currentPlan.days[dayId].dayName}?`,
+      variant: 'danger',
+      confirmText: 'Ja, tøm dag',
+      onConfirm: () => {
+        setAppConfirmModal((prev) => ({ ...prev, isOpen: false }));
+        updateCurrentPlan((prev) => ({
+          ...prev,
+          days: {
+            ...prev.days,
+            [dayId]: {
+              ...prev.days[dayId],
+              pictograms: [],
+            },
           },
-        },
-      }));
-    }
+        }));
+      },
+    });
   };
 
   const handleUpdateHeaderSubtitle = (newSubtitle: string) => {
@@ -816,6 +850,19 @@ export const App: React.FC = () => {
           }
           setSceneGenPersona((prev) => (prev?.id === updated.id ? updated : prev));
         }}
+      />
+
+      {/* In-app Confirm Modal for Board Actions */}
+      <ConfirmModal
+        isOpen={appConfirmModal.isOpen}
+        title={appConfirmModal.title}
+        subtitle={appConfirmModal.subtitle}
+        message={appConfirmModal.message}
+        variant={appConfirmModal.variant || 'danger'}
+        confirmText={appConfirmModal.confirmText}
+        cancelText="Annuller"
+        onConfirm={appConfirmModal.onConfirm}
+        onCancel={() => setAppConfirmModal((prev) => ({ ...prev, isOpen: false }))}
       />
     </div>
   );

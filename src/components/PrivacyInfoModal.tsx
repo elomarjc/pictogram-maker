@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ShieldCheck, Lock, HardDrive, Trash2, X, FileJson, Globe } from 'lucide-react';
+import { ConfirmModal } from './ConfirmModal';
 
 interface PrivacyInfoModalProps {
   isOpen: boolean;
@@ -12,6 +13,8 @@ export const PrivacyInfoModal: React.FC<PrivacyInfoModalProps> = ({
   onClose,
   onClearAllData,
 }) => {
+  const [isConfirmClearOpen, setIsConfirmClearOpen] = useState(false);
+
   if (!isOpen) return null;
 
   return (
@@ -114,12 +117,7 @@ export const PrivacyInfoModal: React.FC<PrivacyInfoModalProps> = ({
             </div>
             <button
               type="button"
-              onClick={() => {
-                if (confirm('Er du sikker på, at du vil rydde alle brugerdata i denne session? Dette kan ikke fortrydes.')) {
-                  onClearAllData();
-                  onClose();
-                }
-              }}
+              onClick={() => setIsConfirmClearOpen(true)}
               className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 sm:py-2 bg-rose-50 hover:bg-rose-100 active:bg-rose-200 text-rose-700 font-bold text-xs rounded-xl border border-rose-300 transition-colors shrink-0 cursor-pointer min-h-[38px] w-full sm:w-auto"
             >
               <Trash2 size={14} />
@@ -138,6 +136,23 @@ export const PrivacyInfoModal: React.FC<PrivacyInfoModalProps> = ({
           </button>
         </div>
       </div>
+
+      {/* In-app Confirm Modal */}
+      <ConfirmModal
+        isOpen={isConfirmClearOpen}
+        title="Ryd alle data?"
+        subtitle="Nulstil hele din session"
+        message="Er du sikker på, at du vil rydde alle brugerdata i denne session? Alle ugeplaner nulstilles til standardskabelonerne. Dette kan ikke fortrydes."
+        variant="danger"
+        confirmText="Ja, ryd alle data"
+        cancelText="Annuller"
+        onConfirm={() => {
+          setIsConfirmClearOpen(false);
+          onClearAllData();
+          onClose();
+        }}
+        onCancel={() => setIsConfirmClearOpen(false)}
+      />
     </div>
   );
 };

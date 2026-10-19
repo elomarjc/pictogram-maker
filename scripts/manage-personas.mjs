@@ -172,9 +172,164 @@ export function archivePersonaOnDisk(id) {
   // Update manifest to remove active persona
   removeFromManifest(safeId);
 
+  // Also remove from ROOT_PERSONAS_DIR if it exists there
+  const rootDir = path.resolve(ROOT_PERSONAS_DIR, safeId);
+  if (fs.existsSync(rootDir)) {
+    fs.rmSync(rootDir, { recursive: true, force: true });
+  }
+
   syncToRootPersonas();
 
   return { success: true, id: safeId, archivedPath: targetDir };
+}
+
+/**
+ * Permanently removes a persona and its scenes from both public and reference directories.
+ */
+export function deletePersonaPermanentlyOnDisk(id) {
+  ensureDirectories();
+  const safeId = String(id).replace(/[^a-zA-Z0-9_-]/g, '_');
+
+  const targets = [
+    path.resolve(PERSONAS_ROOT, safeId),
+    path.resolve(ROOT_PERSONAS_DIR, safeId),
+    path.resolve(ARCHIVE_ROOT, safeId),
+    path.resolve(ROOT_PERSONAS_DIR, '.archive', safeId),
+  ];
+
+  let removed = 0;
+  for (const dir of targets) {
+    if (fs.existsSync(dir)) {
+      try {
+        fs.rmSync(dir, { recursive: true, force: true });
+        removed++;
+      } catch (err) {
+        console.error(`[manage-personas] Kunne ikke slette mappe: ${dir}`, err);
+      }
+    }
+  }
+
+  removeFromManifest(safeId);
+  syncToRootPersonas();
+
+  return { success: true, id: safeId, removedFolders: removed };
+}
+
+/**
+ * Deletes a specific scene file from a persona's scenes/ directory on disk,
+ * and updates persona.json in both public and root reference folders.
+ */
+export function deleteSceneOnDisk(personaId, sceneKey) {
+  ensureDirectories();
+  const safeId = String(personaId).replace(/[^a-zA-Z0-9_-]/g, '_');
+  const safeScene = String(sceneKey).replace(/[^a-zA-Z0-9_-]/g, '_').toLowerCase();
+
+  const baseDirs = [
+    path.resolve(PERSONAS_ROOT, safeId),
+    path.resolve(ROOT_PERSONAS_DIR, safeId),
+  ];
+
+  const deletedFiles = [];
+
+  for (const pDir of baseDirs) {
+    if (!fs.existsSync(pDir)) continue;
+
+    const scenesDir = path.resolve(pDir, 'scenes');
+    if (fs.existsSync(scenesDir)) {
+      const files = fs.readdirSync(scenesDir);
+      for (const f of files) {
+        const parsed = path.parse(f);
+        if (parsed.name.toLowerCase() === safeScene) {
+          const filePath = path.resolve(scenesDir, f);
+          try {
+            fs.rmSync(filePath, { force: true });
+            deletedFiles.push(filePath);
+          } catch (e) {
+            console.error(`[manage-personas] Fejl ved sletning af fil: ${filePath}`, e);
+          }
+        }
+      }
+    }
+
+    // Update persona.json
+    const personaJsonPath = path.resolve(pDir, 'persona.json');
+    if (fs.existsSync(personaJsonPath)) {
+      try {
+        const data = JSON.parse(fs.readFileSync(personaJsonPath, 'utf-8'));
+        if (data.activityScenes && data.activityScenes[sceneKey]) {
+          delete data.activityScenes[sceneKey];
+          data.updatedAt = new Date().toISOString();
+          fs.writeFileSync(personaJsonPath, JSON.stringify(data, null, 2), 'utf-8');
+        }
+      } catch (e) {
+        console.error(`[manage-personas] Fejl ved opdatering af ${personaJsonPath}`, e);
+      }
+    }
+  }
+
+  // Update manifest file
+  if (fs.existsSync(MANIFEST_FILE)) {
+    try {
+      const manifest = JSON.parse(fs.readFileSync(MANIFEST_FILE, 'utf-8'));
+      if (Array.isArray(manifest)) {
+        const item = manifest.find((p) => p.id === safeId);
+        if (item && item.activityScenes && item.activityScenes[sceneKey]) {
+          delete item.activityScenes[sceneKey];
+          fs.writeFileSync(MANIFEST_FILE, JSON.stringify(manifest, null, 2), 'utf-8');
+        }
+      }
+    } catch {}
+  }
+
+  syncToRootPersonas();
+
+  return { success: true, personaId: safeId, sceneKey, deletedFiles };
+}
+
+/**
+ * Deletes all scene files for a persona from disk.
+ */
+export function deleteAllScenesOnDisk(personaId) {
+  ensureDirectories();
+  const safeId = String(personaId).replace(/[^a-zA-Z0-9_-]/g, '_');
+
+  const baseDirs = [
+    path.resolve(PERSONAS_ROOT, safeId),
+    path.resolve(ROOT_PERSONAS_DIR, safeId),
+  ];
+
+  let totalDeleted = 0;
+
+  for (const pDir of baseDirs) {
+    if (!fs.existsSync(pDir)) continue;
+
+    const scenesDir = path.resolve(pDir, 'scenes');
+    if (fs.existsSync(scenesDir)) {
+      const files = fs.readdirSync(scenesDir);
+      for (const f of files) {
+        if (!f.startsWith('.')) {
+          try {
+            fs.rmSync(path.resolve(scenesDir, f), { force: true });
+            totalDeleted++;
+          } catch {}
+        }
+      }
+    }
+
+    const personaJsonPath = path.resolve(pDir, 'persona.json');
+    if (fs.existsSync(personaJsonPath)) {
+      try {
+        const data = JSON.parse(fs.readFileSync(personaJsonPath, 'utf-8'));
+        data.activityScenes = {};
+        data.updatedAt = new Date().toISOString();
+        fs.writeFileSync(personaJsonPath, JSON.stringify(data, null, 2), 'utf-8');
+      } catch {}
+    }
+  }
+
+  syncToRootPersonas();
+
+  return { success: true, personaId: safeId, totalDeleted };
 }
 
 /**

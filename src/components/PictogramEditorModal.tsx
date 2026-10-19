@@ -40,6 +40,7 @@ import {
 import { getShortSceneTitle } from '../utils/sceneTitleHelper';
 import { getDbItem, setDbItem } from '../services/storageDb';
 import { getReadyScenesCount } from '../services/characterSceneGenerator';
+import { ConfirmModal } from './ConfirmModal';
 
 interface PictogramEditorModalProps {
   pictogram: Pictogram | null;
@@ -322,6 +323,7 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
   const [cropModalOpen, setCropModalOpen] = useState(false);
   const [cropImageSource, setCropImageSource] = useState<string | null>(null);
   const [cropInitialName, setCropInitialName] = useState('');
+  const [sceneToDelete, setSceneToDelete] = useState<CustomSceneItem | null>(null);
 
   const [bgColor, setBgColor] = useState(pictogram.bgColor || '#fdef8c');
   // Convert legacy presets to pixel numbers if needed, default to 20px
@@ -1065,14 +1067,7 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
-                          if (window.confirm(`Er du sikker på, at du vil slette scenen "${scene.name}"?`)) {
-                            const updated = deleteCustomScene(scene.id);
-                            setCustomScenes(updated);
-                            if (customImageUrl === scene.url) {
-                              setCustomImageUrl('');
-                              setIllustrationId('spisetid');
-                            }
-                          }
+                          setSceneToDelete(scene);
                         }}
                         title="Fjern scene"
                         aria-label="Fjern scene"
@@ -1462,6 +1457,29 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
           setCropImageSource(null);
         }}
         onSave={handleCropSave}
+      />
+
+      {/* In-app Confirm Modal for Custom Scene Deletion */}
+      <ConfirmModal
+        isOpen={Boolean(sceneToDelete)}
+        title={`Slet "${sceneToDelete?.name || 'denne scene'}"?`}
+        subtitle="Egen uploadet eller beskåret scene"
+        message="Er du sikker på, at du vil fjerne denne scene fra dine gemte scener?"
+        previewImage={sceneToDelete?.url}
+        confirmText="Ja, slet scene"
+        cancelText="Annuller"
+        variant="danger"
+        onConfirm={() => {
+          if (!sceneToDelete) return;
+          const updated = deleteCustomScene(sceneToDelete.id);
+          setCustomScenes(updated);
+          if (customImageUrl === sceneToDelete.url) {
+            setCustomImageUrl('');
+            setIllustrationId('spisetid');
+          }
+          setSceneToDelete(null);
+        }}
+        onCancel={() => setSceneToDelete(null)}
       />
     </div>
   );

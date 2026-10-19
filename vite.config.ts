@@ -6,6 +6,9 @@ import {
   archivePersonaOnDisk,
   restorePersonaOnDisk,
   listPersonasOnDisk,
+  deleteSceneOnDisk,
+  deleteAllScenesOnDisk,
+  deletePersonaPermanentlyOnDisk,
 } from './scripts/manage-personas.mjs';
 
 function parseJsonBody<T = any>(req: any): Promise<T> {
@@ -52,7 +55,31 @@ function personaFileSaverPlugin(): Plugin {
         if (url === '/api/personas/delete' && req.method === 'POST') {
           try {
             const body = await parseJsonBody(req);
-            const result = archivePersonaOnDisk(body.id);
+            const result = body.permanent
+              ? deletePersonaPermanentlyOnDisk(body.id)
+              : archivePersonaOnDisk(body.id);
+            sendJson(res, 200, result);
+          } catch (err: any) {
+            sendJson(res, 500, { success: false, error: err.message || String(err) });
+          }
+          return;
+        }
+
+        if (url === '/api/personas/delete-scene' && req.method === 'POST') {
+          try {
+            const body = await parseJsonBody(req);
+            const result = deleteSceneOnDisk(body.personaId, body.sceneKey);
+            sendJson(res, 200, result);
+          } catch (err: any) {
+            sendJson(res, 500, { success: false, error: err.message || String(err) });
+          }
+          return;
+        }
+
+        if (url === '/api/personas/delete-all-scenes' && req.method === 'POST') {
+          try {
+            const body = await parseJsonBody(req);
+            const result = deleteAllScenesOnDisk(body.personaId);
             sendJson(res, 200, result);
           } catch (err: any) {
             sendJson(res, 500, { success: false, error: err.message || String(err) });
@@ -96,6 +123,15 @@ export default defineConfig({
   ],
   base: './', // Ensures relative assets work on GitHub Pages regardless of repo or subdomain path
   server: {
+    watch: {
+      ignored: [
+        '**/public/reference/**',
+        '**/reference/**',
+        '**/.git/**',
+        '**/personas_manifest.json',
+        '**/.archive/**',
+      ],
+    },
     cors: true,
   },
   build: {

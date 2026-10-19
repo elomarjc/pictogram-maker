@@ -279,7 +279,7 @@ export function saveCustomPersona(newPersona: Persona): void {
   }
 }
 
-export function deleteCustomPersona(id: string): Persona | null {
+export function deleteCustomPersona(id: string, options?: { permanent?: boolean }): Persona | null {
   const current = getCustomPersonas();
   const target = current.find((p) => p.id === id);
   if (!target) return null;
@@ -308,16 +308,45 @@ export function deleteCustomPersona(id: string): Persona | null {
     localStorage.setItem(STORAGE_KEY_DELETED_PERSONAS, JSON.stringify(deletedList));
   } catch {}
 
-  // Sync to disk archive (.archive/<id>)
+  // Sync to disk (permanent delete in dev if requested, or move to .archive/<id>)
   if (typeof window !== 'undefined') {
+    const isPermanent = options?.permanent ?? (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
     fetch('/api/personas/delete', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id }),
+      body: JSON.stringify({ id, permanent: isPermanent }),
     }).catch(() => {});
   }
 
   return target;
+}
+
+export async function deletePersonaSceneFromDisk(personaId: string, sceneKey: string): Promise<void> {
+  if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+    try {
+      await fetch('/api/personas/delete-scene', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ personaId, sceneKey }),
+      });
+    } catch {
+      // Backend not running (e.g. GitHub Pages or preview)
+    }
+  }
+}
+
+export async function deleteAllPersonaScenesFromDisk(personaId: string): Promise<void> {
+  if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+    try {
+      await fetch('/api/personas/delete-all-scenes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ personaId }),
+      });
+    } catch {
+      // Backend not running
+    }
+  }
 }
 
 export function restoreCustomPersona(id: string): Persona | null {

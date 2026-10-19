@@ -23,8 +23,14 @@ import {
   type SceneGenProgress,
   type DefaultSceneDef,
 } from '../services/characterSceneGenerator';
-import { getAllPersonas, saveCustomPersona } from '../services/personas';
+import {
+  getAllPersonas,
+  saveCustomPersona,
+  deletePersonaSceneFromDisk,
+  deleteAllPersonaScenesFromDisk,
+} from '../services/personas';
 import { AllAccountsQuotaExceededError } from '../services/imageGenerationApi';
+import { ConfirmModal } from './ConfirmModal';
 
 interface SceneGenerationModalProps {
   isOpen: boolean;
@@ -54,6 +60,21 @@ export const SceneGenerationModal: React.FC<SceneGenerationModalProps> = ({
   const [currentPersona, setCurrentPersona] = useState<Persona | null>(persona);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    subtitle?: string;
+    message: string | React.ReactNode;
+    previewImage?: string;
+    confirmText?: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+  });
 
   // Sync internal persona state when prop changes
   useEffect(() => {
@@ -194,56 +215,89 @@ export const SceneGenerationModal: React.FC<SceneGenerationModalProps> = ({
     }
   };
 
-  const handleDeleteScene = (sceneKey: string, sceneTitle?: string) => {
+  const handleDeleteScene = (sceneKey: string, sceneTitle?: string, sceneImg?: string) => {
     if (!currentPersona || isGenerating) return;
 
     const label = sceneTitle || 'denne scene';
-    if (!window.confirm(`Er du sikker på, at du vil slette scenen "${label}"?`)) {
-      return;
-    }
+    setConfirmModal({
+      isOpen: true,
+      title: `Slet scenen "${label}"?`,
+      subtitle: `Figur: ${currentPersona.name || currentPersona.id}`,
+      previewImage: sceneImg,
+      confirmText: 'Ja, slet scene',
+      message: (
+        <span>
+          Er du sikker på, at du vil slette denne scene? I lokal dev slettes billedfilen også permanent fra{' '}
+          <code className="text-amber-800 bg-amber-50 px-1 py-0.5 rounded font-mono text-[11px]">
+            reference/personas/{currentPersona.id}/scenes/
+          </code>.
+        </span>
+      ),
+      onConfirm: async () => {
+        setConfirmModal((prev) => ({ ...prev, isOpen: false }));
 
-    const updatedScenes = { ...(currentPersona.activityScenes || {}) };
-    delete updatedScenes[sceneKey];
+        const updatedScenes = { ...(currentPersona.activityScenes || {}) };
+        delete updatedScenes[sceneKey];
 
-    const updatedPersona: Persona = {
-      ...currentPersona,
-      activityScenes: updatedScenes,
-    };
+        const updatedPersona: Persona = {
+          ...currentPersona,
+          activityScenes: updatedScenes,
+        };
 
-    saveCustomPersona(updatedPersona);
-    setCurrentPersona(updatedPersona);
-    onPersonaUpdated?.(updatedPersona);
+        saveCustomPersona(updatedPersona);
+        setCurrentPersona(updatedPersona);
+        onPersonaUpdated?.(updatedPersona);
 
-    const { ready, total } = getReadyScenesCount(updatedPersona);
-    setProgress((prev) => ({
-      ...prev,
-      completed: ready,
-      percent: total > 0 ? Math.round((ready / total) * 100) : 0,
-      done: ready === total,
-    }));
+        // Delete from local disk without refreshing the page
+        await deletePersonaSceneFromDisk(currentPersona.id, sceneKey);
+
+        const { ready, total } = getReadyScenesCount(updatedPersona);
+        setProgress((prev) => ({
+          ...prev,
+          completed: ready,
+          percent: total > 0 ? Math.round((ready / total) * 100) : 0,
+          done: ready === total,
+        }));
+      },
+    });
   };
 
   const handleDeleteAllScenes = () => {
     if (!currentPersona || isGenerating) return;
-    if (!window.confirm(`Vil du slette alle genererede scener for ${currentPersona.name || 'denne figur'}?`)) {
-      return;
-    }
 
-    const updatedPersona: Persona = {
-      ...currentPersona,
-      activityScenes: {},
-    };
+    setConfirmModal({
+      isOpen: true,
+      title: 'Slet alle scener?',
+      subtitle: `Figur: ${currentPersona.name || currentPersona.id}`,
+      confirmText: 'Ja, slet alle scener',
+      message: (
+        <span>
+          Er du sikker på, at du vil slette alle genererede scener for{' '}
+          <strong>{currentPersona.name || 'denne figur'}</strong>? I lokal dev slettes alle scene-filer permanent fra disk uden genindlæsning.
+        </span>
+      ),
+      onConfirm: async () => {
+        setConfirmModal((prev) => ({ ...prev, isOpen: false }));
 
-    saveCustomPersona(updatedPersona);
-    setCurrentPersona(updatedPersona);
-    onPersonaUpdated?.(updatedPersona);
+        const updatedPersona: Persona = {
+          ...currentPersona,
+          activityScenes: {},
+        };
 
-    const { ready, total } = getReadyScenesCount(updatedPersona);
-    setProgress({
-      total: total || DEFAULT_SCENE_DEFINITIONS.length,
-      completed: ready,
-      percent: 0,
-      done: false,
+        saveCustomPersona(updatedPersona);
+        setCurrentPersona(updatedPersona);
+        onPersonaUpdated?.(updatedPersona);
+
+        await deleteAllPersonaScenesFromDisk(currentPersona.id);
+
+        const { ready, total } = getReadyScenesCount(updatedPersona);
+        setProgress({
+          total: total || DEFAULT_SCENE_DEFINITIONS.length,
+          completed: ready,
+          percent: 0,
+          done: false,
+        });
+      },
     });
   };
 
@@ -518,7 +572,7 @@ export const SceneGenerationModal: React.FC<SceneGenerationModalProps> = ({
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleDeleteScene(sceneDef.key, sceneDef.title);
+                          handleDeleteScene(sceneDef.key, sceneDef.title, sceneUrl);
                         }}
                         title="Slet denne scene"
                         aria-label="Slet denne scene"
@@ -653,6 +707,20 @@ export const SceneGenerationModal: React.FC<SceneGenerationModalProps> = ({
           </div>
         </div>
       </div>
+
+      {/* In-app Verification / Confirm Modal */}
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        title={confirmModal.title}
+        subtitle={confirmModal.subtitle}
+        message={confirmModal.message}
+        previewImage={confirmModal.previewImage}
+        confirmText={confirmModal.confirmText || 'Ja, slet'}
+        cancelText="Annuller"
+        variant="danger"
+        onConfirm={confirmModal.onConfirm}
+        onCancel={() => setConfirmModal((prev) => ({ ...prev, isOpen: false }))}
+      />
     </div>
   );
 };
