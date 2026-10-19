@@ -10,7 +10,7 @@
     "medicin": "reference/personas/avatar_1/scenes/medicin.webp",
     "badetid": "reference/personas/avatar_1/scenes/badetid.webp",
     "spisetid": "reference/personas/avatar_1/scenes/spisetid.webp",
-    "morgenmad": "reference/personas/avatar_1/scenes/spisetid.webp",
+    "morgenmad": "reference/personas/avatar_1/scenes/morgenmad.webp",
     "frokost": "reference/personas/avatar_1/scenes/spisetid.webp",
     "aftensmad": "reference/personas/avatar_1/scenes/spisetid.webp",
     "aktiviteter": "reference/personas/avatar_1/scenes/aktiviteter.webp",
@@ -23,6 +23,10 @@
     "tv_skaerm": "reference/personas/avatar_1/scenes/pause_sofa.webp",
     "skraldespand": "reference/personas/avatar_1/scenes/skraldespand.webp",
     "handle": "reference/personas/avatar_1/scenes/handle.webp",
-    "forberede_mad": "reference/personas/avatar_1/scenes/spisetid.webp"
+    "forberede_mad": "reference/personas/avatar_1/scenes/forberede_mad.webp",
+    "boerste_taender": "reference/personas/avatar_1/scenes/boerste_taender.webp",
+    "tage_toej_paa": "reference/personas/avatar_1/scenes/tage_toej_paa.webp",
+    "toej_af": "reference/personas/avatar_1/scenes/toej_af.webp",
+    "weekend": "reference/personas/avatar_1/scenes/weekend.webp"
   }
 }

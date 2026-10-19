@@ -40,7 +40,11 @@
       "skrald": "reference/personas/avatar_1/scenes/skrald.webp",
       "indkoeb": "reference/personas/avatar_1/scenes/indkoeb.webp",
       "cykeltur": "reference/personas/avatar_1/scenes/cykeltur.webp",
-      "lave_mad": "reference/personas/avatar_1/scenes/lave_mad.webp"
+      "lave_mad": "reference/personas/avatar_1/scenes/lave_mad.webp",
+      "boerste_taender": "reference/personas/avatar_1/scenes/boerste_taender.webp",
+      "tage_toej_paa": "reference/personas/avatar_1/scenes/tage_toej_paa.webp",
+      "toej_af": "reference/personas/avatar_1/scenes/toej_af.webp",
+      "weekend": "reference/personas/avatar_1/scenes/weekend.webp"
     }
   },
   {
@@ -57,7 +61,7 @@
       "spisetid": "reference/personas/avatar_2/scenes/spisetid.webp",
       "morgenmad": "reference/personas/avatar_2/scenes/spisetid.webp",
       "frokost": "reference/personas/avatar_2/scenes/spisetid.webp",
-      "aftensmad": "reference/personas/avatar_2/scenes/aftensmad.webp",
+      "aftensmad": "reference/personas/avatar_2/scenes/spisetid.webp",
       "aktiviteter": "reference/personas/avatar_1/scenes/aktiviteter.webp",
       "vaske_op": "reference/personas/avatar_2/scenes/vaesketoeg.webp",
       "bolle": "reference/personas/avatar_2/scenes/kaffe.webp",

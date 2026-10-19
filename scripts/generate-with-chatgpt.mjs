@@ -168,6 +168,8 @@ All 20 scenes on this single image, same clothing in all cells, transparent back
       prompt,
       '-i', avatarImgPath,
       '--composition-ref', STYLE_REF_PATH,
+      '--project', '',
+      '--timeout', '360',
       '-o', outputFilePath,
     ],
     { stdio: 'inherit' }
