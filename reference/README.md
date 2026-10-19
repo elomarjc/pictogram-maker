@@ -2,7 +2,7 @@
 
 Dette bibliotek indeholder alle figurer (avatars), aktivitetsscener, ikoner og stilreferencer til **Piktogram Maker**.
 
-Strukturen er designet, så **hver avatar har sin egen dedikerede mappe (`avatar_1`, `avatar_2` osv.)** med profilbillede (`avatar.webp`), metadata (`persona.json`) og alle tilhørende aktivitetsscener i undermappen `scenes/`.
+Strukturen er designet, så **hver avatar har sin egen dedikerede mappe (`avatar_1` osv.)** med profilbillede (`avatar.webp`), metadata (`persona.json`) og alle tilhørende aktivitetsscener i undermappen `scenes/`.
 
 ---
 
@@ -29,18 +29,6 @@ reference/ (og public/reference/)
 │   │       ├── pause_sofa.webp        # Hvile / Pause / TV / Sofa
 │   │       ├── skraldespand.webp      # Gå ud med skraldepose
 │   │       └── handle.webp            # Handle indkøb
-│   │
-│   ├── avatar_2/                      # Avatar 2 (A.)
-│   │   ├── avatar.webp                # Profilbillede / Karakterreference
-│   │   ├── persona.json               # Konfiguration for Avatar 2
-│   │   └── scenes/                    # Aktivitetsscener for Avatar 2
-│   │       ├── vaesketoeg.webp
-│   │       ├── kaffe.webp
-│   │       ├── medicin.webp
-│   │       ├── badetid.webp
-│   │       ├── spisetid.webp
-│   │       ├── sengetid.webp
-│   │       └── ...
 │   │
 │   ├── .archive/                      # Papirkurv til blødt slettede figurer (fortrydelsesret)
 │   └── personas_manifest.json         # Samlet liste over figurer
@@ -103,9 +91,8 @@ cp /sti/til/nyt_billede.webp public/reference/personas/avatar_1/avatar.webp
 ```
 
 ### 2. Udskiftning af en aktivitetsscene
-Alle scener har standardiserede navne på tværs af alle figurer:
+Alle scener har standardiserede navne:
 - Udskift kaffe for Avatar 1: `reference/personas/avatar_1/scenes/kaffe.webp`
-- Udskift kaffe for Avatar 2: `reference/personas/avatar_2/scenes/kaffe.webp`
 
 ---
 
