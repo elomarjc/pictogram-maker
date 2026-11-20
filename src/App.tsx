@@ -26,8 +26,10 @@ import { CopyDayModal } from './components/CopyDayModal';
 import { PrivacyInfoModal } from './components/PrivacyInfoModal';
 import { PersonaSelectorModal } from './components/PersonaSelectorModal';
 import { SceneGenerationModal } from './components/SceneGenerationModal';
+import { StartWizardModal } from './components/StartWizardModal';
 import { ConfirmModal } from './components/ConfirmModal';
 import { getPersona } from './services/personas';
+import { getChatGPTStatus, type ChatGPTStatus } from './services/chatgptGeneration';
 import type { Persona } from './types';
 import { guessIconAndColor } from './utils/quickCardHelper';
 
@@ -58,6 +60,42 @@ export const App: React.FC = () => {
   const [copyingSourceDayId, setCopyingSourceDayId] = useState<DayOfWeek | null>(null);
   const [sceneGenPersona, setSceneGenPersona] = useState<Persona | null>(null);
   const [sceneGenAutoStart, setSceneGenAutoStart] = useState(false);
+  const [isStartWizardOpen, setIsStartWizardOpen] = useState(false);
+  const [chatgptStatus, setChatgptStatus] = useState<ChatGPTStatus | null>(null);
+
+  // Check initial ChatGPT connection and auto-open onboarding wizard if first visit or disconnected
+  useEffect(() => {
+    let isMounted = true;
+    const checkInitialChatGPT = async () => {
+      try {
+        const status = await getChatGPTStatus();
+        if (isMounted) {
+          setChatgptStatus(status);
+          const hasSeen = localStorage.getItem('pictogram_has_seen_onboarding');
+          if (!hasSeen || !status.loggedIn) {
+            setIsStartWizardOpen(true);
+          }
+        }
+      } catch {
+        if (isMounted) {
+          setIsStartWizardOpen(true);
+        }
+      }
+    };
+    checkInitialChatGPT();
+
+    const interval = setInterval(async () => {
+      const s = await getChatGPTStatus();
+      if (isMounted) {
+        setChatgptStatus(s);
+      }
+    }, 4000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, []);
 
   const [appConfirmModal, setAppConfirmModal] = useState<{
     isOpen: boolean;
@@ -632,6 +670,8 @@ export const App: React.FC = () => {
         onOpenTemplatePicker={() => setIsTemplatePickerOpen(true)}
         onOpenPrintModal={() => setIsPrintModalOpen(true)}
         onToggleAllDaysShift={handleToggleAllDaysShift}
+        onOpenStartWizard={() => setIsStartWizardOpen(true)}
+        isChatGPTConnected={chatgptStatus?.loggedIn ?? false}
       />
 
       {/* Main Workspace Body */}
@@ -783,6 +823,23 @@ export const App: React.FC = () => {
           setSceneGenAutoStart(autoStart);
         }}
         updatedPersona={sceneGenPersona}
+      />
+
+      {/* Start & Onboarding Wizard */}
+      <StartWizardModal
+        isOpen={isStartWizardOpen}
+        onClose={() => setIsStartWizardOpen(false)}
+        currentPersona={activePersona}
+        onSelectPersona={handleSelectPersona}
+        onPersonaUpdated={(updated) => {
+          if (currentPlan.personaId === updated.id) {
+            handleSelectPersona(updated.id, updated.shortCode || currentPlan.shortCode || '', updated.avatarUrl);
+          }
+        }}
+        onOpenSceneGen={(persona, _batch) => {
+          setSceneGenPersona(persona);
+          setSceneGenAutoStart(true);
+        }}
       />
 
       <SceneGenerationModal

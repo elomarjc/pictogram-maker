@@ -11,8 +11,6 @@ import {
   Sun,
   Moon,
   Sparkles,
-  CheckCircle2,
-  AlertCircle,
 } from 'lucide-react';
 
 interface HeaderProps {

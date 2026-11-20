@@ -12,9 +12,7 @@ import {
   User,
   ArrowRight,
   ArrowLeft,
-  Clock,
   Loader2,
-  Plus,
   Play,
 } from 'lucide-react';
 import type { Persona } from '../types';
@@ -58,7 +56,7 @@ export const StartWizardModal: React.FC<StartWizardModalProps> = ({
   currentPersona,
   onSelectPersona,
   onPersonaUpdated,
-  onOpenSceneGen,
+  onOpenSceneGen: _onOpenSceneGen,
 }) => {
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
   const [chatgptStatus, setChatgptStatus] = useState<ChatGPTStatus | null>(null);
