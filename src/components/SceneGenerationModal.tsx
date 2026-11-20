@@ -14,8 +14,10 @@ import {
   Sparkles,
   ExternalLink,
   RefreshCw,
+  Monitor,
 } from 'lucide-react';
 import type { Persona } from '../types';
+import { useIsMobile } from '../utils/device';
 import {
   DEFAULT_SCENE_DEFINITIONS,
   BATCH_1_SCENE_DEFINITIONS,
@@ -375,6 +377,42 @@ export const SceneGenerationModal: React.FC<SceneGenerationModalProps> = ({
       : selectedBatchTab === 'batch2'
       ? BATCH_2_SCENE_DEFINITIONS
       : DEFAULT_SCENE_DEFINITIONS;
+
+  const isMobile = useIsMobile();
+
+  // On mobile, ChatGPT scene generation is not possible
+  if (isMobile) {
+    return (
+      <div className="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
+        <div className="bg-white rounded-3xl border-4 border-slate-900 shadow-2xl max-w-md w-full p-6 space-y-4">
+          <div className="w-12 h-12 rounded-2xl bg-amber-100 border-2 border-slate-900 flex items-center justify-center mx-auto text-amber-900 shadow-xs">
+            <Monitor size={24} className="stroke-[2.5]" />
+          </div>
+          <div className="text-center space-y-2">
+            <h3 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
+              AI-tegning virker kun på computer
+            </h3>
+            <p className="text-xs font-medium text-slate-700 leading-relaxed">
+              ChatGPT-generering af piktogramscener er <strong>ikke mulig på mobiltelefonen</strong>. Funktionen kræver en computer (desktop).
+            </p>
+            <p className="text-[11.5px] font-medium text-slate-600 leading-relaxed">
+              For at generere nye scener og batches med ChatGPT skal du åbne hjemmesiden på en computer.
+            </p>
+          </div>
+          <div className="p-3 bg-slate-100 rounded-xl border border-slate-200 text-[11px] text-slate-700 font-bold">
+            💡 På mobilen kan du frit bruge alle de piktogrammer og scener, der allerede er lavet, samt sammensætte og printe din ugeplan.
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-full py-3 px-4 rounded-xl border-2 border-slate-900 bg-amber-400 hover:bg-amber-500 font-black text-slate-900 text-xs sm:text-sm shadow-xs transition-transform active:scale-95 cursor-pointer"
+          >
+            Forstået, gå tilbage
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   // Minimized floating banner at bottom-right
   if (isMinimized) {

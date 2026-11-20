@@ -15,9 +15,11 @@ import {
   Loader2,
   Play,
   Copy,
+  Monitor,
 } from 'lucide-react';
 import type { Persona } from '../types';
 import { getAllPersonas, saveCustomPersona } from '../services/personas';
+import { useIsMobile } from '../utils/device';
 import {
   getChatGPTStatus,
   openChatGPTLogin,
@@ -308,6 +310,114 @@ export const StartWizardModal: React.FC<StartWizardModalProps> = ({
   };
 
   const { ready, total } = getReadyScenesCount(activeWizardPersona);
+  const isMobile = useIsMobile();
+
+  // On mobile devices, ChatGPT creation/generation is disabled and replaced by a clear notice + persona selector
+  if (isMobile) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-900/70 backdrop-blur-xs animate-in fade-in duration-150">
+        <div className="bg-white rounded-3xl border-3 sm:border-4 border-slate-900 shadow-2xl max-w-lg w-full max-h-[94vh] flex flex-col overflow-hidden">
+          {/* Mobile Header */}
+          <div className="flex items-center justify-between px-5 py-3.5 border-b-2 border-slate-900 bg-amber-400">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-white border-2 border-slate-900 flex items-center justify-center shadow-xs">
+                <User size={18} className="text-slate-900 stroke-[2.5]" />
+              </div>
+              <div>
+                <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight leading-none">
+                  Vælg figur til din ugeplan
+                </h2>
+                <span className="text-[11px] font-bold text-slate-800">
+                  Piktogrammer og hverdagsstruktur
+                </span>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={handleFinishWizard}
+              title="Luk guiden og åbn ugeplanen"
+              aria-label="Luk"
+              className="p-1.5 rounded-xl hover:bg-black/10 text-slate-900 transition-colors cursor-pointer"
+            >
+              <X size={20} />
+            </button>
+          </div>
+
+          {/* Mobile Body */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            {/* Desktop Only / Mobile notice card */}
+            <div className="p-3.5 rounded-2xl bg-amber-50 border-2 border-amber-400 space-y-2 shadow-xs">
+              <div className="flex items-center gap-2 text-slate-900 font-black text-xs sm:text-sm">
+                <Monitor size={18} className="text-amber-800 shrink-0" />
+                <span>Oprettelse af nye figurer & ChatGPT virker kun på computer</span>
+              </div>
+              <p className="text-xs font-medium text-slate-700 leading-relaxed">
+                Det er desværre <strong>ikke muligt</strong> at oprette nye figurer ud fra fotos eller tegne nye billeder med ChatGPT på mobiltelefonen. Denne funktion kræver en computer (desktop).
+              </p>
+              <div className="p-2.5 bg-white/90 rounded-xl border border-amber-300 text-[11px] font-bold text-slate-800">
+                ✅ På mobilen kan du vælge en af de eksisterende figurer nedenfor og frit bruge alle standardpiktogrammer til din ugeplan!
+              </div>
+            </div>
+
+            {/* Persona selector grid */}
+            <div className="space-y-2">
+              <span className="text-xs font-black text-slate-900 uppercase tracking-wider block">
+                Vælg din figur:
+              </span>
+              <div className="grid grid-cols-2 gap-2.5">
+                {personas.map((p) => {
+                  const isSelected = p.id === selectedPersonaId;
+                  const { ready: r, total: t } = getReadyScenesCount(p);
+                  return (
+                    <div
+                      key={p.id}
+                      onClick={() => handleSelectExistingPersona(p)}
+                      className={`p-3 rounded-2xl border-2 transition-all flex flex-col items-center justify-between cursor-pointer text-center ${
+                        isSelected
+                          ? 'border-slate-900 bg-amber-50 ring-2 ring-amber-400 shadow-sm'
+                          : 'border-slate-200 bg-slate-50 hover:bg-white'
+                      }`}
+                    >
+                      <div className="w-20 h-20 rounded-xl border border-slate-300 overflow-hidden bg-white mb-2 p-1">
+                        <img
+                          src={p.avatarUrl}
+                          alt={p.name}
+                          className="w-full h-full object-contain"
+                        />
+                      </div>
+                      <span className="text-xs font-black text-slate-900 truncate max-w-full">
+                        {p.name && !p.name.startsWith('avatar_') ? p.name : 'Figur'}
+                      </span>
+                      <span className="text-[10px] font-bold text-slate-500 mt-0.5">
+                        {r}/{t} piktogrammer
+                      </span>
+                      {isSelected && (
+                        <span className="mt-1.5 px-2 py-0.5 rounded-full bg-slate-900 text-amber-400 text-[10px] font-black flex items-center gap-1">
+                          <Check size={10} className="stroke-[3]" /> Valgt
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* Mobile Footer */}
+          <div className="p-4 border-t-2 border-slate-200 bg-slate-50 flex items-center justify-between gap-3">
+            <button
+              type="button"
+              onClick={handleFinishWizard}
+              className="w-full py-3 px-4 rounded-xl border-2 border-slate-900 bg-amber-400 hover:bg-amber-500 font-black text-slate-900 text-xs sm:text-sm flex items-center justify-center gap-2 shadow-xs transition-transform active:scale-95 cursor-pointer"
+            >
+              <Check size={16} className="stroke-[3]" />
+              <span>Åbn ugeplanen med valgt figur</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-900/70 backdrop-blur-xs animate-in fade-in duration-150">

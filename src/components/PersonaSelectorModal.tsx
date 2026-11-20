@@ -22,7 +22,9 @@ import {
   Images,
   AlertTriangle,
   RotateCcw,
+  Monitor,
 } from 'lucide-react';
+import { useIsMobile } from '../utils/device';
 import { CreateAvatarModal } from './CreateAvatarModal';
 import { getReadyScenesCount } from '../services/characterSceneGenerator';
 
@@ -52,6 +54,7 @@ export const PersonaSelectorModal: React.FC<PersonaSelectorModalProps> = ({
   const [isTrashOpen, setIsTrashOpen] = useState(false);
   const [avatarToDelete, setAvatarToDelete] = useState<Persona | null>(null);
   const [isCreatePhotoModalOpen, setIsCreatePhotoModalOpen] = useState(false);
+  const isMobile = useIsMobile();
 
   // Sync state whenever modal opens or current active persona or updated persona changes
   useEffect(() => {
@@ -164,14 +167,23 @@ export const PersonaSelectorModal: React.FC<PersonaSelectorModalProps> = ({
         <div className="p-4 sm:p-5 overflow-y-auto space-y-3.5">
           {/* Top action section: Opret figur ud fra foto + diskret upload for eksisterende avatar + Papirkurv */}
           <div className="space-y-1.5">
-            <button
-              type="button"
-              onClick={() => setIsCreatePhotoModalOpen(true)}
-              className="w-full py-2.5 px-4 rounded-xl border-2 border-slate-900 bg-amber-400 hover:bg-amber-500 font-black text-slate-900 text-xs shadow-xs hover:shadow transition-all flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <Camera size={16} />
-              <span>Opret ny figur ud fra foto (AI)</span>
-            </button>
+            {!isMobile ? (
+              <button
+                type="button"
+                onClick={() => setIsCreatePhotoModalOpen(true)}
+                className="w-full py-2.5 px-4 rounded-xl border-2 border-slate-900 bg-amber-400 hover:bg-amber-500 font-black text-slate-900 text-xs shadow-xs hover:shadow transition-all flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <Camera size={16} />
+                <span>Opret ny figur ud fra foto (AI)</span>
+              </button>
+            ) : (
+              <div className="p-3 bg-amber-50 border-2 border-amber-300 rounded-xl flex items-center gap-2 text-xs">
+                <Monitor size={16} className="text-amber-800 shrink-0" />
+                <span className="font-bold text-slate-800 text-[11px] leading-tight">
+                  Oprettelse af nye figurer via AI virker kun på computer. På mobilen kan du vælge mellem de eksisterende figurer nedenfor.
+                </span>
+              </div>
+            )}
 
             <div className="flex items-center justify-center gap-3 text-[11px] text-slate-500 font-semibold flex-wrap">
               <div className="flex items-center gap-1">

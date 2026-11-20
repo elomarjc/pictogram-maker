@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X, Camera, Check, Upload, Trash2, AlertCircle, RotateCcw, Clock, Loader2, Wand2 } from 'lucide-react';
+import { X, Camera, Check, Upload, Trash2, AlertCircle, RotateCcw, Clock, Loader2, Wand2, Monitor } from 'lucide-react';
 import { createAvatarFromPhoto, describeAvatarImage } from '../services/imageGenerationApi';
 import { saveCustomPersona } from '../services/personas';
 import type { Persona } from '../types';
+import { useIsMobile } from '../utils/device';
 
 interface CreateAvatarModalProps {
   isOpen: boolean;
@@ -35,6 +36,41 @@ export const CreateAvatarModal: React.FC<CreateAvatarModalProps> = ({
   }, []);
 
   if (!isOpen) return null;
+
+  const isMobile = useIsMobile();
+
+  if (isMobile) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
+        <div className="bg-white rounded-3xl border-4 border-slate-900 shadow-2xl max-w-md w-full p-6 space-y-4">
+          <div className="w-12 h-12 rounded-2xl bg-amber-100 border-2 border-slate-900 flex items-center justify-center mx-auto text-amber-900 shadow-xs">
+            <Monitor size={24} className="stroke-[2.5]" />
+          </div>
+          <div className="text-center space-y-2">
+            <h3 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
+              Oprettelse af nye figurer virker kun på computer
+            </h3>
+            <p className="text-xs font-medium text-slate-700 leading-relaxed">
+              Det er desværre <strong>ikke muligt</strong> at oprette nye figurer ud fra foto via AI på mobiltelefonen. Funktionen kræver en computer (desktop).
+            </p>
+            <p className="text-[11.5px] font-medium text-slate-600 leading-relaxed">
+              Åbn hjemmesiden på en computer for at oprette din personlige figur ud fra et billede.
+            </p>
+          </div>
+          <div className="p-3 bg-slate-100 rounded-xl border border-slate-200 text-[11px] text-slate-700 font-bold">
+            💡 På mobilen kan du frit vælge mellem alle de eksisterende figurer.
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-full py-3 px-4 rounded-xl border-2 border-slate-900 bg-amber-400 hover:bg-amber-500 font-black text-slate-900 text-xs sm:text-sm shadow-xs transition-transform active:scale-95 cursor-pointer"
+          >
+            Forstået, gå tilbage
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

@@ -30,6 +30,7 @@ import { StartWizardModal } from './components/StartWizardModal';
 import { ConfirmModal } from './components/ConfirmModal';
 import { getPersona } from './services/personas';
 import { getChatGPTStatus, type ChatGPTStatus } from './services/chatgptGeneration';
+import { isMobileDevice } from './utils/device';
 import type { Persona } from './types';
 import { guessIconAndColor } from './utils/quickCardHelper';
 
@@ -72,7 +73,7 @@ export const App: React.FC = () => {
         if (isMounted) {
           setChatgptStatus(status);
           const hasSeen = localStorage.getItem('pictogram_has_seen_onboarding');
-          if (!hasSeen || !status.loggedIn) {
+          if (!hasSeen || (!status.loggedIn && !isMobileDevice())) {
             setIsStartWizardOpen(true);
           }
         }

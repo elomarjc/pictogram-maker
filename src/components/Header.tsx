@@ -11,7 +11,9 @@ import {
   Sun,
   Moon,
   Sparkles,
+  User,
 } from 'lucide-react';
+import { useIsMobile } from '../utils/device';
 
 interface HeaderProps {
   currentPlan: WeekPlan;
@@ -38,6 +40,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenStartWizard,
   isChatGPTConnected,
 }) => {
+  const isMobile = useIsMobile();
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b-3 border-slate-900 shadow-sm print:hidden">
       {/* Top Brand & Utility Bar */}
@@ -104,21 +107,29 @@ export const Header: React.FC<HeaderProps> = ({
               type="button"
               onClick={onOpenStartWizard}
               title={
-                isChatGPTConnected
+                isMobile
+                  ? 'Vælg figur til ugeplanen'
+                  : isChatGPTConnected
                   ? 'Kom godt i gang: ChatGPT er forbundet og klar'
                   : 'Kom godt i gang: Log ind på ChatGPT for at tegne'
               }
               className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-xl border-2 border-slate-900 bg-amber-400 hover:bg-amber-500 active:bg-amber-600 font-black text-slate-900 text-xs sm:text-sm shadow-xs transition-all cursor-pointer min-h-[36px]"
             >
-              <span
-                className={`w-2 h-2 rounded-full shrink-0 ${
-                  isChatGPTConnected
-                    ? 'bg-emerald-600 shadow-[0_0_6px_rgba(16,185,129,0.9)]'
-                    : 'bg-amber-700 animate-pulse'
-                }`}
-              />
-              <Sparkles size={16} className="text-slate-900 stroke-[2.5]" />
-              <span>Ny figur & aktiviteter</span>
+              {!isMobile && (
+                <span
+                  className={`w-2 h-2 rounded-full shrink-0 ${
+                    isChatGPTConnected
+                      ? 'bg-emerald-600 shadow-[0_0_6px_rgba(16,185,129,0.9)]'
+                      : 'bg-amber-700 animate-pulse'
+                  }`}
+                />
+              )}
+              {isMobile ? (
+                <User size={16} className="text-slate-900 stroke-[2.5]" />
+              ) : (
+                <Sparkles size={16} className="text-slate-900 stroke-[2.5]" />
+              )}
+              <span>{isMobile ? 'Vælg figur' : 'Ny figur & aktiviteter'}</span>
             </button>
           )}
 

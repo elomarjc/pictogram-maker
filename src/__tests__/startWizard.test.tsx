@@ -85,4 +85,34 @@ describe('StartWizardModal component', () => {
     expect(localStorage.getItem('pictogram_chatgpt_connected')).toBe('true');
     expect(screen.getByText(/Trin 2: Vælg eller opret figur/i)).toBeTruthy();
   });
+
+  it('on mobile, displays the desktop-only notice and simplifies wizard to persona selection', () => {
+    window.innerWidth = 375;
+    const handleSelect = vi.fn();
+    const handleClose = vi.fn();
+
+    render(
+      React.createElement(StartWizardModal, {
+        isOpen: true,
+        onClose: handleClose,
+        currentPersona: DEFAULT_PERSONAS[0],
+        onSelectPersona: handleSelect,
+      })
+    );
+
+    // Should display desktop-only notice
+    expect(screen.getByText(/virker kun på computer/i)).toBeTruthy();
+    expect(screen.getByText(/Oprettelse af nye figurer & ChatGPT/i)).toBeTruthy();
+
+    // Should NOT have ChatGPT login buttons
+    expect(screen.queryByText(/1\. Log ind på ChatGPT/i)).toBeNull();
+
+    // Can choose a figure and open schedule
+    const openBtn = screen.getByText(/Åbn ugeplanen med valgt figur/i);
+    expect(openBtn).toBeTruthy();
+    fireEvent.click(openBtn);
+    expect(handleClose).toHaveBeenCalled();
+
+    window.innerWidth = 1024;
+  });
 });

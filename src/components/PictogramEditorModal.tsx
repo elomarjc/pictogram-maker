@@ -19,7 +19,9 @@ import {
   Plus,
   Edit3,
   ArrowLeft,
+  Monitor,
 } from 'lucide-react';
+import { useIsMobile } from '../utils/device';
 import { CropSceneModal, type CropSceneResult } from './CropSceneModal';
 import { generateSingleSceneWithChatGPT, openChatGPTLogin } from '../services/chatgptGeneration';
 import { getShortSceneTitle } from '../utils/sceneTitleHelper';
@@ -403,6 +405,7 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
   );
 
   // ChatGPT generation state
+  const isMobile = useIsMobile();
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
   const [aiProgressMessage, setAiProgressMessage] = useState<string | null>(null);
   const [aiError, setAiError] = useState<string | null>(null);
@@ -1095,8 +1098,34 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
                   </span>
                 </div>
 
-                {/* Input block */}
-                <div className="bg-amber-50/70 border-2 border-amber-300 rounded-2xl p-3.5 space-y-2.5">
+                {isMobile ? (
+                  <div className="p-4 rounded-2xl bg-amber-50 border-2 border-amber-400 space-y-2.5 text-center my-3 shadow-xs">
+                    <div className="w-12 h-12 rounded-2xl bg-amber-100 border-2 border-slate-900 flex items-center justify-center mx-auto text-amber-900 shadow-2xs">
+                      <Monitor size={22} className="stroke-[2.5]" />
+                    </div>
+                    <div className="space-y-1">
+                      <span className="text-sm font-black text-slate-900 block">
+                        ChatGPT-tegning virker kun på computer
+                      </span>
+                      <p className="text-xs font-medium text-slate-700 leading-relaxed">
+                        Det er desværre ikke muligt at generere nye billeder med ChatGPT på mobiltelefonen. Funktionen kræver en computer (desktop).
+                      </p>
+                      <p className="text-[11.5px] font-bold text-slate-600 pt-1">
+                        Du kan frit vælge et eksisterende piktogram fra fane 1, eller uploade et billede fra dit galleri.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('illustrations')}
+                      className="px-4 py-2 rounded-xl border-2 border-slate-900 bg-amber-400 hover:bg-amber-500 font-black text-xs text-slate-900 shadow-xs cursor-pointer"
+                    >
+                      Gå til eksisterende piktogrammer
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    {/* Input block */}
+                    <div className="bg-amber-50/70 border-2 border-amber-300 rounded-2xl p-3.5 space-y-2.5">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-black text-slate-900 flex items-center gap-1.5">
                       <Wand2 size={14} className="text-amber-600" />
@@ -1222,6 +1251,8 @@ export const PictogramEditorModal: React.FC<PictogramEditorModalProps> = ({
                     </div>
                   )}
                 </div>
+                </>
+                )}
               </div>
             )}
           </div>
