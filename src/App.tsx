@@ -757,131 +757,153 @@ export const App: React.FC = () => {
       </footer>
 
       {/* Modals */}
-      <PictogramEditorModal
-        pictogram={editingPictogram}
-        isOpen={isEditorOpen}
-        persona={activePersona}
-        onClose={() => {
-          setIsEditorOpen(false);
-          setEditingPictogram(null);
-        }}
-        onSave={handleSavePictogram}
-        onApplyFontSizeToAll={handleApplyFontSizeToAll}
-        onOpenSceneGen={(persona) => {
-          setSceneGenPersona(persona);
-          setSceneGenAutoStart(false);
-        }}
-      />
+      {isEditorOpen && editingPictogram && (
+        <PictogramEditorModal
+          pictogram={editingPictogram}
+          isOpen={isEditorOpen}
+          persona={activePersona}
+          onClose={() => {
+            setIsEditorOpen(false);
+            setEditingPictogram(null);
+          }}
+          onSave={handleSavePictogram}
+          onApplyFontSizeToAll={handleApplyFontSizeToAll}
+          onOpenSceneGen={(persona) => {
+            setSceneGenPersona(persona);
+            setSceneGenAutoStart(false);
+          }}
+        />
+      )}
 
-      <PrintPreviewModal
-        plan={currentPlan}
-        currentDayId={selectedDayId === 'week' ? 'mandag' : selectedDayId}
-        isOpen={isPrintModalOpen}
-        onClose={() => setIsPrintModalOpen(false)}
-      />
+      {isPrintModalOpen && (
+        <PrintPreviewModal
+          plan={currentPlan}
+          currentDayId={selectedDayId === 'week' ? 'mandag' : selectedDayId}
+          isOpen={isPrintModalOpen}
+          onClose={() => setIsPrintModalOpen(false)}
+        />
+      )}
 
-      <PlanManagerModal
-        plans={plans}
-        activePlanId={activePlanId}
-        isOpen={isPlanManagerOpen}
-        onClose={() => setIsPlanManagerOpen(false)}
-        onSelectPlan={(id) => {
-          setActivePlanId(id);
-          setIsPlanManagerOpen(false);
-        }}
-        onCreatePlan={handleCreatePlan}
-        onRenamePlan={handleRenamePlan}
-        onDuplicatePlan={handleDuplicatePlan}
-        onDeletePlan={handleDeletePlan}
-        onExportBackup={handleExportBackup}
-        onImportBackup={handleImportBackup}
-      />
+      {isPlanManagerOpen && (
+        <PlanManagerModal
+          plans={plans}
+          activePlanId={activePlanId}
+          isOpen={isPlanManagerOpen}
+          onClose={() => setIsPlanManagerOpen(false)}
+          onSelectPlan={(id) => {
+            setActivePlanId(id);
+            setIsPlanManagerOpen(false);
+          }}
+          onCreatePlan={handleCreatePlan}
+          onRenamePlan={handleRenamePlan}
+          onDuplicatePlan={handleDuplicatePlan}
+          onDeletePlan={handleDeletePlan}
+          onExportBackup={handleExportBackup}
+          onImportBackup={handleImportBackup}
+        />
+      )}
 
-      <TemplatePickerModal
-        isOpen={isTemplatePickerOpen}
-        onClose={() => setIsTemplatePickerOpen(false)}
-        onApplyTemplate={handleApplyTemplate}
-      />
+      {isTemplatePickerOpen && (
+        <TemplatePickerModal
+          isOpen={isTemplatePickerOpen}
+          onClose={() => setIsTemplatePickerOpen(false)}
+          onApplyTemplate={handleApplyTemplate}
+        />
+      )}
 
-      <MoveToDayModal
-        pictogram={movingPictogram}
-        currentDayId={selectedDayId === 'week' ? 'mandag' : selectedDayId}
-        isOpen={!!movingPictogram}
-        onClose={() => setMovingPictogram(null)}
-        onMoveToDay={handleMoveToDay}
-      />
+      {movingPictogram && (
+        <MoveToDayModal
+          pictogram={movingPictogram}
+          currentDayId={selectedDayId === 'week' ? 'mandag' : selectedDayId}
+          isOpen={!!movingPictogram}
+          onClose={() => setMovingPictogram(null)}
+          onMoveToDay={handleMoveToDay}
+        />
+      )}
 
-      <CopyDayModal
-        sourceDayId={copyingSourceDayId || 'mandag'}
-        isOpen={!!copyingSourceDayId}
-        onClose={() => setCopyingSourceDayId(null)}
-        onCopyDay={handleCopyDay}
-      />
+      {copyingSourceDayId && (
+        <CopyDayModal
+          sourceDayId={copyingSourceDayId}
+          isOpen={!!copyingSourceDayId}
+          onClose={() => setCopyingSourceDayId(null)}
+          onCopyDay={handleCopyDay}
+        />
+      )}
 
-      <PrivacyInfoModal
-        isOpen={isPrivacyModalOpen}
-        onClose={() => setIsPrivacyModalOpen(false)}
-        onClearAllData={handleClearAllData}
-      />
+      {isPrivacyModalOpen && (
+        <PrivacyInfoModal
+          isOpen={isPrivacyModalOpen}
+          onClose={() => setIsPrivacyModalOpen(false)}
+          onClearAllData={handleClearAllData}
+        />
+      )}
 
-      <PersonaSelectorModal
-        isOpen={isPersonaModalOpen}
-        currentPersona={activePersona}
-        currentShortCode={currentPlan.shortCode || 'K.'}
-        onClose={() => setIsPersonaModalOpen(false)}
-        onSelectPersona={handleSelectPersona}
-        onOpenSceneGen={(persona, autoStart = false) => {
-          setSceneGenPersona(persona);
-          setSceneGenAutoStart(autoStart);
-        }}
-        updatedPersona={sceneGenPersona}
-      />
+      {isPersonaModalOpen && (
+        <PersonaSelectorModal
+          isOpen={isPersonaModalOpen}
+          currentPersona={activePersona}
+          currentShortCode={currentPlan.shortCode || 'K.'}
+          onClose={() => setIsPersonaModalOpen(false)}
+          onSelectPersona={handleSelectPersona}
+          onOpenSceneGen={(persona, autoStart = false) => {
+            setSceneGenPersona(persona);
+            setSceneGenAutoStart(autoStart);
+          }}
+          updatedPersona={sceneGenPersona}
+        />
+      )}
 
       {/* Start & Onboarding Wizard */}
-      <StartWizardModal
-        isOpen={isStartWizardOpen}
-        onClose={() => setIsStartWizardOpen(false)}
-        currentPersona={activePersona}
-        onSelectPersona={handleSelectPersona}
-        onPersonaUpdated={(updated) => {
-          if (currentPlan.personaId === updated.id) {
-            handleSelectPersona(updated.id, updated.shortCode || currentPlan.shortCode || '', updated.avatarUrl);
-          }
-        }}
-        onOpenSceneGen={(persona, _batch) => {
-          setSceneGenPersona(persona);
-          setSceneGenAutoStart(true);
-        }}
-      />
+      {isStartWizardOpen && (
+        <StartWizardModal
+          isOpen={isStartWizardOpen}
+          onClose={() => setIsStartWizardOpen(false)}
+          currentPersona={activePersona}
+          onSelectPersona={handleSelectPersona}
+          onPersonaUpdated={(updated) => {
+            if (currentPlan.personaId === updated.id) {
+              handleSelectPersona(updated.id, updated.shortCode || currentPlan.shortCode || '', updated.avatarUrl);
+            }
+          }}
+          onOpenSceneGen={(persona, _batch) => {
+            setSceneGenPersona(persona);
+            setSceneGenAutoStart(true);
+          }}
+        />
+      )}
 
-      <SceneGenerationModal
-        isOpen={!!sceneGenPersona}
-        persona={sceneGenPersona}
-        autoStart={sceneGenAutoStart}
-        onClose={() => {
-          setSceneGenPersona(null);
-          setSceneGenAutoStart(false);
-        }}
-        onPersonaUpdated={(updated) => {
-          if (currentPlan.personaId === updated.id) {
-            handleSelectPersona(updated.id, updated.shortCode || currentPlan.shortCode || '', updated.avatarUrl);
-          }
-          setSceneGenPersona((prev) => (prev?.id === updated.id ? updated : prev));
-        }}
-      />
+      {sceneGenPersona && (
+        <SceneGenerationModal
+          isOpen={!!sceneGenPersona}
+          persona={sceneGenPersona}
+          autoStart={sceneGenAutoStart}
+          onClose={() => {
+            setSceneGenPersona(null);
+            setSceneGenAutoStart(false);
+          }}
+          onPersonaUpdated={(updated) => {
+            if (currentPlan.personaId === updated.id) {
+              handleSelectPersona(updated.id, updated.shortCode || currentPlan.shortCode || '', updated.avatarUrl);
+            }
+            setSceneGenPersona((prev) => (prev?.id === updated.id ? updated : prev));
+          }}
+        />
+      )}
 
       {/* In-app Confirm Modal for Board Actions */}
-      <ConfirmModal
-        isOpen={appConfirmModal.isOpen}
-        title={appConfirmModal.title}
-        subtitle={appConfirmModal.subtitle}
-        message={appConfirmModal.message}
-        variant={appConfirmModal.variant || 'danger'}
-        confirmText={appConfirmModal.confirmText}
-        cancelText="Annuller"
-        onConfirm={appConfirmModal.onConfirm}
-        onCancel={() => setAppConfirmModal((prev) => ({ ...prev, isOpen: false }))}
-      />
+      {appConfirmModal.isOpen && (
+        <ConfirmModal
+          isOpen={appConfirmModal.isOpen}
+          title={appConfirmModal.title}
+          subtitle={appConfirmModal.subtitle}
+          message={appConfirmModal.message}
+          variant={appConfirmModal.variant || 'danger'}
+          confirmText={appConfirmModal.confirmText}
+          cancelText="Annuller"
+          onConfirm={appConfirmModal.onConfirm}
+          onCancel={() => setAppConfirmModal((prev) => ({ ...prev, isOpen: false }))}
+        />
+      )}
     </div>
   );
 };

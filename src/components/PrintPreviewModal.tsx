@@ -27,8 +27,6 @@ export const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
   isOpen,
   onClose,
 }) => {
-  if (!isOpen) return null;
-
   const [scope, setScope] = useState<'current' | 'selected' | 'all'>('current');
   const [targetDayId, setTargetDayId] = useState<DayOfWeek>(currentDayId);
   const [isExporting, setIsExporting] = useState(false);
@@ -111,6 +109,8 @@ export const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
       window.print();
     }, 50);
   };
+
+  if (!isOpen) return null;
 
   return (
     <div id="print-modal-portal" className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 overflow-y-auto">

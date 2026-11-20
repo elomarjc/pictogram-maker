@@ -92,6 +92,7 @@ export const StartWizardModal: React.FC<StartWizardModalProps> = ({
   // Mobile pending return & copy state
   const [isPendingReturn, setIsPendingReturn] = useState(() => isChatGPTLoginPending());
   const [isCopiedPrompt, setIsCopiedPrompt] = useState(false);
+  const isMobile = useIsMobile();
 
   // Check ChatGPT status
   const checkStatus = async () => {
@@ -175,8 +176,6 @@ export const StartWizardModal: React.FC<StartWizardModalProps> = ({
       };
     }
   }, [isOpen, currentPersona.id]);
-
-  if (!isOpen) return null;
 
   const handleFinishWizard = () => {
     try {
@@ -310,7 +309,8 @@ export const StartWizardModal: React.FC<StartWizardModalProps> = ({
   };
 
   const { ready, total } = getReadyScenesCount(activeWizardPersona);
-  const isMobile = useIsMobile();
+
+  if (!isOpen) return null;
 
   // On mobile devices, ChatGPT creation/generation is disabled and replaced by a clear notice + persona selector
   if (isMobile) {

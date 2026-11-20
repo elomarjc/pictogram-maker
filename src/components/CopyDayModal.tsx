@@ -16,12 +16,13 @@ export const CopyDayModal: React.FC<CopyDayModalProps> = ({
   onClose,
   onCopyDay,
 }) => {
-  if (!isOpen) return null;
-
-  const sourceDayName = DAYS_OF_WEEK.find((d) => d.id === sourceDayId)?.name || 'Kildedag';
   const [targetDay, setTargetDay] = useState<DayOfWeek>(
     DAYS_OF_WEEK.find((d) => d.id !== sourceDayId)?.id || 'tirsdag'
   );
+
+  if (!isOpen) return null;
+
+  const sourceDayName = DAYS_OF_WEEK.find((d) => d.id === sourceDayId)?.name || 'Kildedag';
 
   const handleConfirm = () => {
     onCopyDay(sourceDayId, targetDay);

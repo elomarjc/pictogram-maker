@@ -41,8 +41,6 @@ export const PlanManagerModal: React.FC<PlanManagerModalProps> = ({
   onExportBackup,
   onImportBackup,
 }) => {
-  if (!isOpen) return null;
-
   const [isCreating, setIsCreating] = useState(false);
   const [newPlanName, setNewPlanName] = useState('');
   const [selectedTemplateId, setSelectedTemplateId] = useState(BUILTIN_TEMPLATES[0].id);
@@ -88,6 +86,8 @@ export const PlanManagerModal: React.FC<PlanManagerModalProps> = ({
       onImportBackup(file);
     }
   };
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto">

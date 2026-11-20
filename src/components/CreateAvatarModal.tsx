@@ -26,6 +26,8 @@ export const CreateAvatarModal: React.FC<CreateAvatarModalProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const progressTimerRef = useRef<number | null>(null);
 
+  const isMobile = useIsMobile();
+
   // Clear progress timer on unmount or modal close
   useEffect(() => {
     return () => {
@@ -36,8 +38,6 @@ export const CreateAvatarModal: React.FC<CreateAvatarModalProps> = ({
   }, []);
 
   if (!isOpen) return null;
-
-  const isMobile = useIsMobile();
 
   if (isMobile) {
     return (
