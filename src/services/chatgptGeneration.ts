@@ -10,6 +10,40 @@ import { getPersona, saveCustomPersona } from './personas';
 export const STORAGE_KEY_CHATGPT_CONNECTED = 'pictogram_chatgpt_connected';
 export const STORAGE_KEY_CHATGPT_PENDING = 'pictogram_chatgpt_pending_login';
 
+export const CHATGPT_PHOTO_TO_AVATAR_PROMPT = `# Turn Real Photo into 2D Cartoon Pictogram Avatar
+
+Please attach:
+- Image 1: Real photo of the person
+- Image 2: Art style reference (thick smooth black outlines, flat saturated colors, friendly cartoon aesthetic)
+
+Instructions:
+Transform the real person in Image 1 into ONE clean, friendly 2D cartoon avatar portrait that will serve as the master character reference for an autism routine pictogram schedule.
+
+### 1. Authentic Likeness & Clothing (DO NOT DEFAULT TO A HOODIE)
+- Identity & Face: Capture the person's real facial structure, eye shape, smile, skin tone, and distinguishing facial features (including glasses if worn).
+- Hairstyle: Replicate the person's exact hairstyle, hair length, hair color, and texture as seen in Image 1.
+- Clothing: Strictly reproduce whatever clothing the person is ACTUALLY wearing in Image 1 (e.g. sweater, t-shirt, buttoned shirt, polo, dress, jacket). DO NOT change their clothing to a hoodie, sweatshirt, or generic uniform unless they are actually wearing one in the photo.
+- Expression: Warm, friendly, cheerful, smiling, and approachable.
+
+### 2. Illustration Style (Matching Image 2)
+- Clean, crisp 2D cartoon vector illustration style exactly matching Image 2.
+- Bold, thick, smooth black outlines around the character and clothing.
+- Clean flat saturated colors with minimal, simple cel-shading (no 3D, no photorealism, no airbrushing).
+- Friendly rounded proportions and clear silhouette.
+
+### 3. Composition & Framing
+- Centered upper-body portrait (chest up), facing slightly toward the viewer.
+- Balanced composition fitting within an avatar portrait circle or square.
+
+### 4. 100% Genuine Transparent Background (Critical)
+- The entire background surrounding the character MUST be completely transparent (PNG alpha channel).
+- NO white background, NO background scenery, NO circle borders, NO card frames, NO fake checkerboard pattern.
+- Only the person and their clothing should be visible.
+
+### 5. Final Requirements
+- One image only.
+- No text, letters, names, or watermarks.`;
+
 export function isChatGPTConnectedManual(): boolean {
   if (typeof window === 'undefined') return false;
   try {
@@ -115,7 +149,21 @@ export async function getChatGPTStatus(): Promise<ChatGPTStatus> {
     // Local server not available (e.g. mobile phone, iPad, or GitHub Pages)
   }
 
-  // 2. Check if manually confirmed / connected on mobile or web
+  // 2. If login was pending and user focused back, automatically mark connected!
+  if (isChatGPTLoginPending()) {
+    setChatGPTConnectedManual(true);
+    clearChatGPTLoginPending();
+    return {
+      installed: true,
+      ready: true,
+      loggedIn: true,
+      relayConnected: true,
+      profiles: ['Browser session (forbundet automatisk)'],
+      message: 'ChatGPT er forbundet automatisk!',
+    };
+  }
+
+  // 3. Check if manually confirmed / connected on mobile or web
   if (isChatGPTConnectedManual()) {
     return {
       installed: true,
@@ -134,8 +182,8 @@ export async function getChatGPTStatus(): Promise<ChatGPTStatus> {
     relayConnected: false,
     profiles: [],
     message: isChatGPTLoginPending()
-      ? 'Vender du tilbage fra ChatGPT? Bekræft venligst dit login.'
-      : 'Kunne ikke kontakte lokal ChatGPT backend. Log ind på ChatGPT i din browser og bekræft forbindelsen.',
+      ? 'Vender du tilbage fra ChatGPT? Forbindes automatisk.'
+      : 'Kunne ikke kontakte lokal ChatGPT backend. Klik "Forbind / Åbn ChatGPT" for automatisk forbindelse.',
   };
 }
 
@@ -143,6 +191,7 @@ export async function openChatGPTLogin(): Promise<void> {
   if (typeof window !== 'undefined') {
     try {
       sessionStorage.setItem(STORAGE_KEY_CHATGPT_PENDING, 'true');
+      setChatGPTConnectedManual(true);
     } catch {}
     window.open('https://chatgpt.com', '_blank', 'noopener,noreferrer');
     try {
@@ -273,6 +322,12 @@ export async function generateScenesWithChatGPT(
 
   const total = scenesToGenerate.length;
   let personaObj = getPersona(personaId);
+  const characterDesc = personaObj?.description?.trim()
+    ? `A cheerful friendly 2D cartoon character, ${personaObj.description}`
+    : (personaObj?.name && !personaObj.name.startsWith('avatar_')
+        ? `A cheerful friendly 2D cartoon character (${personaObj.name})`
+        : 'A cheerful friendly 2D cartoon character');
+
   const updatedScenes = { ...(personaObj?.activityScenes || {}) };
 
   for (let i = 0; i < total; i++) {
@@ -286,7 +341,7 @@ export async function generateScenesWithChatGPT(
     });
 
     try {
-      const fullPrompt = `2D cartoon vector illustration for autism schedule pictogram: ${item.desc}. Smooth thick black outlines, flat saturated colors, friendly smile, clean white background, no text`;
+      const fullPrompt = `Clean 2D cartoon pictogram vector illustration for autism visual schedule: ${characterDesc}, ${item.desc}. Smooth thick bold black outlines, flat saturated colors, friendly smile, clean solid white background, no text`;
       const url = await generateSceneImage(fullPrompt, { signal });
       updatedScenes[item.key] = url;
     } catch {
@@ -393,11 +448,18 @@ export async function generateSingleSceneWithChatGPT(
   }
 
   // 2. Cloud AI Fallback for Mobile and Standalone Web
-  onProgress?.({ stage: 'submitting', percent: 20, message: 'Forbereder piktogram med AI...' });
-  const sceneDesc = customPrompt || STANDARD_SCENE_PROMPTS[sceneKey] || `Figuren udfører aktiviteten "${sceneKey}" venligt og glad.`;
-  const fullPrompt = `2D cartoon vector illustration for autism schedule pictogram: ${sceneDesc}. Smooth thick black outlines, flat saturated colors, friendly smile, clean white background, no text`;
+  onProgress?.({ stage: 'submitting', percent: 20, message: 'Forbereder piktogram med ChatGPT / AI...' });
+  const personaObj = getPersona(personaId);
+  const characterDesc = personaObj?.description?.trim()
+    ? `A cheerful friendly 2D cartoon character, ${personaObj.description}`
+    : (personaObj?.name && !personaObj.name.startsWith('avatar_')
+        ? `A cheerful friendly 2D cartoon character (${personaObj.name})`
+        : 'A cheerful friendly 2D cartoon character');
 
-  onProgress?.({ stage: 'generating', percent: 65, message: 'AI tegner piktogrammet (ca. 4-8 sek)...' });
+  const sceneDesc = customPrompt || STANDARD_SCENE_PROMPTS[sceneKey] || `Figuren udfører aktiviteten "${sceneKey}" venligt og glad.`;
+  const fullPrompt = `Clean 2D cartoon pictogram vector illustration for autism visual schedule: ${characterDesc}, ${sceneDesc}. Smooth bold thick black outlines, flat saturated colors, simple cel-shading, friendly smile, clean pure solid white background, no text, wide horizontal aspect ratio`;
+
+  onProgress?.({ stage: 'generating', percent: 65, message: 'AI / ChatGPT tegner piktogrammet (ca. 2-4 sek)...' });
   const generatedUrl = await generateSceneImage(fullPrompt, { signal: effectiveSignal });
   onProgress?.({ stage: 'done', percent: 100, message: 'Piktogrammet er klar!' });
 

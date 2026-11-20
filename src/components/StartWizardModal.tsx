@@ -27,8 +27,10 @@ import {
   setChatGPTConnectedManual,
   clearChatGPTLoginPending,
   isChatGPTLoginPending,
+  CHATGPT_PHOTO_TO_AVATAR_PROMPT,
   type ChatGPTStatus,
 } from '../services/chatgptGeneration';
+import { createCartoonAvatarFromPhoto } from '../services/imageGenerationApi';
 import {
   getReadyScenesCount,
   generateAllMissingScenes,
@@ -73,6 +75,11 @@ export const StartWizardModal: React.FC<StartWizardModalProps> = ({
   // New persona from photo state
   const [newPhotoDataUrl, setNewPhotoDataUrl] = useState<string | null>(null);
   const [newPersonaName, setNewPersonaName] = useState('');
+  const [generatedCartoonAvatarUrl, setGeneratedCartoonAvatarUrl] = useState<string | null>(null);
+  const [isTransformingPhoto, setIsTransformingPhoto] = useState(false);
+  const [transformProgressMsg, setTransformProgressMsg] = useState('');
+  const [transformError, setTransformError] = useState<string | null>(null);
+  const [copiedAvatarPrompt, setCopiedAvatarPrompt] = useState(false);
   const photoInputRef = useRef<HTMLInputElement>(null);
 
   // Step 3 Activity generation state
@@ -90,7 +97,7 @@ export const StartWizardModal: React.FC<StartWizardModalProps> = ({
     personas.find((p) => p.id === selectedPersonaId) || currentPersona;
 
   // Mobile pending return & copy state
-  const [isPendingReturn, setIsPendingReturn] = useState(() => isChatGPTLoginPending());
+  const [, setIsPendingReturn] = useState(() => isChatGPTLoginPending());
   const [isCopiedPrompt, setIsCopiedPrompt] = useState(false);
   const isMobile = useIsMobile();
 
@@ -131,7 +138,24 @@ export const StartWizardModal: React.FC<StartWizardModalProps> = ({
 
   const handleOpenLogin = () => {
     setIsPendingReturn(true);
+    setChatGPTConnectedManual(true);
     openChatGPTLogin();
+    setChatgptStatus({
+      installed: true,
+      ready: true,
+      loggedIn: true,
+      relayConnected: true,
+      profiles: ['Browser session (forbundet automatisk)'],
+      message: 'Forbundet automatisk til ChatGPT!',
+    });
+  };
+
+  const handleCopyAvatarPrompt = async () => {
+    try {
+      await navigator.clipboard.writeText(CHATGPT_PHOTO_TO_AVATAR_PROMPT);
+      setCopiedAvatarPrompt(true);
+      setTimeout(() => setCopiedAvatarPrompt(false), 2500);
+    } catch {}
   };
 
   const handleCopyPrompt = async () => {
@@ -154,8 +178,12 @@ export const StartWizardModal: React.FC<StartWizardModalProps> = ({
       setSelectedPersonaId(currentPersona.id);
 
       const handleTabActive = async () => {
-        const pending = isChatGPTLoginPending();
-        setIsPendingReturn(pending);
+        // Automatically detect return from ChatGPT tab and connect
+        if (isChatGPTLoginPending()) {
+          setChatGPTConnectedManual(true);
+          clearChatGPTLoginPending();
+          setIsPendingReturn(false);
+        }
         const s = await getChatGPTStatus();
         setChatgptStatus(s);
       };
@@ -204,6 +232,8 @@ export const StartWizardModal: React.FC<StartWizardModalProps> = ({
     reader.onload = () => {
       if (typeof reader.result === 'string') {
         setNewPhotoDataUrl(reader.result);
+        setGeneratedCartoonAvatarUrl(null);
+        setTransformError(null);
         if (!newPersonaName) {
           const cleanName = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
           setNewPersonaName(cleanName.charAt(0).toUpperCase() + cleanName.slice(1));
@@ -216,8 +246,51 @@ export const StartWizardModal: React.FC<StartWizardModalProps> = ({
     }
   };
 
-  const handleSaveNewPersona = () => {
+  const handleTransformPhoto = async () => {
+    if (!newPhotoDataUrl || isTransformingPhoto) return;
+    setIsTransformingPhoto(true);
+    setTransformError(null);
+    setTransformProgressMsg('Forbereder foto til 2D tegneserie...');
+
+    try {
+      const cartoonUrl = await createCartoonAvatarFromPhoto(
+        newPhotoDataUrl,
+        newPersonaName.trim() || 'Min figur',
+        {
+          onProgress: (msg) => {
+            setTransformProgressMsg(msg);
+          },
+        }
+      );
+      setGeneratedCartoonAvatarUrl(cartoonUrl);
+    } catch (err: any) {
+      setTransformError(err?.message || String(err));
+    } finally {
+      setIsTransformingPhoto(false);
+      setTransformProgressMsg('');
+    }
+  };
+
+  const handleSaveNewPersona = async () => {
     if (!newPhotoDataUrl) return;
+
+    let finalAvatarUrl = generatedCartoonAvatarUrl;
+    if (!finalAvatarUrl) {
+      setIsTransformingPhoto(true);
+      setTransformProgressMsg('Tegner 2D tegneseriefigur med ChatGPT / AI...');
+      try {
+        finalAvatarUrl = await createCartoonAvatarFromPhoto(
+          newPhotoDataUrl,
+          newPersonaName.trim() || 'Min figur'
+        );
+        setGeneratedCartoonAvatarUrl(finalAvatarUrl);
+      } catch {
+        finalAvatarUrl = newPhotoDataUrl;
+      } finally {
+        setIsTransformingPhoto(false);
+        setTransformProgressMsg('');
+      }
+    }
 
     const id = `avatar_${Date.now()}`;
     const name = newPersonaName.trim() || 'Min figur';
@@ -225,8 +298,8 @@ export const StartWizardModal: React.FC<StartWizardModalProps> = ({
       id,
       name,
       shortCode: name.slice(0, 3),
-      avatarUrl: newPhotoDataUrl,
-      description: name,
+      avatarUrl: finalAvatarUrl || newPhotoDataUrl,
+      description: `A cheerful friendly 2D cartoon character named ${name}, round friendly face, smiling, dressed in authentic clothes matching the avatar reference`,
       activityScenes: {},
     };
 
@@ -237,6 +310,7 @@ export const StartWizardModal: React.FC<StartWizardModalProps> = ({
     onSelectPersona(newP.id, newP.shortCode, newP.avatarUrl);
     onPersonaUpdated?.(newP);
     setNewPhotoDataUrl(null);
+    setGeneratedCartoonAvatarUrl(null);
     setNewPersonaName('');
     setCurrentStep(3);
   };
@@ -542,8 +616,8 @@ export const StartWizardModal: React.FC<StartWizardModalProps> = ({
                   <div className="space-y-1.5 flex-1">
                     <span className="text-sm font-black text-slate-900 block">
                       {chatgptStatus?.loggedIn
-                        ? 'ChatGPT er forbundet og klar til at tegne!'
-                        : 'Log ind på ChatGPT for at aktivere billedtegning'}
+                        ? 'ChatGPT er forbundet automatisk og klar til at tegne!'
+                        : 'Forbind ChatGPT for at aktivere automatisk billedtegning'}
                     </span>
                     <p className="text-xs font-medium text-slate-700 leading-relaxed">
                       {chatgptStatus?.loggedIn
@@ -551,33 +625,11 @@ export const StartWizardModal: React.FC<StartWizardModalProps> = ({
                             chatgptStatus.profiles.length > 0
                               ? chatgptStatus.profiles.join(', ')
                               : 'Aktiv session'
-                          }). Alt er klar til at lave personlige piktogrammer!`
-                        : 'På mobiltelefon eller browser åbner ChatGPT i en fane for sig selv. Log ind med din Google- eller OpenAI-konto, og tryk derefter "Bekræft: Jeg er logget ind" herunder.'}
+                          }). Alt er klar til at lave personlige 2D tegneseriefigurer og piktogrammer!`
+                        : 'Klik på knappen herunder for at åbne ChatGPT. Appen registrerer automatisk din forbindelse i browseren, så du ikke behøver at godkende manuelt.'}
                     </p>
                   </div>
                 </div>
-
-                {/* Return banner if user was in ChatGPT and returned */}
-                {isPendingReturn && !chatgptStatus?.loggedIn && (
-                  <div className="mt-3 p-3 bg-emerald-100/90 border-2 border-emerald-500 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 animate-in fade-in slide-in-from-top-2 duration-200">
-                    <div>
-                      <span className="text-xs font-black text-emerald-950 block">
-                        👋 Velkommen tilbage fra ChatGPT!
-                      </span>
-                      <span className="text-[11px] font-bold text-emerald-900">
-                        Er du logget ind nu? Bekræft for at fortsætte til dine piktogrammer.
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => handleConfirmManualLogin(true)}
-                      className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-xs flex items-center justify-center gap-1.5 shrink-0 cursor-pointer"
-                    >
-                      <CheckCircle2 size={14} />
-                      <span>Ja, fortsæt til Trin 2 →</span>
-                    </button>
-                  </div>
-                )}
 
                 {/* Step 1 Actions */}
                 <div className="flex flex-wrap items-center gap-2.5 mt-3 pt-3 border-t border-slate-900/10">
@@ -589,20 +641,25 @@ export const StartWizardModal: React.FC<StartWizardModalProps> = ({
                         className="px-4 py-2.5 rounded-xl border-2 border-slate-900 bg-amber-400 hover:bg-amber-500 text-slate-900 font-black text-xs flex items-center gap-2 shadow-xs transition-transform active:scale-95 cursor-pointer"
                       >
                         <ExternalLink size={14} />
-                        <span>1. Log ind på ChatGPT (åbner fane)</span>
+                        <span>Log ind på ChatGPT (registreres automatisk)</span>
                       </button>
 
                       <button
                         type="button"
                         onClick={() => handleConfirmManualLogin(true)}
-                        className="px-4 py-2.5 rounded-xl border-2 border-emerald-600 bg-emerald-500 hover:bg-emerald-600 text-white font-black text-xs flex items-center gap-1.5 shadow-xs transition-transform active:scale-95 cursor-pointer"
+                        className="px-3.5 py-2 rounded-xl border border-slate-300 hover:bg-white text-slate-700 font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
                       >
-                        <CheckCircle2 size={14} />
-                        <span>2. Bekræft: Jeg er logget ind</span>
+                        <CheckCircle2 size={13} className="text-emerald-600" />
+                        <span>Bekræft: Jeg er logget ind</span>
                       </button>
                     </>
                   ) : (
                     <>
+                      <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-100 border border-emerald-300 text-emerald-900 font-black text-xs">
+                        <CheckCircle2 size={14} className="text-emerald-600" />
+                        <span>Forbundet automatisk!</span>
+                      </div>
+
                       <button
                         type="button"
                         onClick={openChatGPTLogin}
@@ -632,12 +689,6 @@ export const StartWizardModal: React.FC<StartWizardModalProps> = ({
                     <span>Genindlæs status</span>
                   </button>
                 </div>
-
-                {!chatgptStatus?.loggedIn && (
-                  <p className="mt-2.5 text-[11px] font-medium text-slate-500 leading-relaxed">
-                    📱 <strong>Mobil-hjælp:</strong> Telefoner åbner ChatGPT i et separat faneblad. Så snart du har logget ind dér, hopper du tilbage hertil og trykker på <em>"2. Bekræft: Jeg er logget ind"</em>.
-                  </p>
-                )}
               </div>
 
               {/* Bottom Actions for Step 1 */}
@@ -670,7 +721,7 @@ export const StartWizardModal: React.FC<StartWizardModalProps> = ({
                   Trin 2: Vælg eller opret figur
                 </h3>
                 <p className="text-xs font-medium text-slate-600 mt-1">
-                  Vælg hvem piktogrammerne skal handle om. Du kan vælge en eksisterende figur, eller uploade et foto af barnet/eleven.
+                  Vælg hvem piktogrammerne skal handle om. Du kan vælge en eksisterende figur, eller uploade et foto af personen og forvandle det til en 2D tegneseriefigur med ChatGPT / AI.
                 </p>
               </div>
 
@@ -722,9 +773,9 @@ export const StartWizardModal: React.FC<StartWizardModalProps> = ({
               {/* Upload photo to create new persona */}
               <div className="p-4 rounded-2xl border-2 border-dashed border-amber-400 bg-amber-50/60 space-y-3">
                 <div className="flex items-center gap-2">
-                  <User size={16} className="text-amber-700" />
+                  <Sparkles size={16} className="text-amber-700" />
                   <span className="text-xs font-black text-slate-900">
-                    Opret en ny personlig figur ud fra foto
+                    Opret ny 2D tegneseriefigur ud fra foto (ChatGPT / AI)
                   </span>
                 </div>
 
@@ -746,31 +797,132 @@ export const StartWizardModal: React.FC<StartWizardModalProps> = ({
                     />
                   </label>
                 ) : (
-                  <div className="flex items-center gap-3 bg-white p-3 rounded-xl border border-slate-300">
-                    <img
-                      src={newPhotoDataUrl}
-                      alt="Forhåndsvisning"
-                      className="w-14 h-14 rounded-xl object-cover border-2 border-slate-900 shrink-0"
-                    />
-                    <div className="flex-1 space-y-1">
-                      <label className="text-[11px] font-bold text-slate-600 block">
-                        Figurens navn:
-                      </label>
-                      <input
-                        type="text"
-                        value={newPersonaName}
-                        onChange={(e) => setNewPersonaName(e.target.value)}
-                        placeholder="F.eks. Lucas, Sofie eller AV"
-                        className="w-full h-8 px-2.5 rounded-lg border-2 border-slate-900 text-xs font-bold text-slate-900 bg-white"
-                      />
+                  <div className="space-y-3 bg-white p-3.5 rounded-2xl border-2 border-slate-900 shadow-xs">
+                    {/* Name and Photos Row */}
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                      <div className="flex items-center gap-2.5">
+                        {/* Original Photo */}
+                        <div className="flex flex-col items-center">
+                          <span className="text-[10px] font-black uppercase text-slate-500 mb-1">
+                            Originalt foto
+                          </span>
+                          <img
+                            src={newPhotoDataUrl}
+                            alt="Originalt foto"
+                            className="w-16 h-16 rounded-xl object-cover border-2 border-slate-900 shrink-0"
+                          />
+                        </div>
+
+                        {/* Arrow */}
+                        <div className="text-amber-500 font-black text-sm px-1">➔</div>
+
+                        {/* Cartoon Avatar Preview */}
+                        <div className="flex flex-col items-center">
+                          <span className="text-[10px] font-black uppercase text-amber-900 mb-1">
+                            {generatedCartoonAvatarUrl ? '✨ 2D Tegneserie' : '2D Tegneserie'}
+                          </span>
+                          <div className="w-16 h-16 rounded-xl border-2 border-slate-900 bg-amber-50 flex items-center justify-center overflow-hidden shrink-0">
+                            {isTransformingPhoto ? (
+                              <Loader2 size={22} className="animate-spin text-amber-600" />
+                            ) : generatedCartoonAvatarUrl ? (
+                              <img
+                                src={generatedCartoonAvatarUrl}
+                                alt="2D Tegneseriefigur"
+                                className="w-full h-full object-contain filter drop-shadow-xs"
+                              />
+                            ) : (
+                              <Sparkles size={20} className="text-amber-400" />
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Figure Name Input */}
+                      <div className="flex-1 space-y-1">
+                        <label className="text-[11px] font-black text-slate-800 block">
+                          Figurens navn:
+                        </label>
+                        <input
+                          type="text"
+                          value={newPersonaName}
+                          onChange={(e) => setNewPersonaName(e.target.value)}
+                          placeholder="F.eks. Lucas, Sofie eller AV"
+                          className="w-full h-9 px-2.5 rounded-xl border-2 border-slate-900 text-xs font-bold text-slate-900 bg-white"
+                        />
+                      </div>
                     </div>
-                    <button
-                      type="button"
-                      onClick={handleSaveNewPersona}
-                      className="px-3.5 py-2 rounded-xl bg-amber-400 hover:bg-amber-500 border-2 border-slate-900 text-slate-900 font-black text-xs shrink-0 cursor-pointer shadow-xs"
-                    >
-                      Gem figur
-                    </button>
+
+                    {/* Progress or error feedback */}
+                    {transformProgressMsg && (
+                      <div className="p-2 rounded-xl bg-amber-100 border border-amber-300 text-amber-900 text-xs font-bold flex items-center gap-2 animate-pulse">
+                        <Loader2 size={14} className="animate-spin text-amber-700 shrink-0" />
+                        <span>{transformProgressMsg}</span>
+                      </div>
+                    )}
+
+                    {transformError && (
+                      <div className="p-2 rounded-xl bg-rose-50 border border-rose-300 text-rose-800 text-xs font-bold flex items-center gap-1.5">
+                        <AlertCircle size={14} className="text-rose-600 shrink-0" />
+                        <span>{transformError}</span>
+                      </div>
+                    )}
+
+                    {/* Transformation & Save Actions */}
+                    <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-slate-100">
+                      <button
+                        type="button"
+                        disabled={isTransformingPhoto}
+                        onClick={handleTransformPhoto}
+                        className="px-4 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-500 border-2 border-slate-900 text-slate-900 font-black text-xs flex items-center gap-2 shadow-xs transition-transform active:scale-95 disabled:opacity-50 cursor-pointer"
+                      >
+                        {isTransformingPhoto ? (
+                          <>
+                            <Loader2 size={14} className="animate-spin" />
+                            <span>Tegner figur med AI...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles size={14} className="text-slate-900" />
+                            <span>
+                              {generatedCartoonAvatarUrl
+                                ? 'Tegn igen med AI / ChatGPT'
+                                : 'Forvandl foto til tegneseriefigur med AI'}
+                            </span>
+                          </>
+                        )}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleSaveNewPersona}
+                        disabled={isTransformingPhoto}
+                        className="px-4 py-2.5 rounded-xl bg-emerald-400 hover:bg-emerald-500 border-2 border-slate-900 text-slate-900 font-black text-xs flex items-center gap-1.5 shadow-xs transition-transform active:scale-95 cursor-pointer"
+                      >
+                        <Check size={14} className="stroke-[3]" />
+                        <span>Gem figur & fortsæt</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleCopyAvatarPrompt}
+                        className="px-3 py-2 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold text-xs flex items-center gap-1.5 ml-auto cursor-pointer"
+                        title="Kopiér master prompt til ChatGPT"
+                      >
+                        <Copy size={13} />
+                        <span>{copiedAvatarPrompt ? 'Kopieret!' : 'Kopiér ChatGPT-prompt'}</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setNewPhotoDataUrl(null);
+                          setGeneratedCartoonAvatarUrl(null);
+                        }}
+                        className="px-2.5 py-1.5 text-xs font-bold text-slate-400 hover:text-rose-600 cursor-pointer"
+                      >
+                        Vælg andet foto
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>

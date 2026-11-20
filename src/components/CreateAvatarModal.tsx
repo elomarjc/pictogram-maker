@@ -1,7 +1,22 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X, Camera, Check, Upload, Trash2, AlertCircle, RotateCcw, Clock, Loader2, Wand2, Monitor } from 'lucide-react';
+import {
+  X,
+  Camera,
+  Check,
+  Upload,
+  Trash2,
+  AlertCircle,
+  RotateCcw,
+  Clock,
+  Loader2,
+  Monitor,
+  Copy,
+  ExternalLink,
+  Sparkles,
+} from 'lucide-react';
 import { createAvatarFromPhoto, describeAvatarImage } from '../services/imageGenerationApi';
 import { saveCustomPersona } from '../services/personas';
+import { CHATGPT_PHOTO_TO_AVATAR_PROMPT, openChatGPTLogin } from '../services/chatgptGeneration';
 import type { Persona } from '../types';
 import { useIsMobile } from '../utils/device';
 
@@ -23,10 +38,19 @@ export const CreateAvatarModal: React.FC<CreateAvatarModalProps> = ({
   const [generatedAvatarUrl, setGeneratedAvatarUrl] = useState<string | null>(null);
   const [avatarDescription, setAvatarDescription] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
+  const [isCopiedPrompt, setIsCopiedPrompt] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const progressTimerRef = useRef<number | null>(null);
 
   const isMobile = useIsMobile();
+
+  const handleCopyPrompt = async () => {
+    try {
+      await navigator.clipboard.writeText(CHATGPT_PHOTO_TO_AVATAR_PROMPT);
+      setIsCopiedPrompt(true);
+      setTimeout(() => setIsCopiedPrompt(false), 2500);
+    } catch {}
+  };
 
   // Clear progress timer on unmount or modal close
   useEffect(() => {
@@ -439,9 +463,31 @@ export const CreateAvatarModal: React.FC<CreateAvatarModalProps> = ({
                 onClick={handleTransform}
                 className="w-full py-2.5 rounded-xl border-2 border-slate-900 bg-amber-400 hover:bg-amber-500 disabled:opacity-50 disabled:cursor-not-allowed font-black text-slate-900 text-xs shadow-xs hover:shadow transition-all flex items-center justify-center gap-2 cursor-pointer"
               >
-                <Wand2 size={15} className="text-slate-900" />
-                <span>Opret tegneseriefigur (AI)</span>
+                <Sparkles size={15} className="text-slate-900" />
+                <span>Forvandl foto til tegneseriefigur (AI)</span>
               </button>
+
+              <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={handleCopyPrompt}
+                  className="flex-1 py-2 px-2.5 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold text-[11.5px] flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                  title="Kopiér master prompt til ChatGPT"
+                >
+                  <Copy size={13} />
+                  <span>{isCopiedPrompt ? 'Prompt kopieret!' : 'Kopiér ChatGPT-prompt'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={openChatGPTLogin}
+                  className="flex-1 py-2 px-2.5 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold text-[11.5px] flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                  title="Åbn ChatGPT i ny fane"
+                >
+                  <ExternalLink size={13} />
+                  <span>Åbn ChatGPT</span>
+                </button>
+              </div>
             </div>
           )}
         </div>

@@ -100,4 +100,24 @@ describe('chatgptGeneration service', () => {
     clearChatGPTLoginPending();
     expect(isChatGPTLoginPending()).toBe(false);
   });
+
+  it('automatically connects when pending return is detected without manual confirmation', async () => {
+    globalThis.fetch = vi.fn().mockRejectedValue(new Error('No server'));
+    sessionStorage.setItem(STORAGE_KEY_CHATGPT_PENDING, 'true');
+
+    expect(isChatGPTConnectedManual()).toBe(false);
+    const status = await getChatGPTStatus();
+
+    expect(status.loggedIn).toBe(true);
+    expect(status.ready).toBe(true);
+    expect(isChatGPTConnectedManual()).toBe(true);
+    expect(isChatGPTLoginPending()).toBe(false);
+  });
+
+  it('provides master CHATGPT_PHOTO_TO_AVATAR_PROMPT for 2D cartoon transformation', async () => {
+    const { CHATGPT_PHOTO_TO_AVATAR_PROMPT } = await import('../services/chatgptGeneration');
+    expect(CHATGPT_PHOTO_TO_AVATAR_PROMPT).toContain('Turn Real Photo into 2D Cartoon Pictogram Avatar');
+    expect(CHATGPT_PHOTO_TO_AVATAR_PROMPT).toContain('DO NOT DEFAULT TO A HOODIE');
+    expect(CHATGPT_PHOTO_TO_AVATAR_PROMPT).toContain('100% Genuine Transparent Background');
+  });
 });

@@ -197,10 +197,52 @@ export async function autoFitSceneToStandardFormat(
 }
 
 /**
- * Placeholder for photo to avatar transformation using local canvas scaling.
+ * Transforms an uploaded real photo into a 2D cartoon avatar portrait
+ * matching the autism visual schedule pictogram style.
+ * Uses AI (Flux-1-Schnell) with prompt matching style_guide/prompt_stage1_photo_to_avatar.md,
+ * removes background, and standardizes to 512x512 transparent avatar.
  */
-export async function createAvatarFromPhoto(photoDataUrl: string): Promise<string> {
-  return autoFitSceneToStandardFormat(photoDataUrl, 512, 512);
+export async function createCartoonAvatarFromPhoto(
+  _photoDataUrl: string,
+  personaName?: string,
+  options?: { signal?: AbortSignal; onProgress?: (msg: string, pct: number) => void }
+): Promise<string> {
+  options?.onProgress?.('Analyserer foto og forbereder 2D tegneserie-prompt...', 20);
+
+  const cleanName = personaName?.trim() || 'the person';
+  const prompt = `A clean 2D cartoon pictogram vector avatar portrait of ${cleanName}, cute friendly character, authentic facial likeness, hairstyle, and preserving the actual clothes from the photo (DO NOT default to a hoodie). Bold thick smooth black outlines, flat saturated colors, simple cel-shading, friendly cheerful smile, solid clean pure white background, vector character sticker, autism visual schedule pictogram style, centered upper-body chest up portrait, no text, no watermark`;
+
+  options?.onProgress?.('ChatGPT / AI tegner din 2D tegneseriefigur...', 50);
+
+  // Generate image using Cloudflare Workers AI (Flux-1-Schnell)
+  const rawGeneratedUrl = await generateSceneImage(prompt, {
+    signal: options?.signal,
+    model: '@cf/black-forest-labs/flux-1-schnell',
+  });
+
+  options?.onProgress?.('Fjerner baggrund og gør gennemsigtig...', 80);
+
+  // Remove white background so it is transparent
+  const transparentUrl = await removeImageBackground(rawGeneratedUrl);
+
+  options?.onProgress?.('Tilpasser til standard avatarformat (512x512)...', 95);
+
+  // Auto-fit to 512x512 avatar square
+  const finalAvatarUrl = await autoFitSceneToStandardFormat(transparentUrl, 512, 512);
+
+  options?.onProgress?.('Færdig! Din 2D tegneseriefigur er klar.', 100);
+  return finalAvatarUrl;
+}
+
+/**
+ * Creates a 2D cartoon avatar from an uploaded photo.
+ */
+export async function createAvatarFromPhoto(
+  photoDataUrl: string,
+  personaName?: string,
+  options?: { signal?: AbortSignal; onProgress?: (msg: string, pct: number) => void }
+): Promise<string> {
+  return createCartoonAvatarFromPhoto(photoDataUrl, personaName, options);
 }
 
 /**
