@@ -712,7 +712,6 @@ export const App: React.FC = () => {
             viewMode={viewMode}
             globalFontSize={currentPlan.globalFontSize || 22}
             onChangeViewMode={setViewMode}
-            onOpenPersonaModal={() => setIsPersonaModalOpen(true)}
             onAddPictogram={() => handleOpenAddPictogram(selectedDayId)}
             onEditPictogram={handleOpenEditPictogram}
             onDuplicatePictogram={handleDuplicatePictogram}

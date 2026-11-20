@@ -2,17 +2,13 @@ import React, { useState } from 'react';
 import type { WeekPlan, PrintSettings, DayOfWeek } from '../types';
 import { DAYS_OF_WEEK } from '../types';
 import { exportElementToPdf, exportElementToImage, downloadWeekPlanPdf } from '../services/pdfExport';
-import { switchDayScheduleShift } from '../data/templates';
 import {
   Printer,
   Download,
   X,
-  Calendar,
   Loader2,
   CheckCircle2,
   FileImage,
-  Sun,
-  Moon,
 } from 'lucide-react';
 import { PictogramCard } from './PictogramCard';
 import { getPersona } from '../services/personas';
@@ -35,20 +31,13 @@ export const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
 
   const [scope, setScope] = useState<'current' | 'selected' | 'all'>('current');
   const [targetDayId, setTargetDayId] = useState<DayOfWeek>(currentDayId);
-  const [shiftFilter, setShiftFilter] = useState<'active' | 'dag' | 'aften' | 'both'>('active');
   const [isExporting, setIsExporting] = useState(false);
+  const [isExportingImage, setIsExportingImage] = useState(false);
 
-  const rawDaySchedule = plan.days[scope === 'all' ? currentDayId : (scope === 'selected' ? targetDayId : currentDayId)];
-  const activeDaySchedule =
-    shiftFilter === 'dag'
-      ? switchDayScheduleShift(rawDaySchedule, 'dag')
-      : shiftFilter === 'aften'
-      ? switchDayScheduleShift(rawDaySchedule, 'aften')
-      : rawDaySchedule;
+  const displayDayId = scope === 'all' ? currentDayId : (scope === 'selected' ? targetDayId : currentDayId);
+  const activeDaySchedule = plan.days[displayDayId];
   const activePics = activeDaySchedule?.pictograms || [];
   const activePersona = getPersona(plan.personaId);
-
-  const [isExportingImage, setIsExportingImage] = useState(false);
 
   const handleDownloadImage = async () => {
     try {
@@ -80,10 +69,10 @@ export const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
         colorMode: 'color',
         scope: scope === 'all' ? 'all' : (scope === 'selected' ? 'selected' : 'current'),
         targetDayId,
-        shiftFilter,
+        shiftFilter: 'active',
       };
 
-      if (scope === 'all' || shiftFilter === 'both') {
+      if (scope === 'all') {
         // Multi-page clean board generation
         await downloadWeekPlanPdf(plan, printSettings);
       } else {
@@ -129,20 +118,17 @@ export const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
       <div id="print-modal-backdrop" onClick={onClose} className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity" />
 
       {/* Modal Window */}
-      <div id="print-modal-window" className="relative z-10 bg-white rounded-3xl border-3 border-slate-900 shadow-2xl max-w-2xl w-full max-h-[94vh] sm:max-h-[92vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+      <div id="print-modal-window" className="relative z-10 bg-white rounded-3xl border-3 border-slate-900 shadow-2xl max-w-xl w-full max-h-[92vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
         {/* Modal Header */}
-        <div id="print-modal-header" className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b-2 border-slate-900 bg-amber-400">
+        <div id="print-modal-header" className="flex items-center justify-between px-4 sm:px-6 py-3 border-b-2 border-slate-900 bg-amber-400">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-white border-2 border-slate-900 flex items-center justify-center shadow-xs">
               <Printer size={18} className="text-slate-900" />
             </div>
             <div>
-              <h2 className="text-base sm:text-xl font-black text-slate-900 tracking-tight leading-none">
-                Udskriv og Download PDF
+              <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight leading-none">
+                Udskriv og PDF
               </h2>
-              <p className="text-xs font-bold text-slate-800 mt-0.5">
-                100% identisk med det format du ser og redigerer
-              </p>
             </div>
           </div>
           <button
@@ -155,183 +141,99 @@ export const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
         </div>
 
         {/* Modal Body */}
-        <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-5">
-          {/* 1. Simple Day Selector */}
-          <div id="print-modal-controls" className="space-y-2">
-            <label className="text-xs font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
-              <Calendar size={15} className="text-amber-500" />
-              Vælg hvad du vil udskrive / downloade:
-            </label>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-3.5">
+          {/* Simple Scope Selector */}
+          <div id="print-modal-controls" className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 bg-slate-50 p-2 rounded-2xl border border-slate-200">
+            <div className="flex items-center p-0.5 bg-slate-200/80 rounded-xl border border-slate-300">
               <button
                 type="button"
                 onClick={() => setScope('current')}
-                className={`p-3 rounded-2xl border-2 text-left transition-all ${
-                  scope === 'current'
-                    ? 'border-slate-900 bg-amber-100 ring-2 ring-amber-400 shadow-xs'
-                    : 'border-slate-300 hover:border-slate-500 bg-slate-50'
+                className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-lg text-xs font-black transition-all cursor-pointer ${
+                  scope !== 'all'
+                    ? 'bg-white text-slate-900 shadow-xs border border-slate-300'
+                    : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                <span className="text-xs font-extrabold block text-slate-900">
-                  Aktuel dag ({DAYS_OF_WEEK.find((d) => d.id === currentDayId)?.name})
-                </span>
-                <span className="text-[11px] text-slate-600">
-                  Den dag du har åben lige nu
-                </span>
+                Enkelt dag
               </button>
-
-              <button
-                type="button"
-                onClick={() => setScope('selected')}
-                className={`p-3 rounded-2xl border-2 text-left transition-all ${
-                  scope === 'selected'
-                    ? 'border-slate-900 bg-amber-100 ring-2 ring-amber-400 shadow-xs'
-                    : 'border-slate-300 hover:border-slate-500 bg-slate-50'
-                }`}
-              >
-                <span className="text-xs font-extrabold block text-slate-900">
-                  Vælg anden dag
-                </span>
-                <span className="text-[11px] text-slate-600">
-                  Vælg frit mellem ugens 7 dage
-                </span>
-              </button>
-
               <button
                 type="button"
                 onClick={() => setScope('all')}
-                className={`p-3 rounded-2xl border-2 text-left transition-all ${
+                className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-lg text-xs font-black transition-all cursor-pointer ${
                   scope === 'all'
-                    ? 'border-slate-900 bg-amber-100 ring-2 ring-amber-400 shadow-xs'
-                    : 'border-slate-300 hover:border-slate-500 bg-slate-50'
+                    ? 'bg-white text-slate-900 shadow-xs border border-slate-300'
+                    : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                <span className="text-xs font-extrabold block text-slate-900">
-                  Alle 7 dage
-                </span>
-                <span className="text-[11px] text-slate-600">
-                  Hele ugen samlet i én PDF
-                </span>
+                Hele ugen (7 dage)
               </button>
             </div>
 
-            {scope === 'selected' && (
-              <div className="pt-1">
+            {scope !== 'all' && (
+              <div className="flex items-center gap-1.5 justify-end">
+                <span className="text-xs font-bold text-slate-500">Vælg dag:</span>
                 <select
-                  value={targetDayId}
-                  onChange={(e) => setTargetDayId(e.target.value as DayOfWeek)}
-                  className="w-full sm:w-64 px-3 py-2 rounded-xl border-2 border-slate-900 font-bold text-sm bg-white"
+                  value={scope === 'selected' ? targetDayId : currentDayId}
+                  onChange={(e) => {
+                    setTargetDayId(e.target.value as DayOfWeek);
+                    setScope('selected');
+                  }}
+                  className="px-2.5 py-1.5 rounded-xl border border-slate-300 bg-white text-xs font-black text-slate-900 cursor-pointer"
                 >
                   {DAYS_OF_WEEK.map((day) => (
                     <option key={day.id} value={day.id}>
-                      {day.name} – {plan.days[day.id]?.pictograms.length || 0} aktiviteter
+                      {day.name} ({plan.days[day.id]?.pictograms.length || 0} kort)
                     </option>
                   ))}
                 </select>
               </div>
             )}
-
-            {/* Shift Filter Option */}
-            <div className="pt-2">
-              <label className="text-xs font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5 mb-1.5">
-                <Sun size={15} className="text-amber-500" />
-                Vagt / Plan type:
-              </label>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShiftFilter('active')}
-                  className={`p-2.5 rounded-xl border-2 text-center text-xs font-bold transition-all cursor-pointer ${
-                    shiftFilter === 'active'
-                      ? 'border-slate-900 bg-amber-200 text-slate-900 shadow-xs'
-                      : 'border-slate-300 hover:border-slate-500 bg-white text-slate-700'
-                  }`}
-                >
-                  Aktiv vagt (som vist)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShiftFilter('dag')}
-                  className={`p-2.5 rounded-xl border-2 text-center text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                    shiftFilter === 'dag'
-                      ? 'border-slate-900 bg-amber-200 text-slate-900 shadow-xs'
-                      : 'border-slate-300 hover:border-slate-500 bg-white text-slate-700'
-                  }`}
-                >
-                  <Sun size={13} className="text-amber-600 stroke-[2.5]" />
-                  <span>Kun Dag (☀️)</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShiftFilter('aften')}
-                  className={`p-2.5 rounded-xl border-2 text-center text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                    shiftFilter === 'aften'
-                      ? 'border-slate-900 bg-indigo-100 text-slate-900 shadow-xs'
-                      : 'border-slate-300 hover:border-slate-500 bg-white text-slate-700'
-                  }`}
-                >
-                  <Moon size={13} className="text-indigo-600 stroke-[2.5]" />
-                  <span>Kun Aften (🌙)</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShiftFilter('both')}
-                  className={`p-2.5 rounded-xl border-2 text-center text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                    shiftFilter === 'both'
-                      ? 'border-slate-900 bg-amber-200 text-slate-900 shadow-xs'
-                      : 'border-slate-300 hover:border-slate-500 bg-white text-slate-700'
-                  }`}
-                >
-                  <span>Både Dag & Aften</span>
-                </button>
-              </div>
-            </div>
           </div>
 
-          {/* 2. Exact 1:1 Live Preview (Matches DailyBoard exactly) */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-black uppercase tracking-wider text-slate-700">
-                Forhåndsvisning (præcis sådan bliver dit print og din PDF):
-              </label>
-              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-300">
-                <CheckCircle2 size={13} />
-                Præcis 1:1 format
+          {/* Exact 1:1 Live Preview (Contained & Scrollable) */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between text-xs font-bold text-slate-600 px-1">
+              <span>
+                {scope === 'all' ? 'Forhåndsvisning (viser 1. dag):' : 'Forhåndsvisning:'}
+              </span>
+              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-300">
+                <CheckCircle2 size={12} />
+                1:1 format
               </span>
             </div>
 
-            <div className="p-3 sm:p-5 bg-slate-100 rounded-2xl border-2 border-slate-300 flex justify-center items-center overflow-x-auto">
+            <div className="p-2 sm:p-3 bg-slate-100 rounded-2xl border border-slate-300 max-h-[46vh] sm:max-h-[52vh] overflow-y-auto flex justify-center">
               {/* Paper / Sheet element captured 1:1 by html2canvas */}
               <div
                 id="print-sheet-exact-preview"
-                className="bg-white rounded-3xl border-4 border-slate-900 shadow-xl overflow-hidden p-3 sm:p-5 w-full max-w-xl mx-auto flex flex-col items-stretch"
+                className="bg-white rounded-2xl border-3 border-slate-900 shadow-md overflow-hidden p-3 w-full max-w-md mx-auto flex flex-col items-stretch"
               >
                 {/* Board Header: Exact match to DailyBoard header */}
-                <div className="bg-[#7ECBFC] border-3 border-slate-900 rounded-2xl p-2.5 sm:p-3 mb-3 flex items-center justify-between shadow-xs">
-                  <div className="flex items-center justify-center w-11 h-11 sm:w-14 sm:h-14 shrink-0 filter drop-shadow-xs">
+                <div className="bg-[#7ECBFC] border-2 border-slate-900 rounded-xl p-2 mb-2.5 flex items-center justify-between shadow-2xs">
+                  <div className="flex items-center justify-center w-9 h-9 sm:w-11 sm:h-11 shrink-0 filter drop-shadow-xs">
                     <HeaderIconDisplay iconKey={activeDaySchedule?.headerLeftIcon || 'sun'} fallbackKey="sun" />
                   </div>
 
                   <div className="text-center px-2 flex-1">
-                    <h3 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight font-rounded">
+                    <h3 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight font-rounded">
                       {activeDaySchedule?.dayName || 'Mandag'}
                     </h3>
                   </div>
 
-                  <div className="flex items-center justify-center w-11 h-11 sm:w-14 sm:h-14 shrink-0 filter drop-shadow-xs">
+                  <div className="flex items-center justify-center w-9 h-9 sm:w-11 sm:h-11 shrink-0 filter drop-shadow-xs">
                     <HeaderIconDisplay iconKey={activeDaySchedule?.headerRightIcon || 'cloud'} fallbackKey="cloud" />
                   </div>
                 </div>
 
                 {/* Pictograms List in Exact Strip Order */}
                 {activePics.length === 0 ? (
-                  <div className="text-center py-10 px-4 border-2 border-dashed border-slate-300 rounded-2xl bg-slate-50">
-                    <p className="text-sm font-bold text-slate-500">
+                  <div className="text-center py-8 px-4 border border-dashed border-slate-300 rounded-xl bg-slate-50">
+                    <p className="text-xs font-bold text-slate-500">
                       Ingen aktiviteter på denne dag endnu.
                     </p>
                   </div>
                 ) : (
-                  <div className="space-y-2 py-1">
+                  <div className="space-y-1.5 py-0.5">
                     {activePics.map((pic, idx) => (
                       <div key={pic.id} className="w-full">
                         <PictogramCard
@@ -348,74 +250,57 @@ export const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
                 )}
               </div>
             </div>
-            <p id="print-modal-info" className="text-[11px] font-semibold text-slate-500 text-center">
-              A4-striben er tilpasset så alle aktiviteter og overskriften fremstår skarpt og i korrekt format.
-            </p>
           </div>
         </div>
 
-        {/* Modal Actions */}
-        <div id="print-modal-footer" className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 px-4 sm:px-6 py-3 sm:py-4 border-t-2 border-slate-200 bg-slate-50">
+        {/* Modal Footer */}
+        <div id="print-modal-footer" className="flex items-center justify-between gap-2 px-4 sm:px-6 py-3 border-t-2 border-slate-200 bg-slate-50">
           <button
             type="button"
             onClick={onClose}
-            className="hidden sm:block px-4 py-2.5 rounded-xl border-2 border-slate-300 font-bold text-slate-700 hover:bg-slate-100 text-sm transition-colors cursor-pointer"
+            className="px-3.5 py-2 rounded-xl border border-slate-300 font-bold text-slate-700 hover:bg-slate-200 text-xs sm:text-sm transition-colors cursor-pointer"
           >
             Luk
           </button>
 
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-2.5 w-full sm:w-auto">
-            <button
-              type="button"
-              onClick={handleDirectPrint}
-              className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl border-2 border-slate-900 bg-white hover:bg-slate-100 active:bg-slate-200 font-extrabold text-slate-900 text-xs sm:text-sm shadow-xs transition-colors cursor-pointer min-h-[38px]"
-            >
-              <Printer size={16} />
-              Udskriv direkte
-            </button>
+          <div className="flex items-center gap-2">
             <button
               type="button"
               disabled={isExportingImage}
               onClick={handleDownloadImage}
-              title="Gem som et skarpt billede (PNG) præcis som du ser det"
-              className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl border-2 border-slate-900 bg-white hover:bg-slate-100 active:bg-slate-200 font-extrabold text-slate-900 text-xs sm:text-sm shadow-xs transition-colors disabled:opacity-50 cursor-pointer min-h-[38px]"
+              title="Gem som billede (PNG)"
+              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-300 hover:border-slate-900 bg-white font-bold text-slate-700 hover:text-slate-900 text-xs transition-colors cursor-pointer disabled:opacity-50"
             >
-              {isExportingImage ? (
-                <>
-                  <Loader2 size={16} className="animate-spin text-slate-900" />
-                  Gemmer PNG...
-                </>
-              ) : (
-                <>
-                  <FileImage size={16} className="text-slate-900" />
-                  Gem billede (PNG)
-                </>
-              )}
+              <FileImage size={15} />
+              <span>{isExportingImage ? 'Gemmer...' : 'Gem PNG'}</span>
             </button>
+
+            <button
+              type="button"
+              onClick={handleDirectPrint}
+              className="inline-flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl border-2 border-slate-900 bg-white hover:bg-slate-100 active:bg-slate-200 font-extrabold text-slate-900 text-xs sm:text-sm shadow-xs transition-colors cursor-pointer"
+            >
+              <Printer size={15} />
+              <span>Udskriv</span>
+            </button>
+
             <button
               type="button"
               disabled={isExporting}
               onClick={handleDownloadPdf}
-              className="inline-flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl border-2 border-slate-900 bg-amber-400 hover:bg-amber-500 active:bg-amber-600 font-black text-slate-900 text-xs sm:text-sm shadow-sm transition-all disabled:opacity-50 cursor-pointer min-h-[38px]"
+              className="inline-flex items-center justify-center gap-1.5 px-4 sm:px-5 py-2 rounded-xl border-2 border-slate-900 bg-amber-400 hover:bg-amber-500 active:bg-amber-600 font-black text-slate-900 text-xs sm:text-sm shadow-sm transition-all disabled:opacity-50 cursor-pointer"
             >
               {isExporting ? (
                 <>
-                  <Loader2 size={16} className="animate-spin" />
-                  Gemmer PDF...
+                  <Loader2 size={15} className="animate-spin" />
+                  <span>Henter...</span>
                 </>
               ) : (
                 <>
-                  <Download size={16} />
-                  Download PDF
+                  <Download size={15} />
+                  <span>Hent PDF</span>
                 </>
               )}
-            </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className="sm:hidden w-full py-2 rounded-xl border-2 border-slate-300 font-bold text-slate-700 hover:bg-slate-100 text-xs transition-colors cursor-pointer min-h-[36px]"
-            >
-              Luk
             </button>
           </div>
         </div>

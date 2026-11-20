@@ -5,7 +5,7 @@ import { Header } from '../components/Header';
 import { BUILTIN_TEMPLATES, createWeekPlanFromTemplate } from '../data/templates';
 
 describe('Header component', () => {
-  it('displays ChatGPT status indicator and Startguide button', () => {
+  it('displays sandwich menu and AI startguide button inside the menu', () => {
     const plan = createWeekPlanFromTemplate(BUILTIN_TEMPLATES[0]);
     const handleOpenWizard = vi.fn();
 
@@ -23,12 +23,16 @@ describe('Header component', () => {
       })
     );
 
-    // Should show disconnected badge and button
-    expect(screen.getByText(/Log ind på ChatGPT/i)).toBeTruthy();
-    const wizardBtn = screen.getByText(/Ny figur & aktiviteter/i);
-    expect(wizardBtn).toBeTruthy();
+    // Open sandwich menu
+    const menuBtn = screen.getByRole('button', { name: /Åbn menu/i });
+    expect(menuBtn).toBeTruthy();
+    fireEvent.click(menuBtn);
 
-    fireEvent.click(wizardBtn);
+    // Should show AI & Ny figur item in the menu
+    const aiBtn = screen.getByText(/AI & Ny figur ud fra foto/i);
+    expect(aiBtn).toBeTruthy();
+
+    fireEvent.click(aiBtn);
     expect(handleOpenWizard).toHaveBeenCalled();
 
     // Re-render as connected
@@ -46,7 +50,9 @@ describe('Header component', () => {
       })
     );
 
-    expect(screen.getByText(/ChatGPT forbundet/i)).toBeTruthy();
+    // Reopen menu if needed and check connected status badge
+    fireEvent.click(screen.getByRole('button', { name: /Åbn menu/i }));
+    expect(screen.getByText(/Klar/i)).toBeTruthy();
   });
 
   it('renders sandwich menu on mobile and opens persona modal when tapping Vælg figur', () => {
@@ -82,7 +88,7 @@ describe('Header component', () => {
     fireEvent.click(choosePersonaBtns[choosePersonaBtns.length - 1]);
     expect(handleOpenPersona).toHaveBeenCalled();
 
-    // Test mobile day dropdown
+    // Test day dropdown
     const daySelectorBtn = screen.getByRole('button', { name: /Vælg ugedag/i });
     expect(daySelectorBtn).toBeTruthy();
 

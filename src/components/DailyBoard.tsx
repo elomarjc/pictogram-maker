@@ -23,7 +23,6 @@ interface DailyBoardProps {
   persona: Persona;
   viewMode: PrintLayoutMode;
   onChangeViewMode: (mode: PrintLayoutMode) => void;
-  onOpenPersonaModal: () => void;
   onAddPictogram: () => void;
   onEditPictogram: (pic: Pictogram) => void;
   onDuplicatePictogram: (pic: Pictogram) => void;
@@ -50,7 +49,6 @@ export const DailyBoard: React.FC<DailyBoardProps> = ({
   globalFontSize,
   headerFontSize,
   onChangeViewMode,
-  onOpenPersonaModal,
   onAddPictogram,
   onEditPictogram,
   onDuplicatePictogram,
@@ -377,18 +375,6 @@ export const DailyBoard: React.FC<DailyBoardProps> = ({
               )}
             </div>
           )}
-
-          {/* Persona selector button */}
-          <button
-            onClick={onOpenPersonaModal}
-            title="Skift figur/avatar"
-            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white hover:bg-amber-50 text-slate-900 font-bold rounded-xl border border-slate-300 hover:border-slate-900 transition-all text-xs cursor-pointer min-h-[34px]"
-          >
-            <div className="w-5 h-5 rounded-md border border-slate-900 overflow-hidden shrink-0 bg-amber-100">
-              <img src={persona.avatarUrl} alt="" className="w-full h-full object-cover" />
-            </div>
-            <span className="hidden sm:inline">Figur</span>
-          </button>
 
           {/* More Day Actions Dropdown (Copy, Reset, Clear) */}
           <div className="relative" ref={dayActionsMenuRef}>
