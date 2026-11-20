@@ -1,9 +1,73 @@
 /**
- * Client service to communicate with the local ChatGPT generation backend.
- * Provides live SSE progress streaming, login checks, and scene generation.
+ * Client service to communicate with the local ChatGPT generation backend,
+ * with seamless mobile & web cloud fallbacks when running on phones or GitHub Pages.
  */
 
 import type { Persona } from '../types';
+import { generateSceneImage } from './imageGenerationApi';
+import { getPersona, saveCustomPersona } from './personas';
+
+export const STORAGE_KEY_CHATGPT_CONNECTED = 'pictogram_chatgpt_connected';
+export const STORAGE_KEY_CHATGPT_PENDING = 'pictogram_chatgpt_pending_login';
+
+export function isChatGPTConnectedManual(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    return localStorage.getItem(STORAGE_KEY_CHATGPT_CONNECTED) === 'true';
+  } catch {
+    return false;
+  }
+}
+
+export function setChatGPTConnectedManual(connected: boolean): void {
+  if (typeof window === 'undefined') return;
+  try {
+    if (connected) {
+      localStorage.setItem(STORAGE_KEY_CHATGPT_CONNECTED, 'true');
+      sessionStorage.removeItem(STORAGE_KEY_CHATGPT_PENDING);
+    } else {
+      localStorage.removeItem(STORAGE_KEY_CHATGPT_CONNECTED);
+    }
+  } catch {}
+}
+
+export function isChatGPTLoginPending(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    return sessionStorage.getItem(STORAGE_KEY_CHATGPT_PENDING) === 'true';
+  } catch {
+    return false;
+  }
+}
+
+export function clearChatGPTLoginPending(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    sessionStorage.removeItem(STORAGE_KEY_CHATGPT_PENDING);
+  } catch {}
+}
+
+export const STANDARD_SCENE_PROMPTS: Record<string, string> = {
+  vaesketoeg: 'Hænge vasketøj op ved vaskemaskinen med et glad smil',
+  kaffe: 'Sidder hyggeligt ved et bord med en varm dampende kaffekop og slapper af',
+  medicin: 'Tager sin daglige medicin eller vitaminer med et glas vand',
+  badetid: 'Tager et forfriskende brusebad med sæbe og shampoo',
+  spisetid: 'Sidder ved spisebordet med tallerken, kniv og gaffel og spiser aftensmad',
+  boerste_taender: 'Børster tænder foran badeværelsesspejlet med tandbørste og tandpasta',
+  vaske_op: 'Vasker kopper og tallerkener op i køkkenvasken med opvaskebørste og sæbe',
+  bolle: 'Nyder en friskbagt bolle med smør til mellemmåltid',
+  sengetid: 'Ligger trygt i sin seng og sover under dynen med hovedet på puden',
+  rede_seng: 'Reder sengen pænt, glatter dynen ud og puffer puden',
+  gatur: 'Går en frisk gåtur ude i naturen med et smil og frisk luft',
+  pause_sofa: 'Slapper behageligt af på sofaen og ser fjernsyn eller hviler',
+  skraldespand: 'Bærer en skraldepose ud til skraldespanden eller containeren',
+  handle: 'Handler ind i supermarkedet med en indkøbskurv',
+  morgenmad: 'Spiser morgenmad ved spisebordet med cornflakes eller havregryn',
+  frokost: 'Spiser en lækker rugbrødsmad med pålæg til frokost',
+  aktiviteter: 'Laver en sjov kreativ aktivitet ved arbejdsbordet som at tegne eller lægge puslespil',
+  cykeltur: 'Cykler en tur i det fri på cykel med cykelhjelm',
+  weekend: 'Slapper hyggeligt af i weekenden med god stemning',
+};
 
 export interface ChatGPTStatus {
   installed: boolean;
@@ -31,33 +95,55 @@ export async function getChatGPTStatus(): Promise<ChatGPTStatus> {
     };
   }
 
+  // 1. Try local dev backend if available (Desktop / Vite)
   try {
     const res = await fetch('/api/chatgpt/status');
-    if (!res.ok) {
-      return {
-        installed: false,
-        ready: false,
-        loggedIn: false,
-        profiles: [],
-        message: 'Lokal server svarer ikke',
-      };
+    if (res.ok) {
+      const data = await res.json();
+      if (data && (data.ready !== undefined || data.loggedIn !== undefined || data.installed !== undefined)) {
+        return {
+          installed: Boolean(data.installed),
+          ready: Boolean(data.ready),
+          loggedIn: Boolean(data.loggedIn),
+          relayConnected: Boolean(data.relayConnected),
+          profiles: Array.isArray(data.profiles) ? data.profiles : [],
+          message: data.message || (data.ready ? 'ChatGPT er klar' : 'Venter på ChatGPT login'),
+        };
+      }
     }
-    const data = await res.json();
-    return data;
   } catch {
+    // Local server not available (e.g. mobile phone, iPad, or GitHub Pages)
+  }
+
+  // 2. Check if manually confirmed / connected on mobile or web
+  if (isChatGPTConnectedManual()) {
     return {
-      installed: false,
-      ready: false,
-      loggedIn: false,
-      profiles: [],
-      message: 'Kunne ikke kontakte lokal dev backend',
+      installed: true,
+      ready: true,
+      loggedIn: true,
+      relayConnected: true,
+      profiles: ['Browser / Mobil session'],
+      message: 'Forbundet til ChatGPT i din browser/mobil',
     };
   }
+
+  return {
+    installed: true,
+    ready: false,
+    loggedIn: false,
+    relayConnected: false,
+    profiles: [],
+    message: isChatGPTLoginPending()
+      ? 'Vender du tilbage fra ChatGPT? Bekræft venligst dit login.'
+      : 'Kunne ikke kontakte lokal ChatGPT backend. Log ind på ChatGPT i din browser og bekræft forbindelsen.',
+  };
 }
 
 export async function openChatGPTLogin(): Promise<void> {
-  // Always open in new tab directly in client browser
   if (typeof window !== 'undefined') {
+    try {
+      sessionStorage.setItem(STORAGE_KEY_CHATGPT_PENDING, 'true');
+    } catch {}
     window.open('https://chatgpt.com', '_blank', 'noopener,noreferrer');
     try {
       await fetch('/api/chatgpt/open', { method: 'POST' });
@@ -97,6 +183,7 @@ export async function pollChatGPTStatusUntilReady(options?: {
 /**
  * Triggers ChatGPT 20-in-1 master sheet generation and auto-slicing via SSE.
  * Supports batch 1 (20 Grundrutiner) and batch 2 (20 Supplerende scener).
+ * Automatically falls back to cloud AI generation on mobile phones and GitHub Pages.
  */
 export async function generateScenesWithChatGPT(
   personaId: string,
@@ -105,72 +192,119 @@ export async function generateScenesWithChatGPT(
   signal?: AbortSignal
 ): Promise<{ success: boolean; persona?: Persona }> {
   const sceneParam = batch === 2 ? '--grid-batch2' : '--grid';
-  const response = await fetch('/api/chatgpt/generate', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ personaId, scene: sceneParam }),
-    signal,
-  });
 
-  if (!response.ok) {
-    throw new Error(`Serverfejl (${response.status}): ${response.statusText}`);
-  }
+  // 1. Try local dev backend first if running locally
+  try {
+    const response = await fetch('/api/chatgpt/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ personaId, scene: sceneParam }),
+      signal,
+    });
 
-  if (!response.body) {
-    throw new Error('Ingen svardata modtaget fra serveren.');
-  }
+    if (response.ok && response.body) {
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder('utf-8');
+      let buffer = '';
+      let finalResult: any = null;
 
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder('utf-8');
-  let buffer = '';
-  let finalResult: any = null;
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
 
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n\n');
+        buffer = lines.pop() || '';
 
-    buffer += decoder.decode(value, { stream: true });
-    const lines = buffer.split('\n\n');
-    buffer = lines.pop() || '';
+        for (const block of lines) {
+          if (!block.trim()) continue;
 
-    for (const block of lines) {
-      if (!block.trim()) continue;
+          const eventMatch = block.match(/event:\s*([^\n]+)/);
+          const dataMatch = block.match(/data:\s*([^\n]+)/);
 
-      const eventMatch = block.match(/event:\s*([^\n]+)/);
-      const dataMatch = block.match(/data:\s*([^\n]+)/);
+          const event = eventMatch ? eventMatch[1].trim() : 'message';
+          const rawData = dataMatch ? dataMatch[1].trim() : '';
 
-      const event = eventMatch ? eventMatch[1].trim() : 'message';
-      const rawData = dataMatch ? dataMatch[1].trim() : '';
+          if (!rawData) continue;
 
-      if (!rawData) continue;
+          try {
+            const parsed = JSON.parse(rawData);
 
-      try {
-        const parsed = JSON.parse(rawData);
-
-        if (event === 'progress') {
-          onProgress?.(parsed);
-        } else if (event === 'complete') {
-          finalResult = parsed;
-        } else if (event === 'error') {
-          throw new Error(parsed.error || 'Ukendt fejl under ChatGPT-generering');
-        }
-      } catch (parseErr: any) {
-        if (event === 'error') {
-          throw new Error(parseErr.message || 'Fejl under ChatGPT-generering');
+            if (event === 'progress') {
+              onProgress?.(parsed);
+            } else if (event === 'complete') {
+              finalResult = parsed;
+            } else if (event === 'error') {
+              throw new Error(parsed.error || 'Ukendt fejl under ChatGPT-generering');
+            }
+          } catch (parseErr: any) {
+            if (event === 'error') {
+              throw new Error(parseErr.message || 'Fejl under ChatGPT-generering');
+            }
+          }
         }
       }
+
+      if (finalResult && finalResult.success) {
+        return finalResult;
+      }
+    }
+  } catch {
+    // Local server not available -> Fall back to cloud generation below
+  }
+
+  // 2. Mobile & Web Cloud Fallback
+  const scenesToGenerate = batch === 2
+    ? [
+        { key: 'skifte_sengetoj', desc: 'Skifte rent sengetøj på dynen' },
+        { key: 'stovsuge', desc: 'Støvsuge gulvet med støvsuger' },
+        { key: 'torre_bord', desc: 'Tørre bordet af med en fugtig klud' },
+        { key: 'tomme_opvaskemaskine', desc: 'Tømme opvaskemaskine og sætte tallerkener på plads' },
+        { key: 'legge_toj_sammen', desc: 'Lægge rent tøj sammen i pæne bunker' },
+      ]
+    : [
+        { key: 'vaesketoeg', desc: 'Hænge vasketøj op med tøjklemmer' },
+        { key: 'kaffe', desc: 'Drikke en varm kop kaffe eller the' },
+        { key: 'medicin', desc: 'Tage sin daglige medicin med et glas vand' },
+        { key: 'badetid', desc: 'Tage et varmt brusebad med sæbe' },
+        { key: 'spisetid', desc: 'Spise mad ved spisebordet' },
+        { key: 'boerste_taender', desc: 'Børste tænder foran spejlet' },
+      ];
+
+  const total = scenesToGenerate.length;
+  let personaObj = getPersona(personaId);
+  const updatedScenes = { ...(personaObj?.activityScenes || {}) };
+
+  for (let i = 0; i < total; i++) {
+    if (signal?.aborted) break;
+    const item = scenesToGenerate[i];
+    const pct = Math.round(((i + 1) / total) * 100);
+    onProgress?.({
+      stage: 'generating',
+      percent: pct,
+      message: `Tegner scene ${i + 1} af ${total}: ${item.desc}...`,
+    });
+
+    try {
+      const fullPrompt = `2D cartoon vector illustration for autism schedule pictogram: ${item.desc}. Smooth thick black outlines, flat saturated colors, friendly smile, clean white background, no text`;
+      const url = await generateSceneImage(fullPrompt, { signal });
+      updatedScenes[item.key] = url;
+    } catch {
+      // Continue next scene
     }
   }
 
-  if (finalResult && finalResult.success) {
-    return finalResult;
+  if (personaObj) {
+    personaObj = { ...personaObj, activityScenes: updatedScenes };
+    saveCustomPersona(personaObj);
   }
 
-  return { success: true };
+  onProgress?.({ stage: 'done', percent: 100, message: 'Færdig! De nye piktogrammer er klar.' });
+  return { success: true, persona: personaObj };
 }
 
 /**
- * Triggers a single scene generation via ChatGPT.
+ * Triggers a single scene generation via ChatGPT with seamless mobile cloud fallback.
  */
 export async function generateSingleSceneWithChatGPT(
   personaId: string,
@@ -198,66 +332,77 @@ export async function generateSingleSceneWithChatGPT(
     effectiveSignal = onProgressOrSignal as AbortSignal | undefined;
   }
 
-  const response = await fetch('/api/chatgpt/generate', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ personaId, scene: sceneKey, customPrompt }),
-    signal: effectiveSignal,
-  });
+  // 1. Try local dev backend first if running locally
+  try {
+    const response = await fetch('/api/chatgpt/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ personaId, scene: sceneKey, customPrompt }),
+      signal: effectiveSignal,
+    });
 
-  if (!response.ok) {
-    throw new Error(`Serverfejl (${response.status}): ${response.statusText}`);
-  }
+    if (response.ok && response.body) {
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder('utf-8');
+      let buffer = '';
+      let finalResult: any = null;
 
-  if (!response.body) {
-    throw new Error('Ingen svardata modtaget fra serveren.');
-  }
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
 
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder('utf-8');
-  let buffer = '';
-  let finalResult: any = null;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n\n');
+        buffer = lines.pop() || '';
 
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
+        for (const block of lines) {
+          if (!block.trim()) continue;
 
-    buffer += decoder.decode(value, { stream: true });
-    const lines = buffer.split('\n\n');
-    buffer = lines.pop() || '';
+          const eventMatch = block.match(/event:\s*([^\n]+)/);
+          const dataMatch = block.match(/data:\s*([^\n]+)/);
 
-    for (const block of lines) {
-      if (!block.trim()) continue;
+          const event = eventMatch ? eventMatch[1].trim() : 'message';
+          const rawData = dataMatch ? dataMatch[1].trim() : '';
 
-      const eventMatch = block.match(/event:\s*([^\n]+)/);
-      const dataMatch = block.match(/data:\s*([^\n]+)/);
+          if (!rawData) continue;
 
-      const event = eventMatch ? eventMatch[1].trim() : 'message';
-      const rawData = dataMatch ? dataMatch[1].trim() : '';
+          try {
+            const parsed = JSON.parse(rawData);
 
-      if (!rawData) continue;
-
-      try {
-        const parsed = JSON.parse(rawData);
-
-        if (event === 'progress') {
-          onProgress?.(parsed);
-        } else if (event === 'complete') {
-          finalResult = parsed;
-        } else if (event === 'error') {
-          throw new Error(parsed.error || 'Ukendt fejl under ChatGPT-generering');
-        }
-      } catch (parseErr: any) {
-        if (event === 'error') {
-          throw new Error(parseErr.message || 'Fejl under ChatGPT-generering');
+            if (event === 'progress') {
+              onProgress?.(parsed);
+            } else if (event === 'complete') {
+              finalResult = parsed;
+            } else if (event === 'error') {
+              throw new Error(parsed.error || 'Ukendt fejl under ChatGPT-generering');
+            }
+          } catch (parseErr: any) {
+            if (event === 'error') {
+              throw new Error(parseErr.message || 'Fejl under ChatGPT-generering');
+            }
+          }
         }
       }
+
+      if (finalResult && finalResult.success) {
+        return finalResult;
+      }
     }
+  } catch {
+    // Local server not available -> Fall back to cloud generation below
   }
 
-  if (finalResult && finalResult.success) {
-    return finalResult;
-  }
+  // 2. Cloud AI Fallback for Mobile and Standalone Web
+  onProgress?.({ stage: 'submitting', percent: 20, message: 'Forbereder piktogram med AI...' });
+  const sceneDesc = customPrompt || STANDARD_SCENE_PROMPTS[sceneKey] || `Figuren udfører aktiviteten "${sceneKey}" venligt og glad.`;
+  const fullPrompt = `2D cartoon vector illustration for autism schedule pictogram: ${sceneDesc}. Smooth thick black outlines, flat saturated colors, friendly smile, clean white background, no text`;
 
-  return { success: true };
+  onProgress?.({ stage: 'generating', percent: 65, message: 'AI tegner piktogrammet (ca. 4-8 sek)...' });
+  const generatedUrl = await generateSceneImage(fullPrompt, { signal: effectiveSignal });
+  onProgress?.({ stage: 'done', percent: 100, message: 'Piktogrammet er klar!' });
+
+  return {
+    success: true,
+    sceneUrl: generatedUrl,
+  };
 }

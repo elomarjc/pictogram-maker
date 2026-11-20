@@ -84,6 +84,15 @@ export const App: React.FC = () => {
     };
     checkInitialChatGPT();
 
+    const handleVisibilityOrFocus = async () => {
+      const s = await getChatGPTStatus();
+      if (isMounted) {
+        setChatgptStatus(s);
+      }
+    };
+    window.addEventListener('focus', handleVisibilityOrFocus);
+    document.addEventListener('visibilitychange', handleVisibilityOrFocus);
+
     const interval = setInterval(async () => {
       const s = await getChatGPTStatus();
       if (isMounted) {
@@ -93,6 +102,8 @@ export const App: React.FC = () => {
 
     return () => {
       isMounted = false;
+      window.removeEventListener('focus', handleVisibilityOrFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityOrFocus);
       clearInterval(interval);
     };
   }, []);

@@ -36,6 +36,7 @@ import {
 import {
   getChatGPTStatus,
   openChatGPTLogin,
+  setChatGPTConnectedManual,
   type ChatGPTStatus,
 } from '../services/chatgptGeneration';
 import { ConfirmModal } from './ConfirmModal';
@@ -76,6 +77,16 @@ export const SceneGenerationModal: React.FC<SceneGenerationModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       checkStatus();
+
+      const handleFocus = () => {
+        checkStatus();
+      };
+      window.addEventListener('focus', handleFocus);
+      document.addEventListener('visibilitychange', handleFocus);
+      return () => {
+        window.removeEventListener('focus', handleFocus);
+        document.removeEventListener('visibilitychange', handleFocus);
+      };
     }
   }, [isOpen]);
 
@@ -571,16 +582,57 @@ export const SceneGenerationModal: React.FC<SceneGenerationModalProps> = ({
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={openChatGPTLogin}
-                  title="Åbn ChatGPT i din browser"
-                  className="px-3 py-1.5 rounded-lg border-2 border-slate-900 bg-slate-100 hover:bg-slate-200 text-slate-900 font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
-                >
-                  <ExternalLink size={13} />
-                  <span>{chatgptStatus?.loggedIn ? 'Åbn ChatGPT' : 'Log ind på ChatGPT'}</span>
-                </button>
+              <div className="flex flex-wrap items-center gap-2">
+                {!chatgptStatus?.loggedIn ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={openChatGPTLogin}
+                      title="Åbn ChatGPT i din browser"
+                      className="px-3 py-1.5 rounded-lg border-2 border-slate-900 bg-amber-400 hover:bg-amber-500 text-slate-900 font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+                    >
+                      <ExternalLink size={13} />
+                      <span>Log ind på ChatGPT</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setChatGPTConnectedManual(true);
+                        checkStatus();
+                      }}
+                      title="Bekræft login manuelt"
+                      className="px-3 py-1.5 rounded-lg border-2 border-emerald-600 bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+                    >
+                      <CheckCircle2 size={13} />
+                      <span>Bekræft login</span>
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={openChatGPTLogin}
+                      title="Åbn ChatGPT fane"
+                      className="px-3 py-1.5 rounded-lg border border-slate-300 hover:bg-slate-100 text-slate-800 font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+                    >
+                      <ExternalLink size={13} />
+                      <span>Åbn ChatGPT</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setChatGPTConnectedManual(false);
+                        checkStatus();
+                      }}
+                      title="Afbryd forbindelse"
+                      className="text-[11px] text-slate-500 hover:text-rose-600 font-bold underline cursor-pointer"
+                    >
+                      Afbryd
+                    </button>
+                  </>
+                )}
 
                 <button
                   type="button"

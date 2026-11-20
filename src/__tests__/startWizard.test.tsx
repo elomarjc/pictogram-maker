@@ -66,4 +66,23 @@ describe('StartWizardModal component', () => {
     expect(localStorage.getItem('pictogram_has_seen_onboarding')).toBe('true');
     expect(handleClose).toHaveBeenCalled();
   });
+
+  it('allows confirming ChatGPT login manually on mobile and advances to step 2', () => {
+    render(
+      React.createElement(StartWizardModal, {
+        isOpen: true,
+        onClose: vi.fn(),
+        currentPersona: DEFAULT_PERSONAS[0],
+        onSelectPersona: vi.fn(),
+      })
+    );
+
+    const confirmBtn = screen.getByRole('button', { name: /Bekræft: Jeg er logget ind/i });
+    expect(confirmBtn).toBeTruthy();
+
+    fireEvent.click(confirmBtn);
+
+    expect(localStorage.getItem('pictogram_chatgpt_connected')).toBe('true');
+    expect(screen.getByText(/Trin 2: Vælg eller opret figur/i)).toBeTruthy();
+  });
 });

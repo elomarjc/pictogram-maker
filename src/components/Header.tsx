@@ -103,9 +103,20 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               type="button"
               onClick={onOpenStartWizard}
-              title="Kom godt i gang: Skab ny figur eller generér piktogrammer"
+              title={
+                isChatGPTConnected
+                  ? 'Kom godt i gang: ChatGPT er forbundet og klar'
+                  : 'Kom godt i gang: Log ind på ChatGPT for at tegne'
+              }
               className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-xl border-2 border-slate-900 bg-amber-400 hover:bg-amber-500 active:bg-amber-600 font-black text-slate-900 text-xs sm:text-sm shadow-xs transition-all cursor-pointer min-h-[36px]"
             >
+              <span
+                className={`w-2 h-2 rounded-full shrink-0 ${
+                  isChatGPTConnected
+                    ? 'bg-emerald-600 shadow-[0_0_6px_rgba(16,185,129,0.9)]'
+                    : 'bg-amber-700 animate-pulse'
+                }`}
+              />
               <Sparkles size={16} className="text-slate-900 stroke-[2.5]" />
               <span>Ny figur & aktiviteter</span>
             </button>

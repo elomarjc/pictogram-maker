@@ -14,6 +14,7 @@ import {
   ArrowLeft,
   Loader2,
   Play,
+  Copy,
 } from 'lucide-react';
 import type { Persona } from '../types';
 import { getAllPersonas, saveCustomPersona } from '../services/personas';
@@ -21,6 +22,9 @@ import {
   getChatGPTStatus,
   openChatGPTLogin,
   generateSingleSceneWithChatGPT,
+  setChatGPTConnectedManual,
+  clearChatGPTLoginPending,
+  isChatGPTLoginPending,
   type ChatGPTStatus,
 } from '../services/chatgptGeneration';
 import {
@@ -83,6 +87,10 @@ export const StartWizardModal: React.FC<StartWizardModalProps> = ({
   const activeWizardPersona =
     personas.find((p) => p.id === selectedPersonaId) || currentPersona;
 
+  // Mobile pending return & copy state
+  const [isPendingReturn, setIsPendingReturn] = useState(() => isChatGPTLoginPending());
+  const [isCopiedPrompt, setIsCopiedPrompt] = useState(false);
+
   // Check ChatGPT status
   const checkStatus = async () => {
     setCheckingStatus(true);
@@ -94,11 +102,63 @@ export const StartWizardModal: React.FC<StartWizardModalProps> = ({
     }
   };
 
+  const handleConfirmManualLogin = (advanceToStep2: boolean = true) => {
+    setChatGPTConnectedManual(true);
+    clearChatGPTLoginPending();
+    setIsPendingReturn(false);
+    setChatgptStatus({
+      installed: true,
+      ready: true,
+      loggedIn: true,
+      relayConnected: true,
+      profiles: ['Browser / Mobil session'],
+      message: 'Forbundet til ChatGPT i din browser/mobil',
+    });
+    if (advanceToStep2) {
+      setCurrentStep(2);
+    }
+  };
+
+  const handleDisconnect = () => {
+    setChatGPTConnectedManual(false);
+    clearChatGPTLoginPending();
+    setIsPendingReturn(false);
+    checkStatus();
+  };
+
+  const handleOpenLogin = () => {
+    setIsPendingReturn(true);
+    openChatGPTLogin();
+  };
+
+  const handleCopyPrompt = async () => {
+    if (!customIdeaText.trim()) return;
+    const full = `Tegn et venligt 2D tegneserie piktogram i flad stil til visuel ugeplan: ${customIdeaText.trim()}. Tydelige sorte streger, klare farver, venligt smil, ren hvid baggrund, ingen tekst.`;
+    try {
+      await navigator.clipboard.writeText(full);
+      setIsCopiedPrompt(true);
+      setTimeout(() => setIsCopiedPrompt(false), 2500);
+    } catch {
+      // Fallback
+    }
+  };
+
   useEffect(() => {
     if (isOpen) {
       checkStatus();
+      setIsPendingReturn(isChatGPTLoginPending());
       setPersonas(getAllPersonas());
       setSelectedPersonaId(currentPersona.id);
+
+      const handleTabActive = async () => {
+        const pending = isChatGPTLoginPending();
+        setIsPendingReturn(pending);
+        const s = await getChatGPTStatus();
+        setChatgptStatus(s);
+      };
+
+      window.addEventListener('focus', handleTabActive);
+      document.addEventListener('visibilitychange', handleTabActive);
 
       // Background auto-polling while on Step 1 if not connected
       const interval = setInterval(async () => {
@@ -106,7 +166,11 @@ export const StartWizardModal: React.FC<StartWizardModalProps> = ({
         setChatgptStatus(s);
       }, 3000);
 
-      return () => clearInterval(interval);
+      return () => {
+        window.removeEventListener('focus', handleTabActive);
+        document.removeEventListener('visibilitychange', handleTabActive);
+        clearInterval(interval);
+      };
     }
   }, [isOpen, currentPersona.id]);
 
@@ -378,31 +442,92 @@ export const StartWizardModal: React.FC<StartWizardModalProps> = ({
                               ? chatgptStatus.profiles.join(', ')
                               : 'Aktiv session'
                           }). Alt er klar til at lave personlige piktogrammer!`
-                        : '1. Klik på den gule knap for at åbne ChatGPT i en ny fane.\n2. Log ind med din konto.\n3. Vend tilbage hertil — appen opdager automatisk forbindelsen med det samme.'}
+                        : 'På mobiltelefon eller browser åbner ChatGPT i en fane for sig selv. Log ind med din Google- eller OpenAI-konto, og tryk derefter "Bekræft: Jeg er logget ind" herunder.'}
                     </p>
                   </div>
                 </div>
 
+                {/* Return banner if user was in ChatGPT and returned */}
+                {isPendingReturn && !chatgptStatus?.loggedIn && (
+                  <div className="mt-3 p-3 bg-emerald-100/90 border-2 border-emerald-500 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 animate-in fade-in slide-in-from-top-2 duration-200">
+                    <div>
+                      <span className="text-xs font-black text-emerald-950 block">
+                        👋 Velkommen tilbage fra ChatGPT!
+                      </span>
+                      <span className="text-[11px] font-bold text-emerald-900">
+                        Er du logget ind nu? Bekræft for at fortsætte til dine piktogrammer.
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleConfirmManualLogin(true)}
+                      className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-xs flex items-center justify-center gap-1.5 shrink-0 cursor-pointer"
+                    >
+                      <CheckCircle2 size={14} />
+                      <span>Ja, fortsæt til Trin 2 →</span>
+                    </button>
+                  </div>
+                )}
+
+                {/* Step 1 Actions */}
                 <div className="flex flex-wrap items-center gap-2.5 mt-3 pt-3 border-t border-slate-900/10">
-                  <button
-                    type="button"
-                    onClick={openChatGPTLogin}
-                    className="px-4 py-2 rounded-xl border-2 border-slate-900 bg-amber-400 hover:bg-amber-500 text-slate-900 font-black text-xs flex items-center gap-2 shadow-xs transition-transform active:scale-95 cursor-pointer"
-                  >
-                    <ExternalLink size={14} />
-                    <span>{chatgptStatus?.loggedIn ? 'Åbn ChatGPT fane' : 'Log ind på ChatGPT (åbner i ny fane)'}</span>
-                  </button>
+                  {!chatgptStatus?.loggedIn ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={handleOpenLogin}
+                        className="px-4 py-2.5 rounded-xl border-2 border-slate-900 bg-amber-400 hover:bg-amber-500 text-slate-900 font-black text-xs flex items-center gap-2 shadow-xs transition-transform active:scale-95 cursor-pointer"
+                      >
+                        <ExternalLink size={14} />
+                        <span>1. Log ind på ChatGPT (åbner fane)</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleConfirmManualLogin(true)}
+                        className="px-4 py-2.5 rounded-xl border-2 border-emerald-600 bg-emerald-500 hover:bg-emerald-600 text-white font-black text-xs flex items-center gap-1.5 shadow-xs transition-transform active:scale-95 cursor-pointer"
+                      >
+                        <CheckCircle2 size={14} />
+                        <span>2. Bekræft: Jeg er logget ind</span>
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        onClick={openChatGPTLogin}
+                        className="px-3.5 py-2 rounded-xl border border-slate-300 hover:bg-white text-slate-800 font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+                      >
+                        <ExternalLink size={13} />
+                        <span>Åbn ChatGPT fane</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleDisconnect}
+                        className="px-3 py-2 text-xs font-bold text-rose-600 hover:text-rose-800 underline cursor-pointer"
+                      >
+                        Afbryd forbindelse
+                      </button>
+                    </>
+                  )}
 
                   <button
                     type="button"
                     onClick={checkStatus}
                     disabled={checkingStatus}
-                    className="px-3 py-2 rounded-xl border border-slate-300 hover:bg-white text-slate-700 font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+                    className="px-3 py-2 rounded-xl border border-slate-300 hover:bg-white text-slate-700 font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer ml-auto"
                   >
                     <RefreshCw size={13} className={checkingStatus ? 'animate-spin' : ''} />
-                    <span>Tjek forbindelse igen</span>
+                    <span>Genindlæs status</span>
                   </button>
                 </div>
+
+                {!chatgptStatus?.loggedIn && (
+                  <p className="mt-2.5 text-[11px] font-medium text-slate-500 leading-relaxed">
+                    📱 <strong>Mobil-hjælp:</strong> Telefoner åbner ChatGPT i et separat faneblad. Så snart du har logget ind dér, hopper du tilbage hertil og trykker på <em>"2. Bekræft: Jeg er logget ind"</em>.
+                  </p>
+                )}
               </div>
 
               {/* Bottom Actions for Step 1 */}
@@ -676,24 +801,47 @@ export const StartWizardModal: React.FC<StartWizardModalProps> = ({
                   className="w-full p-2.5 rounded-xl border-2 border-slate-900 text-xs font-bold text-slate-900 resize-none outline-none focus:ring-2 focus:ring-amber-400"
                 />
 
-                <button
-                  type="button"
-                  disabled={isGeneratingIdea || !customIdeaText.trim() || !chatgptStatus?.loggedIn}
-                  onClick={handleGenerateCustomIdea}
-                  className="w-full py-2.5 px-3 rounded-xl border-2 border-slate-900 bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black text-xs flex items-center justify-center gap-2 shadow-xs transition-transform active:scale-95 cursor-pointer"
-                >
-                  {isGeneratingIdea ? (
-                    <>
-                      <Loader2 size={14} className="animate-spin text-white" />
-                      <span>{ideaProgressMsg || 'ChatGPT tegner din aktivitet...'}</span>
-                    </>
-                  ) : (
-                    <>
-                      <Wand2 size={14} />
-                      <span>Tegn min idé med ChatGPT</span>
-                    </>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <button
+                    type="button"
+                    disabled={isGeneratingIdea || !customIdeaText.trim() || !chatgptStatus?.loggedIn}
+                    onClick={handleGenerateCustomIdea}
+                    className="flex-1 py-2.5 px-3 rounded-xl border-2 border-slate-900 bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black text-xs flex items-center justify-center gap-2 shadow-xs transition-transform active:scale-95 cursor-pointer"
+                  >
+                    {isGeneratingIdea ? (
+                      <>
+                        <Loader2 size={14} className="animate-spin text-white" />
+                        <span>{ideaProgressMsg || 'Tegner piktogram med AI...'}</span>
+                      </>
+                    ) : (
+                      <>
+                        <Wand2 size={14} />
+                        <span>Tegn min idé med AI</span>
+                      </>
+                    )}
+                  </button>
+
+                  {customIdeaText.trim() && (
+                    <button
+                      type="button"
+                      onClick={handleCopyPrompt}
+                      title="Kopier prompt til ChatGPT på din telefon"
+                      className="py-2.5 px-3 rounded-xl border border-slate-300 hover:bg-slate-100 text-slate-700 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                    >
+                      {isCopiedPrompt ? (
+                        <>
+                          <Check size={13} className="text-emerald-600" />
+                          <span className="text-emerald-700 font-black">Kopieret!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy size={13} />
+                          <span>Kopiér prompt</span>
+                        </>
+                      )}
+                    </button>
                   )}
-                </button>
+                </div>
 
                 {ideaSuccessMsg && (
                   <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-bold flex items-center gap-2">

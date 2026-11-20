@@ -210,12 +210,39 @@ export async function describeAvatarImage(_imageUrl: string): Promise<string> {
   return '';
 }
 
+export const CLOUDFLARE_IMAGE_WORKER_URL = 'https://free-image-generation-api.elomarjc.workers.dev/v1/generate';
+
 /**
- * Direct scene image generation helper (delegates to local ChatGPT).
+ * Direct scene image generation helper via Cloudflare Workers AI.
+ * Used as fallback on mobile devices and standalone web hosting.
  */
 export async function generateSceneImage(
-  _prompt: string,
-  _options?: any
+  prompt: string,
+  options?: { signal?: AbortSignal; model?: string }
 ): Promise<string> {
-  throw new Error('Cloudflare Workers AI er udfaset. Brug "Generer med ChatGPT" i modalen.');
+  const bodyPayload = {
+    prompt: prompt.trim(),
+    model: options?.model || '@cf/black-forest-labs/flux-1-schnell',
+    num_steps: 4,
+    format: 'base64',
+  };
+
+  const response = await fetch(CLOUDFLARE_IMAGE_WORKER_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(bodyPayload),
+    signal: options?.signal,
+  });
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => null);
+    throw new Error(data?.message || data?.error || `Fejl fra billedgenerator (${response.status})`);
+  }
+
+  const data = await response.json();
+  if (!data?.imageUrl) {
+    throw new Error('Serveren returnerede ikke noget gyldigt billede.');
+  }
+
+  return await autoFitSceneToStandardFormat(data.imageUrl);
 }
