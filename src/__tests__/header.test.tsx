@@ -48,4 +48,51 @@ describe('Header component', () => {
 
     expect(screen.getByText(/ChatGPT forbundet/i)).toBeTruthy();
   });
+
+  it('renders sandwich menu on mobile and opens persona modal when tapping Vælg figur', () => {
+    window.innerWidth = 375;
+    const plan = createWeekPlanFromTemplate(BUILTIN_TEMPLATES[0]);
+    const handleOpenPersona = vi.fn();
+    const handleSelectDay = vi.fn();
+
+    render(
+      React.createElement(Header, {
+        currentPlan: plan,
+        plans: [plan],
+        selectedDayId: 'mandag',
+        onSelectDay: handleSelectDay,
+        onOpenPlanManager: vi.fn(),
+        onOpenTemplatePicker: vi.fn(),
+        onOpenPrintModal: vi.fn(),
+        onOpenPersonaModal: handleOpenPersona,
+      })
+    );
+
+    // Sandwich menu button should exist
+    const menuBtn = screen.getByRole('button', { name: /Åbn menu/i });
+    expect(menuBtn).toBeTruthy();
+
+    // Open sandwich menu
+    fireEvent.click(menuBtn);
+
+    // "Vælg figur" should be in the menu and clickable
+    const choosePersonaBtns = screen.getAllByText(/Vælg figur/i);
+    expect(choosePersonaBtns.length).toBeGreaterThan(0);
+
+    fireEvent.click(choosePersonaBtns[choosePersonaBtns.length - 1]);
+    expect(handleOpenPersona).toHaveBeenCalled();
+
+    // Test mobile day dropdown
+    const daySelectorBtn = screen.getByRole('button', { name: /Vælg ugedag/i });
+    expect(daySelectorBtn).toBeTruthy();
+
+    fireEvent.click(daySelectorBtn);
+    const tuesdayOptions = screen.getAllByText(/Tirsdag/i);
+    expect(tuesdayOptions.length).toBeGreaterThan(0);
+
+    fireEvent.click(tuesdayOptions[0]);
+    expect(handleSelectDay).toHaveBeenCalledWith('tirsdag');
+
+    window.innerWidth = 1024;
+  });
 });

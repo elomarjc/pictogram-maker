@@ -683,6 +683,7 @@ export const App: React.FC = () => {
         onOpenPrintModal={() => setIsPrintModalOpen(true)}
         onToggleAllDaysShift={handleToggleAllDaysShift}
         onOpenStartWizard={() => setIsStartWizardOpen(true)}
+        onOpenPersonaModal={() => setIsPersonaModalOpen(true)}
         isChatGPTConnected={chatgptStatus?.loggedIn ?? false}
       />
 
