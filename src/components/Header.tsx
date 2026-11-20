@@ -10,6 +10,9 @@ import {
   Layers,
   Sun,
   Moon,
+  Sparkles,
+  CheckCircle2,
+  AlertCircle,
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -21,6 +24,8 @@ interface HeaderProps {
   onOpenTemplatePicker: () => void;
   onOpenPrintModal: () => void;
   onToggleAllDaysShift?: (shift: DayShift) => void;
+  onOpenStartWizard?: () => void;
+  isChatGPTConnected?: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -32,6 +37,8 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenTemplatePicker,
   onOpenPrintModal,
   onToggleAllDaysShift,
+  onOpenStartWizard,
+  isChatGPTConnected,
 }) => {
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b-3 border-slate-900 shadow-sm print:hidden">
@@ -62,10 +69,50 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="truncate max-w-[140px]">{currentPlan.name} ({plans.length})</span>
             <ChevronDown size={14} className="text-slate-500" />
           </button>
+
+          {/* ChatGPT Status Badge in Top Bar */}
+          {onOpenStartWizard && (
+            <button
+              type="button"
+              onClick={onOpenStartWizard}
+              title={
+                isChatGPTConnected
+                  ? 'ChatGPT er forbundet og klar til at lave billeder'
+                  : 'Log ind på ChatGPT for at tegne billeder'
+              }
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-black transition-colors cursor-pointer shadow-2xs ${
+                isChatGPTConnected
+                  ? 'bg-emerald-50 hover:bg-emerald-100 border-emerald-400 text-emerald-900'
+                  : 'bg-amber-100 hover:bg-amber-200 border-slate-900 text-slate-900 animate-pulse'
+              }`}
+            >
+              <span
+                className={`w-2 h-2 rounded-full ${
+                  isChatGPTConnected
+                    ? 'bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.7)]'
+                    : 'bg-amber-500'
+                }`}
+              />
+              <span>{isChatGPTConnected ? 'ChatGPT forbundet' : 'Log ind på ChatGPT'}</span>
+            </button>
+          )}
         </div>
 
         {/* Action CTAs */}
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          {/* Prominent Generator / Startguide CTA */}
+          {onOpenStartWizard && (
+            <button
+              type="button"
+              onClick={onOpenStartWizard}
+              title="Kom godt i gang: Skab ny figur eller generér piktogrammer"
+              className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-xl border-2 border-slate-900 bg-amber-400 hover:bg-amber-500 active:bg-amber-600 font-black text-slate-900 text-xs sm:text-sm shadow-xs transition-all cursor-pointer min-h-[36px]"
+            >
+              <Sparkles size={16} className="text-slate-900 stroke-[2.5]" />
+              <span>Ny figur & aktiviteter</span>
+            </button>
+          )}
+
           <button
             onClick={onOpenTemplatePicker}
             title="Vælg skabelon"
