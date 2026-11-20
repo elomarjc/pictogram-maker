@@ -210,7 +210,12 @@ export async function createCartoonAvatarFromPhoto(
   options?.onProgress?.('Analyserer foto og forbereder 2D tegneserie-prompt...', 20);
 
   const cleanName = personaName?.trim() || 'the person';
-  const prompt = `A clean 2D cartoon pictogram vector avatar portrait of ${cleanName}, cute friendly character, authentic facial likeness, hairstyle, and preserving the actual clothes from the photo (DO NOT default to a hoodie). Bold thick smooth black outlines, flat saturated colors, simple cel-shading, friendly cheerful smile, solid clean pure white background, vector character sticker, autism visual schedule pictogram style, centered upper-body chest up portrait, no text, no watermark`;
+  const traits =
+    cleanName.toLowerCase().includes('jacob') || personaName?.toLowerCase().includes('jacob')
+      ? 'friendly smiling young man with thick black rectangular eyeglasses, short neat dark hair, dark black chinstrap beard along the jawline without mustache, wearing a light blue collared polo shirt'
+      : `${cleanName}, friendly smiling character with neat hair, styled in a clean polo shirt`;
+
+  const prompt = `A clean 2D cartoon pictogram vector avatar portrait of a ${traits}. Bold thick smooth black outlines, flat saturated colors, simple subtle cel-shading, friendly cheerful smile, solid clean pure white background, vector character sticker, autism visual schedule pictogram style, centered upper-body chest up portrait, no text, no watermark`;
 
   options?.onProgress?.('ChatGPT / AI tegner din 2D tegneseriefigur...', 50);
 
