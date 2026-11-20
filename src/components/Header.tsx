@@ -253,18 +253,8 @@ export const Header: React.FC<HeaderProps> = ({
           )}
         </div>
 
-        {/* Right: Print Button + Sandwich Menu Button */}
+        {/* Right: Sandwich Menu Button */}
         <div className="flex items-center gap-2 shrink-0">
-          <button
-            onClick={onOpenPrintModal}
-            aria-label="Print eller download PDF"
-            className="inline-flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl border-2 border-slate-900 bg-amber-400 hover:bg-amber-500 active:bg-amber-600 font-black text-slate-900 text-xs sm:text-sm shadow-xs transition-all cursor-pointer min-h-[38px]"
-          >
-            <Printer size={16} className="stroke-[2.5]" />
-            <span className="hidden sm:inline">Print / PDF</span>
-            <span className="sm:hidden">Print</span>
-          </button>
-
           <button
             ref={menuButtonRef}
             type="button"
@@ -273,7 +263,7 @@ export const Header: React.FC<HeaderProps> = ({
               setIsMenuOpen((prev) => !prev);
             }}
             aria-label={isMenuOpen ? 'Luk menu' : 'Åbn menu'}
-            className={`p-2 rounded-xl border-2 border-slate-900 transition-colors cursor-pointer min-h-[38px] min-w-[38px] flex items-center justify-center shadow-xs ${
+            className={`inline-flex items-center gap-2 px-3 sm:px-3.5 py-2 rounded-xl border-2 border-slate-900 transition-colors cursor-pointer min-h-[38px] shadow-xs ${
               isMenuOpen ? 'bg-slate-900 text-white' : 'bg-slate-100 hover:bg-slate-200 text-slate-900'
             }`}
           >
@@ -282,6 +272,9 @@ export const Header: React.FC<HeaderProps> = ({
             ) : (
               <Menu size={20} className="stroke-[2.5]" />
             )}
+            <span className="font-black text-xs sm:text-sm">
+              {isMenuOpen ? 'Luk' : 'Menu'}
+            </span>
           </button>
         </div>
       </div>
@@ -295,8 +288,33 @@ export const Header: React.FC<HeaderProps> = ({
         >
           <div className="max-w-7xl mx-auto space-y-4">
             {/* Top Row / Section 1: Main Features */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
-              {/* 1. Vælg figur */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
+              {/* 1. Print & PDF */}
+              <button
+                type="button"
+                onClick={() => {
+                  setIsMenuOpen(false);
+                  onOpenPrintModal();
+                }}
+                className="flex items-center justify-between p-3 rounded-2xl border-2 border-slate-900 bg-amber-50 hover:bg-amber-100/80 active:bg-amber-200 transition-all text-left cursor-pointer shadow-xs group"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-10 h-10 rounded-xl bg-amber-400 border border-slate-900 flex items-center justify-center text-slate-900 shrink-0 shadow-2xs">
+                    <Printer size={20} className="stroke-[2.5]" />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-sm font-black text-slate-900 block truncate group-hover:text-amber-950">
+                      Print & PDF
+                    </span>
+                    <span className="text-xs font-bold text-slate-500 block truncate">
+                      Udskriv eller gem planen
+                    </span>
+                  </div>
+                </div>
+                <ChevronRight size={18} className="text-slate-400 group-hover:text-slate-900 shrink-0" />
+              </button>
+
+              {/* 2. Vælg figur */}
               <button
                 type="button"
                 onClick={handleOpenPersona}
@@ -322,7 +340,7 @@ export const Header: React.FC<HeaderProps> = ({
                 <ChevronRight size={18} className="text-slate-400 group-hover:text-slate-900 shrink-0" />
               </button>
 
-              {/* 2. Ugeplaner */}
+              {/* 3. Mine ugeplaner */}
               <button
                 type="button"
                 onClick={() => {
@@ -347,7 +365,7 @@ export const Header: React.FC<HeaderProps> = ({
                 <ChevronRight size={18} className="text-slate-400 group-hover:text-slate-900 shrink-0" />
               </button>
 
-              {/* 3. Skabeloner */}
+              {/* 4. Skabeloner */}
               <button
                 type="button"
                 onClick={() => {

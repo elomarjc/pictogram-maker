@@ -101,4 +101,32 @@ describe('Header component', () => {
 
     window.innerWidth = 1024;
   });
+
+  it('opens print modal when clicking Print & PDF in sandwich menu', () => {
+    const plan = createWeekPlanFromTemplate(BUILTIN_TEMPLATES[0]);
+    const handleOpenPrint = vi.fn();
+
+    render(
+      React.createElement(Header, {
+        currentPlan: plan,
+        plans: [plan],
+        selectedDayId: 'mandag',
+        onSelectDay: vi.fn(),
+        onOpenPlanManager: vi.fn(),
+        onOpenTemplatePicker: vi.fn(),
+        onOpenPrintModal: handleOpenPrint,
+      })
+    );
+
+    // Open sandwich menu
+    const menuBtn = screen.getByRole('button', { name: /Åbn menu/i });
+    fireEvent.click(menuBtn);
+
+    // Click Print & PDF in the sandwich menu
+    const printBtn = screen.getByText(/Print & PDF/i);
+    expect(printBtn).toBeTruthy();
+    fireEvent.click(printBtn);
+
+    expect(handleOpenPrint).toHaveBeenCalledTimes(1);
+  });
 });
