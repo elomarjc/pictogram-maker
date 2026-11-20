@@ -44,7 +44,9 @@ export const STANDARD_SCENE_PROMPTS = {
 
 export function checkImageUseInstalled() {
   try {
-    const res = execSync('which image-use 2>/dev/null', { encoding: 'utf-8' });
+    const isWin = process.platform === 'win32';
+    const cmd = isWin ? 'where.exe image-use 2>nul' : 'which image-use 2>/dev/null';
+    const res = execSync(cmd, { encoding: 'utf-8' });
     return res.trim().length > 0;
   } catch {
     return false;
@@ -96,8 +98,17 @@ export function checkChatGPTStatus() {
 
 export function openChatGPTInBrowser() {
   try {
-    const cmd = process.platform === 'darwin' ? 'open' : process.platform === 'win32' ? 'start' : 'xdg-open';
-    spawn(cmd, ['https://chatgpt.com'], { detached: true, stdio: 'ignore' }).unref();
+    const isWin = process.platform === 'win32';
+    if (isWin) {
+      spawn('cmd.exe', ['/c', 'start', 'https://chatgpt.com'], {
+        detached: true,
+        stdio: 'ignore',
+        windowsHide: true,
+      }).unref();
+    } else {
+      const cmd = process.platform === 'darwin' ? 'open' : 'xdg-open';
+      spawn(cmd, ['https://chatgpt.com'], { detached: true, stdio: 'ignore' }).unref();
+    }
     return { success: true, message: 'Åbnede https://chatgpt.com i din standardbrowser.' };
   } catch (err) {
     return { success: false, error: err.message || String(err) };

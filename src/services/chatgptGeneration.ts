@@ -66,6 +66,35 @@ export async function openChatGPTLogin(): Promise<void> {
 }
 
 /**
+ * Polls the local ChatGPT status endpoint periodically until ready or aborted.
+ */
+export async function pollChatGPTStatusUntilReady(options?: {
+  intervalMs?: number;
+  maxAttempts?: number;
+  onStatus?: (status: ChatGPTStatus) => void;
+  signal?: AbortSignal;
+}): Promise<ChatGPTStatus> {
+  const intervalMs = options?.intervalMs ?? 3000;
+  const maxAttempts = options?.maxAttempts ?? 120; // 6 minutes max
+  let attempts = 0;
+
+  while (attempts < maxAttempts) {
+    if (options?.signal?.aborted) {
+      break;
+    }
+    const status = await getChatGPTStatus();
+    options?.onStatus?.(status);
+    if (status.loggedIn && status.ready) {
+      return status;
+    }
+    attempts++;
+    await new Promise((resolve) => setTimeout(resolve, intervalMs));
+  }
+
+  return await getChatGPTStatus();
+}
+
+/**
  * Triggers ChatGPT 20-in-1 master sheet generation and auto-slicing via SSE.
  * Supports batch 1 (20 Grundrutiner) and batch 2 (20 Supplerende scener).
  */
