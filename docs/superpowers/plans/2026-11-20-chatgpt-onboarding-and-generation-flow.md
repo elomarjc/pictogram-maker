@@ -27,7 +27,7 @@
 - Modify: `src/services/chatgptGeneration.ts:20-65`
 - Create: `src/__tests__/chatgptService.test.ts`
 
-- [ ] **Step 1: Write test for ChatGPT status service**
+- [x] **Step 1: Write test for ChatGPT status service**
 
 Create `src/__tests__/chatgptService.test.ts`:
 ```typescript
@@ -69,12 +69,12 @@ describe('chatgptGeneration service', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it passes/fails**
+- [x] **Step 2: Run test to verify it passes/fails**
 
 Run: `npx vitest run src/__tests__/chatgptService.test.ts`
 Expected: Passes or fails based on fetch mock.
 
-- [ ] **Step 3: Update `scripts/generate-with-chatgpt.mjs` for Windows**
+- [x] **Step 3: Update `scripts/generate-with-chatgpt.mjs` for Windows**
 
 Update `checkImageUseInstalled()` and `openChatGPTInBrowser()`:
 ```javascript
@@ -109,12 +109,12 @@ export function openChatGPTInBrowser() {
 }
 ```
 
-- [ ] **Step 4: Run test to verify passes**
+- [x] **Step 4: Run test to verify passes**
 
 Run: `npx vitest run src/__tests__/chatgptService.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git -C ..\pictogram-maker add scripts/generate-with-chatgpt.mjs src/__tests__/chatgptService.test.ts
@@ -129,7 +129,7 @@ git -C ..\pictogram-maker commit -m "fix: understoet Windows browser-aabning og 
 - Create: `src/components/StartWizardModal.tsx`
 - Create: `src/__tests__/startWizard.test.ts`
 
-- [ ] **Step 1: Write the tests for `StartWizardModal`**
+- [x] **Step 1: Write the tests for `StartWizardModal`**
 
 Create `src/__tests__/startWizard.test.ts`:
 ```typescript
@@ -172,12 +172,12 @@ describe('StartWizardModal component', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run src/__tests__/startWizard.test.ts`
 Expected: FAIL because `StartWizardModal` does not exist yet.
 
-- [ ] **Step 3: Implement `src/components/StartWizardModal.tsx`**
+- [x] **Step 3: Implement `src/components/StartWizardModal.tsx`**
 
 Implement full Danish 3-step modal with:
 1. Stepper indicator at top: `1: Forbind ChatGPT`, `2: Vælg/Opret figur`, `3: Generér aktiviteter`.
@@ -186,12 +186,12 @@ Implement full Danish 3-step modal with:
 4. Step 3: Batch 20-scene master generator button + Custom Idea suggestions ("Brætspil", "iPad tid", "Læse bog", "Svømmehal", etc.) + Danish input textarea + "Tegn aktivitet" button.
 5. Final button: "🎉 Åbn ugeplanen med de nye piktogrammer" (calls `onClose()` and marks `pictogram_has_seen_onboarding` in localStorage).
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `npx vitest run src/__tests__/startWizard.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git -C ..\pictogram-maker add src/components/StartWizardModal.tsx src/__tests__/startWizard.test.ts
@@ -207,7 +207,7 @@ git -C ..\pictogram-maker commit -m "feat: tilfoej pædagogisk 3-trins StartWiza
 - Modify: `src/types/index.ts` (if new props needed)
 - Modify: `src/__tests__/plan.test.ts` or add Header tests
 
-- [ ] **Step 1: Write/Update test for Header connection badge**
+- [x] **Step 1: Write/Update test for Header connection badge**
 
 Add test in `src/__tests__/header.test.tsx`:
 ```typescript
@@ -240,12 +240,12 @@ describe('Header component', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run src/__tests__/header.test.tsx`
 Expected: FAIL due to missing props.
 
-- [ ] **Step 3: Modify `src/components/Header.tsx`**
+- [x] **Step 3: Modify `src/components/Header.tsx`**
 
 Add `onOpenStartWizard: () => void` and `isChatGPTConnected?: boolean` props:
 - Insert a permanent status badge in the header:
@@ -254,12 +254,12 @@ Add `onOpenStartWizard: () => void` and `isChatGPTConnected?: boolean` props:
 - Insert primary CTA button next to "Skabeloner" and "Print/PDF":
   - `<button onClick={onOpenStartWizard} className="bg-amber-400 hover:bg-amber-500 ... font-black text-slate-900"><Sparkles size={16} /><span>Ny figur & aktiviteter</span></button>`
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx vitest run src/__tests__/header.test.tsx`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git -C ..\pictogram-maker add src/components/Header.tsx src/__tests__/header.test.tsx
@@ -273,7 +273,7 @@ git -C ..\pictogram-maker commit -m "feat: tilfoej ChatGPT status-badge og gener
 **Files:**
 - Modify: `src/App.tsx:35-120, 620-815`
 
-- [ ] **Step 1: Inspect `App.tsx` and integrate ChatGPT status state and wizard state**
+- [x] **Step 1: Inspect `App.tsx` and integrate ChatGPT status state and wizard state**
 
 In `src/App.tsx`:
 1. Add state:
@@ -288,12 +288,12 @@ In `src/App.tsx`:
 3. Provide `onOpenStartWizard={() => setIsStartWizardOpen(true)}` and `isChatGPTConnected={chatgptStatus?.loggedIn ?? false}` to `Header`.
 4. Render `<StartWizardModal>` with callbacks to update active persona and day plans.
 
-- [ ] **Step 2: Run `npm test` to verify no regressions**
+- [x] **Step 2: Run `npm test` to verify no regressions**
 
 Run: `npx vitest run`
 Expected: All tests pass.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git -C ..\pictogram-maker add src/App.tsx
@@ -307,17 +307,17 @@ git -C ..\pictogram-maker commit -m "feat: integrer startguide og automatisk vel
 **Files:**
 - Run full test suite and build.
 
-- [ ] **Step 1: Run TypeScript build**
+- [x] **Step 1: Run TypeScript build**
 
 Run: `npm run build` in `pictogram-maker`.
 Expected: `tsc -b && vite build` succeeds with code 0.
 
-- [ ] **Step 2: Run all automated Vitest tests**
+- [x] **Step 2: Run all automated Vitest tests**
 
 Run: `npm test` in `pictogram-maker`.
 Expected: 100% pass rate.
 
-- [ ] **Step 3: Commit final integration**
+- [x] **Step 3: Commit final integration**
 
 ```bash
 git -C ..\pictogram-maker commit --allow-empty -m "chore: fuldfoer verifikation af onboarding og ChatGPT startguide"
