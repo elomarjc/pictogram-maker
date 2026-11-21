@@ -61,7 +61,7 @@ export const SceneGenerationModal: React.FC<SceneGenerationModalProps> = ({
   const [isGenerating, setIsGenerating] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [activeCardKey, setActiveCardKey] = useState<string | null>(null);
-  const [selectedBatchTab, setSelectedBatchTab] = useState<'batch1' | 'batch2' | 'all'>('batch1');
+  const [selectedBatchTab, setSelectedBatchTab] = useState<'batch1' | 'batch2' | 'all'>('all');
 
   const [chatgptStatus, setChatgptStatus] = useState<ChatGPTStatus | null>(null);
   const [checkingStatus, setCheckingStatus] = useState(false);
@@ -483,7 +483,7 @@ export const SceneGenerationModal: React.FC<SceneGenerationModalProps> = ({
                 Piktogramscener til figur
               </h2>
               <span className="text-xs font-bold text-slate-800">
-                40 standardscener fordelt på 2 batches (2x10 ark i ChatGPT)
+                40 standardaktiviteter ({ready}/{total} klar)
               </span>
             </div>
           </div>
@@ -685,57 +685,35 @@ export const SceneGenerationModal: React.FC<SceneGenerationModalProps> = ({
             </div>
           </div>
 
-          {/* Batch Selector Tabs */}
-          <div className="flex items-center gap-1.5 p-1 bg-slate-200 rounded-xl border border-slate-300">
-            <button
-              type="button"
-              onClick={() => setSelectedBatchTab('batch1')}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-black transition-all cursor-pointer ${
-                selectedBatchTab === 'batch1'
-                  ? 'bg-white text-slate-900 shadow-xs border border-slate-400'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
-              }`}
-            >
-              <span>Batch 1: Grundrutiner</span>
+          {/* Unified Activities Header */}
+          <div className="flex items-center justify-between p-2.5 bg-slate-100 rounded-xl border border-slate-300">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-black text-slate-900">
+                Alle 40 aktiviteter
+              </span>
               <span
-                className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
-                  batch1Ready === batch1Total ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-300 text-slate-700'
+                className={`px-2.5 py-0.5 rounded-full text-xs font-black ${
+                  ready === total
+                    ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                    : 'bg-amber-100 text-amber-800 border border-amber-300'
                 }`}
               >
-                {batch1Ready}/{batch1Total}
+                {ready}/{total} scener klar
               </span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setSelectedBatchTab('batch2')}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-black transition-all cursor-pointer ${
-                selectedBatchTab === 'batch2'
-                  ? 'bg-white text-slate-900 shadow-xs border border-slate-400'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
-              }`}
-            >
-              <span>Batch 2: Supplerende scener</span>
-              <span
-                className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
-                  batch2Ready === batch2Total ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+            </div>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => setSelectedBatchTab('all')}
+                className={`px-2.5 py-0.5 rounded-md text-[11px] font-black cursor-pointer transition-colors ${
+                  selectedBatchTab === 'all'
+                    ? 'bg-slate-900 text-white shadow-xs'
+                    : 'bg-white text-slate-600 hover:text-slate-900 border border-slate-300'
                 }`}
               >
-                {batch2Ready}/{batch2Total}
-              </span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setSelectedBatchTab('all')}
-              className={`flex items-center justify-center gap-1 py-1.5 px-2.5 rounded-lg text-xs font-black transition-all cursor-pointer ${
-                selectedBatchTab === 'all'
-                  ? 'bg-white text-slate-900 shadow-xs border border-slate-400'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
-              }`}
-            >
-              <span>Alle ({ready}/{total})</span>
-            </button>
+                Alle (40)
+              </button>
+            </div>
           </div>
 
           {errorMsg && (

@@ -293,18 +293,19 @@ describe('Korte scene-titler og automatisk standardscene-generator', () => {
     expect(BATCH_1_SCENE_DEFINITIONS.length).toBe(20);
     expect(BATCH_2_SCENE_DEFINITIONS.length).toBe(20);
 
-    // Standard avatar_1 has all 20 Batch 1 grundrutiner ready
+    // Standard avatar_1 has all 40 scenes ready
     const { DEFAULT_PERSONAS } = await import('../services/personas');
     const defaultA1 = DEFAULT_PERSONAS[0];
     const b1Missing = getBatch1MissingScenesForPersona(defaultA1);
     expect(b1Missing.length).toBe(0);
     const b2Missing = getBatch2MissingScenesForPersona(defaultA1);
-    expect(b2Missing.length).toBe(19); // forberede_mad is mapped to spisetid.webp alias
+    expect(b2Missing.length).toBe(0);
     const a1Ready = getReadyScenesCount(defaultA1);
     expect(a1Ready.batch1Ready).toBe(20);
     expect(a1Ready.batch1Total).toBe(20);
-    expect(a1Ready.batch2Ready).toBe(1);
+    expect(a1Ready.batch2Ready).toBe(20);
     expect(a1Ready.batch2Total).toBe(20);
+    expect(a1Ready.ready).toBe(40);
     expect(a1Ready.total).toBe(40);
 
     // A brand new custom persona has 0 scenes ready and 40 missing
