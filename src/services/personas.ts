@@ -22,66 +22,66 @@ export const PICTO_STYLE_REF_URL = `${BASE}reference/style_guide/ref2_example.jp
 
 export const DEFAULT_PERSONAS: Persona[] = [
   {
-    id: 'avatar_1',
-    name: 'avatar_1',
-    shortCode: 'avatar_1',
-    avatarUrl: `${BASE}reference/personas/avatar_1/avatar.webp`,
-    description: 'Tegneseriefigur i grå hættetrøje',
-    activityScenes: {
-      vaesketoeg: `${BASE}reference/personas/avatar_1/scenes/vaesketoeg.webp`,
-      kaffe: `${BASE}reference/personas/avatar_1/scenes/kaffe.webp`,
-      medicin: `${BASE}reference/personas/avatar_1/scenes/medicin.webp`,
-      badetid: `${BASE}reference/personas/avatar_1/scenes/badetid.webp`,
-      spisetid: `${BASE}reference/personas/avatar_1/scenes/spisetid.webp`,
-      morgenmad: `${BASE}reference/personas/avatar_1/scenes/morgenmad.webp`,
-      frokost: `${BASE}reference/personas/avatar_1/scenes/frokost.webp`,
-      aftensmad: `${BASE}reference/personas/avatar_1/scenes/spisetid.webp`,
-      forberede_mad: `${BASE}reference/personas/avatar_1/scenes/spisetid.webp`,
-      aktiviteter: `${BASE}reference/personas/avatar_1/scenes/aktiviteter.webp`,
-      vaske_op: `${BASE}reference/personas/avatar_1/scenes/vaske_op.webp`,
-      bolle: `${BASE}reference/personas/avatar_1/scenes/bolle.webp`,
-      sengetid: `${BASE}reference/personas/avatar_1/scenes/sengetid.webp`,
-      gatur: `${BASE}reference/personas/avatar_1/scenes/gatur.webp`,
-      rede_seng: `${BASE}reference/personas/avatar_1/scenes/rede_seng.webp`,
-      pause_sofa: `${BASE}reference/personas/avatar_1/scenes/pause_sofa.webp`,
-      skraldespand: `${BASE}reference/personas/avatar_1/scenes/skraldespand.webp`,
-      handle: `${BASE}reference/personas/avatar_1/scenes/handle.webp`,
-      boerste_taender: `${BASE}reference/personas/avatar_1/scenes/boerste_taender.webp`,
-      cykeltur: `${BASE}reference/personas/avatar_1/scenes/cykeltur.webp`,
-      weekend: `${BASE}reference/personas/avatar_1/scenes/weekend.webp`,
-    },
-  },
-  {
     id: 'avatar_jacob',
     name: 'Jacob (Polo & Briller)',
     shortCode: 'Jacob',
     avatarUrl: `${BASE}reference/personas/avatar_jacob.png`,
     description: 'Mand med briller, skæg og lyseblå polo',
-    activityScenes: {
-      vaesketoeg: `${BASE}reference/personas/avatar_jacob/scenes/vaesketoeg.webp`,
-      kaffe: `${BASE}reference/personas/avatar_jacob/scenes/kaffe.webp`,
-      medicin: `${BASE}reference/personas/avatar_jacob/scenes/medicin.webp`,
-      badetid: `${BASE}reference/personas/avatar_jacob/scenes/badetid.webp`,
-      spisetid: `${BASE}reference/personas/avatar_jacob/scenes/spisetid.webp`,
-      morgenmad: `${BASE}reference/personas/avatar_jacob/scenes/morgenmad.webp`,
-      frokost: `${BASE}reference/personas/avatar_jacob/scenes/frokost.webp`,
-      aftensmad: `${BASE}reference/personas/avatar_jacob/scenes/aftensmad.webp`,
-      forberede_mad: `${BASE}reference/personas/avatar_jacob/scenes/aftensmad.webp`,
-      aktiviteter: `${BASE}reference/personas/avatar_jacob/scenes/aktiviteter.webp`,
-      vaske_op: `${BASE}reference/personas/avatar_jacob/scenes/vaske_op.webp`,
-      bolle: `${BASE}reference/personas/avatar_jacob/scenes/bolle.webp`,
-      sengetid: `${BASE}reference/personas/avatar_jacob/scenes/sengetid.webp`,
-      gatur: `${BASE}reference/personas/avatar_jacob/scenes/gatur.webp`,
-      rede_seng: `${BASE}reference/personas/avatar_jacob/scenes/rede_seng.webp`,
-      pause_sofa: `${BASE}reference/personas/avatar_jacob/scenes/pause_sofa.webp`,
-      skraldespand: `${BASE}reference/personas/avatar_jacob/scenes/skraldespand.webp`,
-      handle: `${BASE}reference/personas/avatar_jacob/scenes/handle.webp`,
-      boerste_taender: `${BASE}reference/personas/avatar_jacob/scenes/boerste_taender.webp`,
-      cykeltur: `${BASE}reference/personas/avatar_jacob/scenes/cykeltur.webp`,
-      weekend: `${BASE}reference/personas/avatar_jacob/scenes/weekend.webp`,
-    },
+    activityScenes: getDefaultRoutineScenes('avatar_jacob'),
+  },
+  {
+    id: 'avatar_1',
+    name: 'avatar_1',
+    shortCode: 'avatar_1',
+    avatarUrl: `${BASE}reference/personas/avatar_1/avatar.webp`,
+    description: 'Tegneseriefigur i grå hættetrøje',
+    activityScenes: getDefaultRoutineScenes('avatar_1'),
+  },
+  {
+    id: 'avatar_sarah',
+    name: 'Sarah (Hestehale)',
+    shortCode: 'Sarah',
+    avatarUrl: `${BASE}reference/personas/avatar_sarah.png`,
+    description: 'Pige med hestehale og varm trøje',
+    activityScenes: getDefaultRoutineScenes('avatar_jacob'),
+  },
+  {
+    id: 'avatar_maryam',
+    name: 'Maryam (Tørklæde)',
+    shortCode: 'Maryam',
+    avatarUrl: `${BASE}reference/personas/avatar_maryam.png`,
+    description: 'Ung kvinde med tørklæde/hijab',
+    activityScenes: getDefaultRoutineScenes('avatar_jacob'),
   },
 ];
+
+export function getDefaultRoutineScenes(archetype: 'avatar_jacob' | 'avatar_1' = 'avatar_jacob'): Record<string, string> {
+  const base = BASE;
+  const folder = archetype === 'avatar_1' ? 'avatar_1' : 'avatar_jacob';
+  return {
+    vaesketoeg: `${base}reference/personas/${folder}/scenes/vaesketoeg.webp`,
+    kaffe: `${base}reference/personas/${folder}/scenes/kaffe.webp`,
+    medicin: `${base}reference/personas/${folder}/scenes/medicin.webp`,
+    badetid: `${base}reference/personas/${folder}/scenes/badetid.webp`,
+    spisetid: `${base}reference/personas/${folder}/scenes/spisetid.webp`,
+    morgenmad: `${base}reference/personas/${folder}/scenes/morgenmad.webp`,
+    frokost: `${base}reference/personas/${folder}/scenes/frokost.webp`,
+    aftensmad: `${base}reference/personas/${folder}/scenes/aftensmad.webp`,
+    forberede_mad: `${base}reference/personas/${folder}/scenes/aftensmad.webp`,
+    aktiviteter: `${base}reference/personas/${folder}/scenes/aktiviteter.webp`,
+    vaske_op: `${base}reference/personas/${folder}/scenes/vaske_op.webp`,
+    bolle: `${base}reference/personas/${folder}/scenes/bolle.webp`,
+    sengetid: `${base}reference/personas/${folder}/scenes/sengetid.webp`,
+    gatur: `${base}reference/personas/${folder}/scenes/gatur.webp`,
+    rede_seng: `${base}reference/personas/${folder}/scenes/rede_seng.webp`,
+    pause_sofa: `${base}reference/personas/${folder}/scenes/pause_sofa.webp`,
+    skraldespand: `${base}reference/personas/${folder}/scenes/skraldespand.webp`,
+    handle: `${base}reference/personas/${folder}/scenes/handle.webp`,
+    boerste_taender: `${base}reference/personas/${folder}/scenes/boerste_taender.webp`,
+    cykeltur: `${base}reference/personas/${folder}/scenes/cykeltur.webp`,
+    weekend: `${base}reference/personas/${folder}/scenes/weekend.webp`,
+  };
+}
 
 import { getDbItem, setDbItem } from './storageDb';
 
@@ -227,12 +227,18 @@ export function getDeletedPersonas(): DeletedPersona[] {
 }
 
 export function saveCustomPersona(newPersona: Persona): void {
+  const personaToSave: Persona = {
+    ...newPersona,
+    activityScenes: (!newPersona.activityScenes || Object.keys(newPersona.activityScenes).length === 0)
+      ? getDefaultRoutineScenes()
+      : newPersona.activityScenes,
+  };
   const current = [...getCustomPersonas()];
-  const existingIndex = current.findIndex((p) => p.id === newPersona.id);
+  const existingIndex = current.findIndex((p) => p.id === personaToSave.id);
   if (existingIndex >= 0) {
-    current[existingIndex] = newPersona;
+    current[existingIndex] = personaToSave;
   } else {
-    current.push(newPersona);
+    current.push(personaToSave);
   }
   memoryCustomPersonas = current;
 
@@ -251,7 +257,7 @@ export function saveCustomPersona(newPersona: Persona): void {
     fetch('/api/personas/save', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newPersona),
+      body: JSON.stringify(personaToSave),
     })
       .then(async (res) => {
         if (res.ok) {

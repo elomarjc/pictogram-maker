@@ -9,16 +9,14 @@ import {
   RotateCcw,
   Clock,
   Loader2,
-  Monitor,
   Sparkles,
 } from 'lucide-react';
 import {
   createAvatarFromPhoto,
   describeAvatarImage,
 } from '../services/imageGenerationApi';
-import { saveCustomPersona } from '../services/personas';
+import { saveCustomPersona, getDefaultRoutineScenes } from '../services/personas';
 import type { Persona } from '../types';
-import { useIsMobile } from '../utils/device';
 
 interface CreateAvatarModalProps {
   isOpen: boolean;
@@ -41,7 +39,8 @@ export const CreateAvatarModal: React.FC<CreateAvatarModalProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const progressTimerRef = useRef<number | null>(null);
 
-  const isMobile = useIsMobile();
+  const [characterName, setCharacterName] = useState('Min figur');
+  const [selectedStyle, setSelectedStyle] = useState<'jacob' | 'noah' | 'sarah' | 'maryam'>('jacob');
 
   // Clear progress timer on unmount or modal close
   useEffect(() => {
@@ -53,39 +52,6 @@ export const CreateAvatarModal: React.FC<CreateAvatarModalProps> = ({
   }, []);
 
   if (!isOpen) return null;
-
-  if (isMobile) {
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
-        <div className="bg-white rounded-3xl border-4 border-slate-900 shadow-2xl max-w-md w-full p-6 space-y-4">
-          <div className="w-12 h-12 rounded-2xl bg-amber-100 border-2 border-slate-900 flex items-center justify-center mx-auto text-amber-900 shadow-xs">
-            <Monitor size={24} className="stroke-[2.5]" />
-          </div>
-          <div className="text-center space-y-2">
-            <h3 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
-              Oprettelse af nye figurer virker kun på computer
-            </h3>
-            <p className="text-xs font-medium text-slate-700 leading-relaxed">
-              Det er desværre <strong>ikke muligt</strong> at oprette nye figurer ud fra foto via AI på mobiltelefonen. Funktionen kræver en computer (desktop).
-            </p>
-            <p className="text-[11.5px] font-medium text-slate-600 leading-relaxed">
-              Åbn hjemmesiden på en computer for at oprette din personlige figur ud fra et billede.
-            </p>
-          </div>
-          <div className="p-3 bg-slate-100 rounded-xl border border-slate-200 text-[11px] text-slate-700 font-bold">
-            💡 På mobilen kan du frit vælge mellem alle de eksisterende figurer.
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="w-full py-3 px-4 rounded-xl border-2 border-slate-900 bg-amber-400 hover:bg-amber-500 font-black text-slate-900 text-xs sm:text-sm shadow-xs transition-transform active:scale-95 cursor-pointer"
-          >
-            Forstået, gå tilbage
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -201,36 +167,15 @@ export const CreateAvatarModal: React.FC<CreateAvatarModalProps> = ({
   const handleSaveAndUse = () => {
     if (!generatedAvatarUrl) return;
 
-    const base = import.meta.env.BASE_URL || './';
-    const defaultScenes: Record<string, string> = {
-      vaesketoeg: `${base}reference/personas/avatar_jacob/scenes/vaesketoeg.webp`,
-      kaffe: `${base}reference/personas/avatar_jacob/scenes/kaffe.webp`,
-      medicin: `${base}reference/personas/avatar_jacob/scenes/medicin.webp`,
-      badetid: `${base}reference/personas/avatar_jacob/scenes/badetid.webp`,
-      spisetid: `${base}reference/personas/avatar_jacob/scenes/spisetid.webp`,
-      morgenmad: `${base}reference/personas/avatar_jacob/scenes/morgenmad.webp`,
-      frokost: `${base}reference/personas/avatar_jacob/scenes/frokost.webp`,
-      aftensmad: `${base}reference/personas/avatar_jacob/scenes/aftensmad.webp`,
-      forberede_mad: `${base}reference/personas/avatar_jacob/scenes/aftensmad.webp`,
-      aktiviteter: `${base}reference/personas/avatar_jacob/scenes/aktiviteter.webp`,
-      vaske_op: `${base}reference/personas/avatar_jacob/scenes/vaske_op.webp`,
-      bolle: `${base}reference/personas/avatar_jacob/scenes/bolle.webp`,
-      sengetid: `${base}reference/personas/avatar_jacob/scenes/sengetid.webp`,
-      gatur: `${base}reference/personas/avatar_jacob/scenes/gatur.webp`,
-      rede_seng: `${base}reference/personas/avatar_jacob/scenes/rede_seng.webp`,
-      pause_sofa: `${base}reference/personas/avatar_jacob/scenes/pause_sofa.webp`,
-      skraldespand: `${base}reference/personas/avatar_jacob/scenes/skraldespand.webp`,
-      handle: `${base}reference/personas/avatar_jacob/scenes/handle.webp`,
-      boerste_taender: `${base}reference/personas/avatar_jacob/scenes/boerste_taender.webp`,
-      cykeltur: `${base}reference/personas/avatar_jacob/scenes/cykeltur.webp`,
-      weekend: `${base}reference/personas/avatar_jacob/scenes/weekend.webp`,
-    };
+    const isNoah = selectedStyle === 'noah';
+    const defaultScenes = getDefaultRoutineScenes(isNoah ? 'avatar_1' : 'avatar_jacob');
 
     const id = `avatar_${Date.now()}`;
+    const trimmedName = characterName.trim() || 'Min figur';
     const newPersona: Persona = {
       id,
-      name: 'Min figur',
-      shortCode: '',
+      name: trimmedName,
+      shortCode: trimmedName.slice(0, 2),
       avatarUrl: generatedAvatarUrl,
       description: avatarDescription.trim(),
       activityScenes: defaultScenes,
@@ -378,6 +323,20 @@ export const CreateAvatarModal: React.FC<CreateAvatarModalProps> = ({
                 </div>
               </div>
 
+              {/* Character Name Input */}
+              <div className="space-y-1">
+                <label className="text-[11px] font-black uppercase tracking-wider text-slate-700 block">
+                  Figurens navn
+                </label>
+                <input
+                  type="text"
+                  value={characterName}
+                  onChange={(e) => setCharacterName(e.target.value)}
+                  placeholder="F.eks. Jacob, Sarah, Noah..."
+                  className="w-full px-3 py-2 rounded-xl border-2 border-slate-900 bg-white font-bold text-slate-900 text-xs shadow-xs focus:outline-hidden focus:ring-2 focus:ring-amber-400"
+                />
+              </div>
+
               {/* Action Buttons */}
               <div className="space-y-2 pt-1">
                 {/* Primary: Save and Use */}
@@ -483,6 +442,82 @@ export const CreateAvatarModal: React.FC<CreateAvatarModalProps> = ({
                   <Sparkles size={16} className="text-slate-900" />
                   <span>Opret figur ud fra foto</span>
                 </button>
+              </div>
+
+              {/* Quick Archetype Selectors */}
+              <div className="pt-2 border-t border-slate-200 space-y-2">
+                <span className="text-[11px] font-black uppercase tracking-wider text-slate-600 block">
+                  Eller vælg en figurtype
+                </span>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedStyle('jacob');
+                      setCharacterName('Jacob');
+                      setGeneratedAvatarUrl('./reference/personas/avatar_jacob.png');
+                    }}
+                    className={`p-2 rounded-xl border-2 text-left transition-all cursor-pointer ${
+                      selectedStyle === 'jacob'
+                        ? 'border-slate-900 bg-amber-50 font-black'
+                        : 'border-slate-200 hover:border-slate-400 bg-white'
+                    }`}
+                  >
+                    <span className="text-xs font-bold block text-slate-900">Jacob</span>
+                    <span className="text-[10px] text-slate-500 block">Polo, briller & skæg</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedStyle('noah');
+                      setCharacterName('Noah');
+                      setGeneratedAvatarUrl('./reference/personas/avatar_1/avatar.webp');
+                    }}
+                    className={`p-2 rounded-xl border-2 text-left transition-all cursor-pointer ${
+                      selectedStyle === 'noah'
+                        ? 'border-slate-900 bg-amber-50 font-black'
+                        : 'border-slate-200 hover:border-slate-400 bg-white'
+                    }`}
+                  >
+                    <span className="text-xs font-bold block text-slate-900">Noah</span>
+                    <span className="text-[10px] text-slate-500 block">Grå hættetrøje</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedStyle('sarah');
+                      setCharacterName('Sarah');
+                      setGeneratedAvatarUrl('./reference/personas/avatar_sarah.png');
+                    }}
+                    className={`p-2 rounded-xl border-2 text-left transition-all cursor-pointer ${
+                      selectedStyle === 'sarah'
+                        ? 'border-slate-900 bg-amber-50 font-black'
+                        : 'border-slate-200 hover:border-slate-400 bg-white'
+                    }`}
+                  >
+                    <span className="text-xs font-bold block text-slate-900">Sarah</span>
+                    <span className="text-[10px] text-slate-500 block">Hestehale & trøje</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedStyle('maryam');
+                      setCharacterName('Maryam');
+                      setGeneratedAvatarUrl('./reference/personas/avatar_maryam.png');
+                    }}
+                    className={`p-2 rounded-xl border-2 text-left transition-all cursor-pointer ${
+                      selectedStyle === 'maryam'
+                        ? 'border-slate-900 bg-amber-50 font-black'
+                        : 'border-slate-200 hover:border-slate-400 bg-white'
+                    }`}
+                  >
+                    <span className="text-xs font-bold block text-slate-900">Maryam</span>
+                    <span className="text-[10px] text-slate-500 block">Tørklæde / Hijab</span>
+                  </button>
+                </div>
               </div>
             </div>
           )}

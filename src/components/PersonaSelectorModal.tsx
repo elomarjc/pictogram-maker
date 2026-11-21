@@ -8,6 +8,7 @@ import {
   getDeletedPersonas,
   isDefaultPersona,
   DEFAULT_PERSONAS,
+  getDefaultRoutineScenes,
   type DeletedPersona,
 } from '../services/personas';
 import {
@@ -88,13 +89,12 @@ export const PersonaSelectorModal: React.FC<PersonaSelectorModalProps> = ({
           shortCode: '',
           avatarUrl: result,
           description: '',
-          activityScenes: {},
+          activityScenes: getDefaultRoutineScenes(),
         };
         saveCustomPersona(newPersona);
         const updated = getAllPersonas();
         setPersonas(updated);
         setSelectedId(newPersona.id);
-        onOpenSceneGen?.(newPersona, false);
       }
     };
     reader.readAsDataURL(file);
