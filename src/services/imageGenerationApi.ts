@@ -202,52 +202,32 @@ export async function autoFitSceneToStandardFormat(
  * Uses AI (Flux-1-Schnell) with prompt matching style_guide/prompt_stage1_photo_to_avatar.md,
  * removes background, and standardizes to 512x512 transparent avatar.
  */
-export async function createCartoonAvatarFromPhoto(
-  _photoDataUrl: string,
-  personaName?: string,
-  options?: { signal?: AbortSignal; onProgress?: (msg: string, pct: number) => void }
-): Promise<string> {
-  options?.onProgress?.('Analyserer foto og forbereder 2D tegneserie-prompt...', 20);
-
-  const cleanName = personaName?.trim() || 'the person';
-  const traits =
-    cleanName.toLowerCase().includes('jacob') || personaName?.toLowerCase().includes('jacob')
-      ? 'friendly smiling young man with thick black rectangular eyeglasses, short neat dark hair, dark black chinstrap beard along the jawline without mustache, wearing a light blue collared polo shirt'
-      : `${cleanName}, friendly smiling character with neat hair, styled in a clean polo shirt`;
-
-  const prompt = `A clean 2D cartoon pictogram vector avatar portrait of a ${traits}. Bold thick smooth black outlines, flat saturated colors, simple subtle cel-shading, friendly cheerful smile, solid clean pure white background, vector character sticker, autism visual schedule pictogram style, centered upper-body chest up portrait, no text, no watermark`;
-
-  options?.onProgress?.('ChatGPT / AI tegner din 2D tegneseriefigur...', 50);
-
-  // Generate image using Cloudflare Workers AI (Flux-1-Schnell)
-  const rawGeneratedUrl = await generateSceneImage(prompt, {
-    signal: options?.signal,
-    model: '@cf/black-forest-labs/flux-1-schnell',
-  });
-
-  options?.onProgress?.('Fjerner baggrund og gør gennemsigtig...', 80);
-
-  // Remove white background so it is transparent
-  const transparentUrl = await removeImageBackground(rawGeneratedUrl);
-
-  options?.onProgress?.('Tilpasser til standard avatarformat (512x512)...', 95);
-
-  // Auto-fit to 512x512 avatar square
-  const finalAvatarUrl = await autoFitSceneToStandardFormat(transparentUrl, 512, 512);
-
-  options?.onProgress?.('Færdig! Din 2D tegneseriefigur er klar.', 100);
-  return finalAvatarUrl;
-}
-
 /**
- * Creates a 2D cartoon avatar from an uploaded photo.
+ * Creates an avatar from an uploaded photo with automatic background removal and 512x512 centering.
  */
 export async function createAvatarFromPhoto(
+  photoDataUrl: string,
+  _personaName?: string,
+  options?: { signal?: AbortSignal; onProgress?: (msg: string, pct: number) => void }
+): Promise<string> {
+  options?.onProgress?.('Behandler billede og fjerner baggrund...', 30);
+  try {
+    const transparent = await removeImageBackground(photoDataUrl);
+    options?.onProgress?.('Tilpasser til standardformat...', 70);
+    const fitted = await autoFitSceneToStandardFormat(transparent, 512, 512);
+    options?.onProgress?.('Færdig!', 100);
+    return fitted;
+  } catch {
+    return autoFitSceneToStandardFormat(photoDataUrl, 512, 512);
+  }
+}
+
+export async function createCartoonAvatarFromPhoto(
   photoDataUrl: string,
   personaName?: string,
   options?: { signal?: AbortSignal; onProgress?: (msg: string, pct: number) => void }
 ): Promise<string> {
-  return createCartoonAvatarFromPhoto(photoDataUrl, personaName, options);
+  return createAvatarFromPhoto(photoDataUrl, personaName, options);
 }
 
 /**
@@ -257,39 +237,12 @@ export async function describeAvatarImage(_imageUrl: string): Promise<string> {
   return '';
 }
 
-export const CLOUDFLARE_IMAGE_WORKER_URL = 'https://free-image-generation-api.elomarjc.workers.dev/v1/generate';
-
 /**
- * Direct scene image generation helper via Cloudflare Workers AI.
- * Used as fallback on mobile devices and standalone web hosting.
+ * Direct scene image generation helper (Cloudflare is completely removed).
  */
 export async function generateSceneImage(
-  prompt: string,
-  options?: { signal?: AbortSignal; model?: string }
+  _prompt: string,
+  _options?: any
 ): Promise<string> {
-  const bodyPayload = {
-    prompt: prompt.trim(),
-    model: options?.model || '@cf/black-forest-labs/flux-1-schnell',
-    num_steps: 4,
-    format: 'base64',
-  };
-
-  const response = await fetch(CLOUDFLARE_IMAGE_WORKER_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(bodyPayload),
-    signal: options?.signal,
-  });
-
-  if (!response.ok) {
-    const data = await response.json().catch(() => null);
-    throw new Error(data?.message || data?.error || `Fejl fra billedgenerator (${response.status})`);
-  }
-
-  const data = await response.json();
-  if (!data?.imageUrl) {
-    throw new Error('Serveren returnerede ikke noget gyldigt billede.');
-  }
-
-  return await autoFitSceneToStandardFormat(data.imageUrl);
+  throw new Error('Cloudflare Workers AI er udfaset. Brug "Generer med ChatGPT" i modalen.');
 }

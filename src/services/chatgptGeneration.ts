@@ -4,8 +4,6 @@
  */
 
 import type { Persona } from '../types';
-import { generateSceneImage } from './imageGenerationApi';
-import { getPersona, saveCustomPersona } from './personas';
 
 export const STORAGE_KEY_CHATGPT_CONNECTED = 'pictogram_chatgpt_connected';
 export const STORAGE_KEY_CHATGPT_PENDING = 'pictogram_chatgpt_pending_login';
@@ -297,69 +295,17 @@ export async function generateScenesWithChatGPT(
       if (finalResult && finalResult.success) {
         return finalResult;
       }
+      return { success: true };
     }
-  } catch {
-    // Local server not available -> Fall back to cloud generation below
+  } catch (err: any) {
+    throw new Error(err?.message || 'Kunne ikke kontakte ChatGPT genereringsserveren. Sørg for at den lokale dev-server kører.');
   }
 
-  // 2. Mobile & Web Cloud Fallback
-  const scenesToGenerate = batch === 2
-    ? [
-        { key: 'skifte_sengetoj', desc: 'Skifte rent sengetøj på dynen' },
-        { key: 'stovsuge', desc: 'Støvsuge gulvet med støvsuger' },
-        { key: 'torre_bord', desc: 'Tørre bordet af med en fugtig klud' },
-        { key: 'tomme_opvaskemaskine', desc: 'Tømme opvaskemaskine og sætte tallerkener på plads' },
-        { key: 'legge_toj_sammen', desc: 'Lægge rent tøj sammen i pæne bunker' },
-      ]
-    : [
-        { key: 'vaesketoeg', desc: 'Hænge vasketøj op med tøjklemmer' },
-        { key: 'kaffe', desc: 'Drikke en varm kop kaffe eller the' },
-        { key: 'medicin', desc: 'Tage sin daglige medicin med et glas vand' },
-        { key: 'badetid', desc: 'Tage et varmt brusebad med sæbe' },
-        { key: 'spisetid', desc: 'Spise mad ved spisebordet' },
-        { key: 'boerste_taender', desc: 'Børste tænder foran spejlet' },
-      ];
-
-  const total = scenesToGenerate.length;
-  let personaObj = getPersona(personaId);
-  const characterDesc = personaObj?.description?.trim()
-    ? `A cheerful friendly 2D cartoon character, ${personaObj.description}`
-    : (personaObj?.name && !personaObj.name.startsWith('avatar_')
-        ? `A cheerful friendly 2D cartoon character (${personaObj.name})`
-        : 'A cheerful friendly 2D cartoon character');
-
-  const updatedScenes = { ...(personaObj?.activityScenes || {}) };
-
-  for (let i = 0; i < total; i++) {
-    if (signal?.aborted) break;
-    const item = scenesToGenerate[i];
-    const pct = Math.round(((i + 1) / total) * 100);
-    onProgress?.({
-      stage: 'generating',
-      percent: pct,
-      message: `Tegner scene ${i + 1} af ${total}: ${item.desc}...`,
-    });
-
-    try {
-      const fullPrompt = `Clean 2D cartoon pictogram vector illustration for autism visual schedule: ${characterDesc}, ${item.desc}. Smooth thick bold black outlines, flat saturated colors, friendly smile, clean solid white background, no text`;
-      const url = await generateSceneImage(fullPrompt, { signal });
-      updatedScenes[item.key] = url;
-    } catch {
-      // Continue next scene
-    }
-  }
-
-  if (personaObj) {
-    personaObj = { ...personaObj, activityScenes: updatedScenes };
-    saveCustomPersona(personaObj);
-  }
-
-  onProgress?.({ stage: 'done', percent: 100, message: 'Færdig! De nye piktogrammer er klar.' });
-  return { success: true, persona: personaObj };
+  return { success: true };
 }
 
 /**
- * Triggers a single scene generation via ChatGPT with seamless mobile cloud fallback.
+ * Triggers a single scene generation via ChatGPT.
  */
 export async function generateSingleSceneWithChatGPT(
   personaId: string,
@@ -387,84 +333,66 @@ export async function generateSingleSceneWithChatGPT(
     effectiveSignal = onProgressOrSignal as AbortSignal | undefined;
   }
 
-  // 1. Try local dev backend first if running locally
-  try {
-    const response = await fetch('/api/chatgpt/generate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ personaId, scene: sceneKey, customPrompt }),
-      signal: effectiveSignal,
-    });
+  const response = await fetch('/api/chatgpt/generate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ personaId, scene: sceneKey, customPrompt }),
+    signal: effectiveSignal,
+  });
 
-    if (response.ok && response.body) {
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder('utf-8');
-      let buffer = '';
-      let finalResult: any = null;
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n\n');
-        buffer = lines.pop() || '';
-
-        for (const block of lines) {
-          if (!block.trim()) continue;
-
-          const eventMatch = block.match(/event:\s*([^\n]+)/);
-          const dataMatch = block.match(/data:\s*([^\n]+)/);
-
-          const event = eventMatch ? eventMatch[1].trim() : 'message';
-          const rawData = dataMatch ? dataMatch[1].trim() : '';
-
-          if (!rawData) continue;
-
-          try {
-            const parsed = JSON.parse(rawData);
-
-            if (event === 'progress') {
-              onProgress?.(parsed);
-            } else if (event === 'complete') {
-              finalResult = parsed;
-            } else if (event === 'error') {
-              throw new Error(parsed.error || 'Ukendt fejl under ChatGPT-generering');
-            }
-          } catch (parseErr: any) {
-            if (event === 'error') {
-              throw new Error(parseErr.message || 'Fejl under ChatGPT-generering');
-            }
-          }
-        }
-      }
-
-      if (finalResult && finalResult.success) {
-        return finalResult;
-      }
-    }
-  } catch {
-    // Local server not available -> Fall back to cloud generation below
+  if (!response.ok) {
+    throw new Error(`Serverfejl (${response.status}): ${response.statusText}`);
   }
 
-  // 2. Cloud AI Fallback for Mobile and Standalone Web
-  onProgress?.({ stage: 'submitting', percent: 20, message: 'Forbereder piktogram med ChatGPT / AI...' });
-  const personaObj = getPersona(personaId);
-  const characterDesc = personaObj?.description?.trim()
-    ? `A cheerful friendly 2D cartoon character, ${personaObj.description}`
-    : (personaObj?.name && !personaObj.name.startsWith('avatar_')
-        ? `A cheerful friendly 2D cartoon character (${personaObj.name})`
-        : 'A cheerful friendly 2D cartoon character');
+  if (!response.body) {
+    throw new Error('Ingen svardata modtaget fra serveren.');
+  }
 
-  const sceneDesc = customPrompt || STANDARD_SCENE_PROMPTS[sceneKey] || `Figuren udfører aktiviteten "${sceneKey}" venligt og glad.`;
-  const fullPrompt = `Clean 2D cartoon pictogram vector illustration for autism visual schedule: ${characterDesc}, ${sceneDesc}. Smooth bold thick black outlines, flat saturated colors, simple cel-shading, friendly smile, clean pure solid white background, no text, wide horizontal aspect ratio`;
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder('utf-8');
+  let buffer = '';
+  let finalResult: any = null;
 
-  onProgress?.({ stage: 'generating', percent: 65, message: 'AI / ChatGPT tegner piktogrammet (ca. 2-4 sek)...' });
-  const generatedUrl = await generateSceneImage(fullPrompt, { signal: effectiveSignal });
-  onProgress?.({ stage: 'done', percent: 100, message: 'Piktogrammet er klar!' });
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
 
-  return {
-    success: true,
-    sceneUrl: generatedUrl,
-  };
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n\n');
+    buffer = lines.pop() || '';
+
+    for (const block of lines) {
+      if (!block.trim()) continue;
+
+      const eventMatch = block.match(/event:\s*([^\n]+)/);
+      const dataMatch = block.match(/data:\s*([^\n]+)/);
+
+      const event = eventMatch ? eventMatch[1].trim() : 'message';
+      const rawData = dataMatch ? dataMatch[1].trim() : '';
+
+      if (!rawData) continue;
+
+      try {
+        const parsed = JSON.parse(rawData);
+
+        if (event === 'progress') {
+          onProgress?.(parsed);
+        } else if (event === 'complete') {
+          finalResult = parsed;
+        } else if (event === 'error') {
+          throw new Error(parsed.error || 'Ukendt fejl under ChatGPT-generering');
+        }
+      } catch (parseErr: any) {
+        if (event === 'error') {
+          throw new Error(parseErr.message || 'Fejl under ChatGPT-generering');
+        }
+      }
+    }
+  }
+
+  if (finalResult && finalResult.success) {
+    return finalResult;
+  }
+
+  return { success: true };
 }

@@ -16,10 +16,9 @@ import {
   Play,
   Copy,
   Monitor,
-  Download,
 } from 'lucide-react';
 import type { Persona } from '../types';
-import { getAllPersonas, saveCustomPersona, PICTO_STYLE_REF_URL } from '../services/personas';
+import { getAllPersonas, saveCustomPersona } from '../services/personas';
 import { useIsMobile } from '../utils/device';
 import {
   getChatGPTStatus,
@@ -28,13 +27,10 @@ import {
   setChatGPTConnectedManual,
   clearChatGPTLoginPending,
   isChatGPTLoginPending,
-  CHATGPT_PHOTO_TO_AVATAR_PROMPT,
   type ChatGPTStatus,
 } from '../services/chatgptGeneration';
 import {
   createCartoonAvatarFromPhoto,
-  removeImageBackground,
-  autoFitSceneToStandardFormat,
 } from '../services/imageGenerationApi';
 import {
   getReadyScenesCount,
@@ -84,7 +80,6 @@ export const StartWizardModal: React.FC<StartWizardModalProps> = ({
   const [isTransformingPhoto, setIsTransformingPhoto] = useState(false);
   const [transformProgressMsg, setTransformProgressMsg] = useState('');
   const [transformError, setTransformError] = useState<string | null>(null);
-  const [copiedAvatarPrompt, setCopiedAvatarPrompt] = useState(false);
   const photoInputRef = useRef<HTMLInputElement>(null);
 
   // Step 3 Activity generation state
@@ -153,14 +148,6 @@ export const StartWizardModal: React.FC<StartWizardModalProps> = ({
       profiles: ['Browser session (forbundet automatisk)'],
       message: 'Forbundet automatisk til ChatGPT!',
     });
-  };
-
-  const handleCopyAvatarPrompt = async () => {
-    try {
-      await navigator.clipboard.writeText(CHATGPT_PHOTO_TO_AVATAR_PROMPT);
-      setCopiedAvatarPrompt(true);
-      setTimeout(() => setCopiedAvatarPrompt(false), 2500);
-    } catch {}
   };
 
   const handleCopyPrompt = async () => {
@@ -274,30 +261,6 @@ export const StartWizardModal: React.FC<StartWizardModalProps> = ({
       setIsTransformingPhoto(false);
       setTransformProgressMsg('');
     }
-  };
-
-  const handlePasteOrUploadChatGPTAvatar = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = async () => {
-      if (typeof reader.result === 'string') {
-        setIsTransformingPhoto(true);
-        setTransformProgressMsg('Fjerner baggrund og tilpasser til standardformat...');
-        try {
-          const transparent = await removeImageBackground(reader.result);
-          const fitted = await autoFitSceneToStandardFormat(transparent, 512, 512);
-          setGeneratedCartoonAvatarUrl(fitted);
-        } catch {
-          setGeneratedCartoonAvatarUrl(reader.result);
-        } finally {
-          setIsTransformingPhoto(false);
-          setTransformProgressMsg('');
-        }
-      }
-    };
-    reader.readAsDataURL(file);
   };
 
   const handleSaveNewPersona = async () => {
@@ -896,62 +859,8 @@ export const StartWizardModal: React.FC<StartWizardModalProps> = ({
                       </div>
                     )}
 
-                    {/* ChatGPT 4-Step Action Box */}
-                    <div className="p-3 bg-amber-50/90 rounded-xl border border-amber-300 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[11.5px] font-black text-amber-950 flex items-center gap-1.5">
-                          <Sparkles size={14} className="text-amber-700" />
-                          <span>Brug ChatGPT til at tegne din figur ud fra fotoet:</span>
-                        </span>
-                      </div>
-                      <p className="text-[11px] font-medium text-slate-700 leading-relaxed">
-                        For ægte lighed med briller, skæg og dit rigtige tøj: Vedhæft dit foto (Billede 1) og stilarket (Billede 2) i ChatGPT sammen med prompten. Indsæt derefter resultatet herunder.
-                      </p>
-                      <div className="flex flex-wrap items-center gap-2 pt-0.5">
-                        <button
-                          type="button"
-                          onClick={handleCopyAvatarPrompt}
-                          className="px-3 py-1.5 rounded-lg border border-slate-900 bg-white hover:bg-slate-50 font-bold text-xs flex items-center gap-1 shadow-2xs cursor-pointer"
-                        >
-                          <Copy size={13} />
-                          <span>{copiedAvatarPrompt ? 'Kopieret!' : '1. Kopiér prompt'}</span>
-                        </button>
-
-                        <a
-                          href={PICTO_STYLE_REF_URL}
-                          download="ref2_example.jpg"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="px-3 py-1.5 rounded-lg border border-slate-900 bg-white hover:bg-slate-50 font-bold text-xs flex items-center gap-1 shadow-2xs cursor-pointer"
-                        >
-                          <Download size={13} />
-                          <span>2. Hent stilark (ref2)</span>
-                        </a>
-
-                        <button
-                          type="button"
-                          onClick={openChatGPTLogin}
-                          className="px-3 py-1.5 rounded-lg border border-slate-900 bg-amber-400 hover:bg-amber-500 font-black text-xs flex items-center gap-1 shadow-2xs cursor-pointer"
-                        >
-                          <ExternalLink size={13} />
-                          <span>3. Åbn ChatGPT</span>
-                        </button>
-
-                        <label className="px-3 py-1.5 rounded-lg border-2 border-emerald-600 bg-emerald-100 hover:bg-emerald-200 text-emerald-900 font-black text-xs flex items-center gap-1 shadow-2xs cursor-pointer">
-                          <Upload size={13} />
-                          <span>4. Indsæt ChatGPT-billede</span>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={handlePasteOrUploadChatGPTAvatar}
-                            className="hidden"
-                          />
-                        </label>
-                      </div>
-                    </div>
-
                     {/* Transformation & Save Actions */}
-                    <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-slate-100">
+                    <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100">
                       <button
                         type="button"
                         disabled={isTransformingPhoto}

@@ -26,5 +26,33 @@
       "cykeltur": "reference/personas/avatar_1/scenes/cykeltur.webp",
       "weekend": "reference/personas/avatar_1/scenes/weekend.webp"
     }
+  },
+  {
+    "id": "avatar_jacob",
+    "name": "Jacob (Polo & Briller)",
+    "shortCode": "Jacob",
+    "avatarUrl": "reference/personas/avatar_jacob/avatar.webp",
+    "description": "Mand med briller, skæg og lyseblå polo",
+    "activityScenes": {
+      "vaesketoeg": "reference/personas/avatar_jacob/scenes/vaesketoeg.webp",
+      "kaffe": "reference/personas/avatar_jacob/scenes/kaffe.webp",
+      "medicin": "reference/personas/avatar_jacob/scenes/medicin.webp",
+      "badetid": "reference/personas/avatar_jacob/scenes/badetid.webp",
+      "spisetid": "reference/personas/avatar_jacob/scenes/spisetid.webp",
+      "boerste_taender": "reference/personas/avatar_jacob/scenes/boerste_taender.webp",
+      "vaske_op": "reference/personas/avatar_jacob/scenes/vaske_op.webp",
+      "bolle": "reference/personas/avatar_jacob/scenes/bolle.webp",
+      "gatur": "reference/personas/avatar_jacob/scenes/gatur.webp",
+      "sengetid": "reference/personas/avatar_jacob/scenes/sengetid.webp",
+      "pause_sofa": "reference/personas/avatar_jacob/scenes/pause_sofa.webp",
+      "rede_seng": "reference/personas/avatar_jacob/scenes/rede_seng.webp",
+      "handle": "reference/personas/avatar_jacob/scenes/handle.webp",
+      "skraldespand": "reference/personas/avatar_jacob/scenes/skraldespand.webp",
+      "frokost": "reference/personas/avatar_jacob/scenes/frokost.webp",
+      "morgenmad": "reference/personas/avatar_jacob/scenes/morgenmad.webp",
+      "aktiviteter": "reference/personas/avatar_jacob/scenes/aktiviteter.webp",
+      "cykeltur": "reference/personas/avatar_jacob/scenes/cykeltur.webp",
+      "weekend": "reference/personas/avatar_jacob/scenes/weekend.webp"
+    }
   }
 ]

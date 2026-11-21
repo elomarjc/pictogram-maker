@@ -10,19 +10,13 @@ import {
   Clock,
   Loader2,
   Monitor,
-  Copy,
-  ExternalLink,
   Sparkles,
-  Download,
 } from 'lucide-react';
 import {
   createAvatarFromPhoto,
   describeAvatarImage,
-  removeImageBackground,
-  autoFitSceneToStandardFormat,
 } from '../services/imageGenerationApi';
-import { saveCustomPersona, PICTO_STYLE_REF_URL } from '../services/personas';
-import { CHATGPT_PHOTO_TO_AVATAR_PROMPT, openChatGPTLogin } from '../services/chatgptGeneration';
+import { saveCustomPersona } from '../services/personas';
 import type { Persona } from '../types';
 import { useIsMobile } from '../utils/device';
 
@@ -44,48 +38,10 @@ export const CreateAvatarModal: React.FC<CreateAvatarModalProps> = ({
   const [generatedAvatarUrl, setGeneratedAvatarUrl] = useState<string | null>(null);
   const [avatarDescription, setAvatarDescription] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
-  const [isCopiedPrompt, setIsCopiedPrompt] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const progressTimerRef = useRef<number | null>(null);
 
   const isMobile = useIsMobile();
-
-  const handleCopyPrompt = async () => {
-    try {
-      await navigator.clipboard.writeText(CHATGPT_PHOTO_TO_AVATAR_PROMPT);
-      setIsCopiedPrompt(true);
-      setTimeout(() => setIsCopiedPrompt(false), 2500);
-    } catch {}
-  };
-
-  const handlePasteOrUploadChatGPTAvatar = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = async () => {
-      if (typeof reader.result === 'string') {
-        setIsGenerating(true);
-        setProgress(30);
-        setProgressStage('Fjerner baggrund og tilpasser figur...');
-        try {
-          const transparent = await removeImageBackground(reader.result);
-          setProgress(85);
-          const fitted = await autoFitSceneToStandardFormat(transparent, 512, 512);
-          setGeneratedAvatarUrl(fitted);
-          setProgress(100);
-          setProgressStage('Færdig!');
-        } catch {
-          setGeneratedAvatarUrl(reader.result);
-        } finally {
-          setIsGenerating(false);
-          setProgress(0);
-          setProgressStage('');
-        }
-      }
-    };
-    reader.readAsDataURL(file);
-  };
 
   // Clear progress timer on unmount or modal close
   useEffect(() => {
@@ -492,70 +448,15 @@ export const CreateAvatarModal: React.FC<CreateAvatarModalProps> = ({
                 </div>
               )}
 
-              {/* ChatGPT Workflow Box */}
-              <div className="p-3 bg-amber-50/90 rounded-2xl border-2 border-amber-300 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[12px] font-black text-amber-950 flex items-center gap-1.5">
-                    <Sparkles size={14} className="text-amber-700" />
-                    <span>Brug ChatGPT til ægte lighed (100% præcis):</span>
-                  </span>
-                </div>
-                <p className="text-[11px] font-medium text-slate-700 leading-relaxed">
-                  Vedhæft dit foto og stilarket i ChatGPT sammen med prompten for at få briller, skæg og tøj præcis som i virkeligheden. Indsæt derefter ChatGPT-billedet her:
-                </p>
-                <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-                  <button
-                    type="button"
-                    onClick={handleCopyPrompt}
-                    className="px-2.5 py-1.5 rounded-xl border border-slate-900 bg-white hover:bg-slate-50 font-bold text-xs flex items-center gap-1 shadow-2xs cursor-pointer"
-                  >
-                    <Copy size={13} />
-                    <span>{isCopiedPrompt ? 'Kopieret!' : '1. Kopiér prompt'}</span>
-                  </button>
-
-                  <a
-                    href={PICTO_STYLE_REF_URL}
-                    download="ref2_example.jpg"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-2.5 py-1.5 rounded-xl border border-slate-900 bg-white hover:bg-slate-50 font-bold text-xs flex items-center gap-1 shadow-2xs cursor-pointer"
-                  >
-                    <Download size={13} />
-                    <span>2. Hent stilark (ref2)</span>
-                  </a>
-
-                  <button
-                    type="button"
-                    onClick={openChatGPTLogin}
-                    className="px-2.5 py-1.5 rounded-xl border border-slate-900 bg-amber-400 hover:bg-amber-500 font-black text-xs flex items-center gap-1 shadow-2xs cursor-pointer"
-                  >
-                    <ExternalLink size={13} />
-                    <span>3. Åbn ChatGPT</span>
-                  </button>
-
-                  <label className="px-2.5 py-1.5 rounded-xl border-2 border-emerald-600 bg-emerald-100 hover:bg-emerald-200 text-emerald-900 font-black text-xs flex items-center gap-1 shadow-2xs cursor-pointer">
-                    <Upload size={13} />
-                    <span>4. Indsæt ChatGPT-billede</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handlePasteOrUploadChatGPTAvatar}
-                      className="hidden"
-                    />
-                  </label>
-                </div>
-              </div>
-
-              {/* Direct Quick AI Fallback */}
-              <div className="pt-1 border-t border-slate-100">
+              <div className="pt-2">
                 <button
                   type="button"
                   disabled={!photoDataUrl}
                   onClick={handleTransform}
-                  className="w-full py-2.5 rounded-xl border-2 border-slate-900 bg-slate-100 hover:bg-amber-300 disabled:opacity-50 disabled:cursor-not-allowed font-bold text-slate-800 text-xs shadow-xs hover:shadow transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-full py-3 rounded-2xl border-2 border-slate-900 bg-amber-400 hover:bg-amber-500 disabled:opacity-50 disabled:cursor-not-allowed font-black text-slate-900 text-sm shadow-xs hover:shadow transition-all flex items-center justify-center gap-2 cursor-pointer"
                 >
-                  <Sparkles size={14} className="text-amber-600" />
-                  <span>Eller forvandl automatisk i appen (Hurtig AI)</span>
+                  <Sparkles size={16} className="text-slate-900" />
+                  <span>Opret figur ud fra foto</span>
                 </button>
               </div>
             </div>

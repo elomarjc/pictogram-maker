@@ -42,7 +42,25 @@ export const STANDARD_SCENE_PROMPTS = {
   weekend: 'Figuren slapper hyggeligt af i weekenden med en lille snack eller hyggestund i behageligt tøj.'
 };
 
+function getImageUseRunner() {
+  const localScript = path.resolve(__dirname, 'image-use.py');
+  if (fs.existsSync(localScript)) {
+    return {
+      cmd: process.platform === 'win32' ? 'python' : 'python3',
+      prefixArgs: [localScript],
+    };
+  }
+  return {
+    cmd: 'image-use',
+    prefixArgs: [],
+  };
+}
+
 export function checkImageUseInstalled() {
+  const localScript = path.resolve(__dirname, 'image-use.py');
+  if (fs.existsSync(localScript)) {
+    return true;
+  }
   try {
     const isWin = process.platform === 'win32';
     const cmd = isWin ? 'where.exe image-use 2>nul' : 'which image-use 2>/dev/null';
@@ -67,7 +85,11 @@ export function checkChatGPTStatus() {
   }
 
   try {
-    const doctorOut = execSync('image-use doctor 2>&1', { encoding: 'utf-8', timeout: 5000 });
+    const runner = getImageUseRunner();
+    const doctorCmd = runner.prefixArgs.length > 0
+      ? `"${runner.cmd}" "${runner.prefixArgs[0]}" doctor 2>&1`
+      : 'image-use doctor 2>&1';
+    const doctorOut = execSync(doctorCmd, { encoding: 'utf-8', timeout: 5000 });
     const isRelay = doctorOut.includes('[ok]    relay');
     const profilesMatch = doctorOut.match(/profiles\s+(\d+)\s+logged-in:\s*(.*)/i);
     const loggedInCount = profilesMatch ? parseInt(profilesMatch[1], 10) : 0;
@@ -243,9 +265,11 @@ export async function runChatGPTGeneration({
   });
 
   return new Promise((resolve, reject) => {
+    const runner = getImageUseRunner();
     const child = spawn(
-      'image-use',
+      runner.cmd,
       [
+        ...runner.prefixArgs,
         prompt,
         '-i', avatarImgPath,
         '--composition-ref', STYLE_REF_PATH,
