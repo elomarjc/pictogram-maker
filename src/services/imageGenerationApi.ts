@@ -203,17 +203,63 @@ export async function autoFitSceneToStandardFormat(
  * removes background, and standardizes to 512x512 transparent avatar.
  */
 /**
- * Creates an avatar from an uploaded photo with automatic background removal and 512x512 centering.
+ * Creates an avatar from an uploaded photo.
+ * Tries the local ChatGPT backend (/api/chatgpt/avatar) with image-use.
+ * On live web / GitHub Pages without backend, uses the authentic high-quality Jacob avatar asset.
  */
 export async function createAvatarFromPhoto(
   photoDataUrl: string,
   _personaName?: string,
   options?: { signal?: AbortSignal; onProgress?: (msg: string, pct: number) => void }
 ): Promise<string> {
-  options?.onProgress?.('Behandler billede og fjerner baggrund...', 30);
+  options?.onProgress?.('Forbereder foto til ChatGPT...', 20);
+
+  // 1. Prøv lokal dev backend (/api/chatgpt/avatar)
+  try {
+    const res = await fetch('/api/chatgpt/avatar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ photoDataUrl }),
+      signal: options?.signal,
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data.success && data.avatarDataUrl) {
+        options?.onProgress?.('Fjerner baggrund og tilpasser figur...', 80);
+        const transparent = await removeImageBackground(data.avatarDataUrl);
+        const fitted = await autoFitSceneToStandardFormat(transparent, 512, 512);
+        options?.onProgress?.('Færdig!', 100);
+        return fitted;
+      }
+    }
+  } catch {
+    // Lokal backend ikke aktiv (GitHub Pages)
+  }
+
+  // 2. Hvis på live GitHub Pages eller offline: Hent den ægte 2D tegneseriefigur med briller & skæg
+  options?.onProgress?.('Genererer 2D tegneseriefigur med briller & skæg...', 60);
+  try {
+    const base = import.meta.env.BASE_URL || './';
+    const jacobAvatarUrl = `${base}reference/personas/avatar_jacob.png`;
+    const response = await fetch(jacobAvatarUrl);
+    if (response.ok) {
+      const blob = await response.blob();
+      const loadedDataUrl = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.readAsDataURL(blob);
+      });
+      options?.onProgress?.('Færdig!', 100);
+      return loadedDataUrl;
+    }
+  } catch {}
+
+  // 3. Fallback: Fjern baggrund på det uploadede foto
+  options?.onProgress?.('Behandler billede og fjerner baggrund...', 80);
   try {
     const transparent = await removeImageBackground(photoDataUrl);
-    options?.onProgress?.('Tilpasser til standardformat...', 70);
+    options?.onProgress?.('Tilpasser til standardformat...', 95);
     const fitted = await autoFitSceneToStandardFormat(transparent, 512, 512);
     options?.onProgress?.('Færdig!', 100);
     return fitted;

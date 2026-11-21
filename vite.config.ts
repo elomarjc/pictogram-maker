@@ -14,6 +14,7 @@ import {
   checkChatGPTStatus,
   openChatGPTInBrowser,
   runChatGPTGeneration,
+  runChatGPTAvatarFromPhoto,
 } from './scripts/generate-with-chatgpt.mjs';
 
 function parseJsonBody<T = any>(req: any): Promise<T> {
@@ -126,6 +127,19 @@ function personaFileSaverPlugin(): Plugin {
         if (url === '/api/chatgpt/open' && req.method === 'POST') {
           try {
             const result = openChatGPTInBrowser();
+            sendJson(res, 200, result);
+          } catch (err: any) {
+            sendJson(res, 500, { success: false, error: err.message || String(err) });
+          }
+          return;
+        }
+
+        if (url === '/api/chatgpt/avatar' && req.method === 'POST') {
+          try {
+            const body = await parseJsonBody(req);
+            const result = await runChatGPTAvatarFromPhoto({
+              photoDataUrl: body.photoDataUrl,
+            });
             sendJson(res, 200, result);
           } catch (err: any) {
             sendJson(res, 500, { success: false, error: err.message || String(err) });

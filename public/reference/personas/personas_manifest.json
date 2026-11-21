@@ -29,10 +29,10 @@
   },
   {
     "id": "avatar_jacob",
-    "name": "Jacob (Polo & Briller)",
-    "shortCode": "Jacob",
+    "name": "avatar_jacob",
+    "shortCode": "avatar_jacob",
     "avatarUrl": "reference/personas/avatar_jacob/avatar.webp",
-    "description": "Mand med briller, skæg og lyseblå polo",
+    "description": "avatar_jacob",
     "activityScenes": {
       "vaesketoeg": "reference/personas/avatar_jacob/scenes/vaesketoeg.webp",
       "kaffe": "reference/personas/avatar_jacob/scenes/kaffe.webp",
@@ -52,7 +52,8 @@
       "morgenmad": "reference/personas/avatar_jacob/scenes/morgenmad.webp",
       "aktiviteter": "reference/personas/avatar_jacob/scenes/aktiviteter.webp",
       "cykeltur": "reference/personas/avatar_jacob/scenes/cykeltur.webp",
-      "weekend": "reference/personas/avatar_jacob/scenes/weekend.webp"
+      "weekend": "reference/personas/avatar_jacob/scenes/weekend.webp",
+      "aftensmad": "reference/personas/avatar_jacob/scenes/aftensmad.webp"
     }
   }
 ]

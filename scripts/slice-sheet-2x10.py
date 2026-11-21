@@ -27,133 +27,39 @@ except ImportError:
 TARGET_WIDTH = 2126
 TARGET_HEIGHT = 740
 
-# Præcis definition af de 19 distinkte scener i ChatGPT 2x10 arket
+# Præcis definition af de 20 scener i ChatGPT 2x10 arket
 # (y1, y2, x1, x2)
 CELL_DEFINITIONS = [
     # Række 1
-    {
-        "coords": (0, 187, 0, 465),
-        "primary_key": "vaesketoeg",
-        "aliases": ["vasketoj"],
-        "title": "Hænge vasketøj op"
-    },
-    {
-        "coords": (0, 188, 465, None),
-        "primary_key": "kaffe",
-        "aliases": ["the_kaffe"],
-        "title": "The & Kaffe"
-    },
+    {"coords": (0, 228, 0, 535), "primary_key": "vaesketoeg", "aliases": ["vasketoj"], "title": "Hænge vasketøj op"},
+    {"coords": (0, 226, 545, 1080), "primary_key": "kaffe", "aliases": ["the_kaffe"], "title": "The & Kaffe"},
     # Række 2
-    {
-        "coords": (188, 362, 0, 465),
-        "primary_key": "medicin",
-        "aliases": [],
-        "title": "Medicin"
-    },
-    {
-        "coords": (189, 360, 465, None),
-        "primary_key": "badetid",
-        "aliases": ["brusebad", "toej_af"],
-        "title": "Badetid / Brusebad"
-    },
+    {"coords": (228, 428, 0, 535), "primary_key": "medicin", "aliases": [], "title": "Medicin"},
+    {"coords": (226, 426, 545, 1080), "primary_key": "badetid", "aliases": ["brusebad", "toej_af"], "title": "Badetid / Brusebad"},
     # Række 3
-    {
-        "coords": (363, 543, 0, 465),
-        "primary_key": "spisetid",
-        "aliases": ["aftensmad", "forberede_mad"],
-        "title": "Aftensmad / Spisetid"
-    },
-    {
-        "coords": (361, 540, 465, None),
-        "primary_key": "boerste_taender",
-        "aliases": ["borste_taender", "borste_tander", "tandborste"],
-        "title": "Børste tænder"
-    },
+    {"coords": (428, 631, 0, 535), "primary_key": "spisetid", "aliases": ["aftensmad", "forberede_mad"], "title": "Aftensmad / Spisetid"},
+    {"coords": (426, 631, 545, 1080), "primary_key": "boerste_taender", "aliases": ["borste_taender", "borste_tander", "tandborste"], "title": "Børste tænder"},
     # Række 4
-    {
-        "coords": (544, 709, 0, 465),
-        "primary_key": "vaske_op",
-        "aliases": ["opvask"],
-        "title": "Vaske op"
-    },
-    {
-        "coords": (541, 708, 465, None),
-        "primary_key": "bolle",
-        "aliases": ["bolle_ikon"],
-        "title": "Bolle"
-    },
+    {"coords": (631, 820, 0, 535), "primary_key": "vaske_op", "aliases": ["opvask"], "title": "Vaske op"},
+    {"coords": (631, 822, 545, 1080), "primary_key": "bolle", "aliases": ["bolle_ikon"], "title": "Bolle"},
     # Række 5
-    {
-        "coords": (709, 883, 465, None),
-        "primary_key": "gatur",
-        "aliases": ["gaatur"],
-        "title": "Gåtur / Frisk luft"
-    },
+    {"coords": (820, 1018, 0, 535), "primary_key": "sengetid", "aliases": ["sovetid", "sove"], "title": "Sengetid / Sove"},
+    {"coords": (822, 1026, 545, 1080), "primary_key": "gatur", "aliases": ["gaatur"], "title": "Gåtur / Frisk luft"},
     # Række 6
-    {
-        "coords": (883, 1030, 0, 465),
-        "primary_key": "sengetid",
-        "aliases": ["sovetid", "sove"],
-        "title": "Sengetid / Sove"
-    },
-    {
-        "coords": (885, 1030, 465, None),
-        "primary_key": "pause_sofa",
-        "aliases": ["tv_skaerm", "sofa"],
-        "title": "Pause på sofa / TV"
-    },
+    {"coords": (1018, 1188, 0, 535), "primary_key": "rede_seng", "aliases": [], "title": "Rede seng"},
+    {"coords": (1026, 1188, 545, 1080), "primary_key": "pause_sofa", "aliases": ["tv_skaerm", "sofa"], "title": "Pause på sofa / TV"},
     # Række 7
-    {
-        "coords": (1031, 1192, 0, 465),
-        "primary_key": "rede_seng",
-        "aliases": [],
-        "title": "Rede seng"
-    },
-    {
-        "coords": (1031, 1192, 465, None),
-        "primary_key": "handle",
-        "aliases": ["indkoeb"],
-        "title": "Handle indkøb"
-    },
+    {"coords": (1188, 1381, 0, 535), "primary_key": "skraldespand", "aliases": ["skrald"], "title": "Skraldespand & Pant"},
+    {"coords": (1188, 1370, 545, 1080), "primary_key": "handle", "aliases": ["indkoeb"], "title": "Handle indkøb"},
     # Række 8
-    {
-        "coords": (1193, 1338, 0, 465),
-        "primary_key": "skraldespand",
-        "aliases": ["skrald"],
-        "title": "Skraldespand & Pant"
-    },
-    {
-        "coords": (1193, 1338, 465, None),
-        "primary_key": "frokost",
-        "aliases": [],
-        "title": "Frokost / Rugbrød"
-    },
+    {"coords": (1381, 1554, 0, 535), "primary_key": "morgenmad", "aliases": [], "title": "Morgenmad / Cereal & Juice"},
+    {"coords": (1428, 1555, 545, 1080), "primary_key": "frokost", "aliases": [], "title": "Frokost / Rugbrød"},
     # Række 9
-    {
-        "coords": (1339, 1479, 0, 465),
-        "primary_key": "morgenmad",
-        "aliases": [],
-        "title": "Morgenmad / Cereal & Juice"
-    },
-    {
-        "coords": (1339, 1481, 465, None),
-        "primary_key": "aktiviteter",
-        "aliases": [],
-        "title": "Aktiviteter / Hobby"
-    },
+    {"coords": (1554, 1740, 0, 535), "primary_key": "aftensmad", "aliases": [], "title": "Lave aftensmad"},
+    {"coords": (1555, 1740, 545, 1080), "primary_key": "aktiviteter", "aliases": [], "title": "Aktiviteter / Hobby"},
     # Række 10
-    {
-        "coords": (1480, 1660, 0, 465),
-        "primary_key": "cykeltur",
-        "aliases": ["tage_toej_paa"],
-        "title": "Cykeltur / Motion"
-    },
-    {
-        "coords": (1482, 1660, 465, None),
-        "primary_key": "weekend",
-        "aliases": [],
-        "title": "Weekendhygge / Hygge"
-    },
+    {"coords": (1740, 1920, 0, 535), "primary_key": "cykeltur", "aliases": ["tage_toej_paa"], "title": "Cykeltur / Motion"},
+    {"coords": (1740, 1920, 545, 1080), "primary_key": "weekend", "aliases": [], "title": "Weekendhygge / Hygge"},
 ]
 
 # Præcis definition af de 20 scener i Batch 2 (Pligter, hobbyer, ture ud af huset)
@@ -189,6 +95,32 @@ CELL_DEFINITIONS_BATCH2 = [
     {"coords": (1480, 1660, 0, 465), "primary_key": "rydde_op", "aliases": [], "title": "Rydde op på værelset"},
     {"coords": (1482, 1660, 465, None), "primary_key": "sansehus", "aliases": [], "title": "Sansehus / Sanserum"},
 ]
+
+
+def remove_white_background_floodfill(cell_img: Image.Image) -> Image.Image:
+    """Konverterer hvid eller nær-hvid baggrund til transparent vha. floodFill fra kanterne."""
+    if cv2 is None:
+        return cell_img
+
+    cell_arr = np.ascontiguousarray(np.array(cell_img.convert("RGB")))
+    h, w = cell_arr.shape[:2]
+
+    corners = [(0, 0), (w - 1, 0), (0, h - 1), (w - 1, h - 1)]
+    is_corner_white = any(np.mean(cell_arr[cy, cx]) > 220 for cx, cy in corners)
+    if not is_corner_white:
+        return cell_img
+
+    mask = np.zeros((h + 2, w + 2), np.uint8)
+    diff = (28, 28, 28)
+
+    for cx, cy in corners:
+        if mask[cy + 1, cx + 1] == 0 and np.mean(cell_arr[cy, cx]) > 200:
+            cv2.floodFill(cell_arr, mask, (cx, cy), (0, 255, 0), diff, diff)
+
+    alpha = np.where(mask[1:-1, 1:-1] == 1, 0, 255).astype(np.uint8)
+    orig_rgb = np.array(cell_img.convert("RGB"))
+    rgba = np.dstack([orig_rgb, alpha])
+    return Image.fromarray(rgba)
 
 
 def clean_cell_artifacts(cell_img: Image.Image) -> Image.Image:
@@ -243,6 +175,26 @@ def slice_sheet(sheet_path: str, avatar_id: str = "avatar_1", batch: int = 1):
     img = Image.open(sheet_file).convert("RGBA")
     total_w, total_h = img.size
     print(f"Original dimension: {total_w} x {total_h} pixels")
+
+    if (total_w, total_h) != (1080, 1920):
+        print(f"🔄 Tilpasser ark fra {total_w}x{total_h} til standard 1080x1920 pixels for præcis beskæring...")
+        img = img.resize((1080, 1920), Image.Resampling.LANCZOS)
+        total_w, total_h = 1080, 1920
+
+    if cv2 is not None:
+        arr = np.ascontiguousarray(np.array(img.convert("RGB")))
+        h, w = arr.shape[:2]
+        corners = [(5, 5), (w - 5, 5), (5, h - 5), (w - 5, h - 5), (w // 2 - 10, 5), (w // 2 + 10, 5)]
+        if any(np.mean(arr[cy, cx]) > 220 for cx, cy in corners):
+            print("✨ Fjerner hvid baggrund på hele arket via præcis floodfill...")
+            mask = np.zeros((h + 2, w + 2), np.uint8)
+            diff = (16, 16, 16)
+            for cx, cy in corners:
+                if mask[cy + 1, cx + 1] == 0 and np.mean(arr[cy, cx]) > 200:
+                    cv2.floodFill(arr.copy(), mask, (cx, cy), (0, 255, 0), diff, diff)
+            alpha = np.where(mask[1:-1, 1:-1] == 1, 0, 255).astype(np.uint8)
+            orig_rgb = np.array(img.convert("RGB"))
+            img = Image.fromarray(np.dstack([orig_rgb, alpha]))
 
     saved_count = 0
     updated_scenes = {}

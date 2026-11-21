@@ -201,6 +201,31 @@ export const CreateAvatarModal: React.FC<CreateAvatarModalProps> = ({
   const handleSaveAndUse = () => {
     if (!generatedAvatarUrl) return;
 
+    const base = import.meta.env.BASE_URL || './';
+    const defaultScenes: Record<string, string> = {
+      vaesketoeg: `${base}reference/personas/avatar_jacob/scenes/vaesketoeg.webp`,
+      kaffe: `${base}reference/personas/avatar_jacob/scenes/kaffe.webp`,
+      medicin: `${base}reference/personas/avatar_jacob/scenes/medicin.webp`,
+      badetid: `${base}reference/personas/avatar_jacob/scenes/badetid.webp`,
+      spisetid: `${base}reference/personas/avatar_jacob/scenes/spisetid.webp`,
+      morgenmad: `${base}reference/personas/avatar_jacob/scenes/morgenmad.webp`,
+      frokost: `${base}reference/personas/avatar_jacob/scenes/frokost.webp`,
+      aftensmad: `${base}reference/personas/avatar_jacob/scenes/aftensmad.webp`,
+      forberede_mad: `${base}reference/personas/avatar_jacob/scenes/aftensmad.webp`,
+      aktiviteter: `${base}reference/personas/avatar_jacob/scenes/aktiviteter.webp`,
+      vaske_op: `${base}reference/personas/avatar_jacob/scenes/vaske_op.webp`,
+      bolle: `${base}reference/personas/avatar_jacob/scenes/bolle.webp`,
+      sengetid: `${base}reference/personas/avatar_jacob/scenes/sengetid.webp`,
+      gatur: `${base}reference/personas/avatar_jacob/scenes/gatur.webp`,
+      rede_seng: `${base}reference/personas/avatar_jacob/scenes/rede_seng.webp`,
+      pause_sofa: `${base}reference/personas/avatar_jacob/scenes/pause_sofa.webp`,
+      skraldespand: `${base}reference/personas/avatar_jacob/scenes/skraldespand.webp`,
+      handle: `${base}reference/personas/avatar_jacob/scenes/handle.webp`,
+      boerste_taender: `${base}reference/personas/avatar_jacob/scenes/boerste_taender.webp`,
+      cykeltur: `${base}reference/personas/avatar_jacob/scenes/cykeltur.webp`,
+      weekend: `${base}reference/personas/avatar_jacob/scenes/weekend.webp`,
+    };
+
     const id = `avatar_${Date.now()}`;
     const newPersona: Persona = {
       id,
@@ -208,7 +233,7 @@ export const CreateAvatarModal: React.FC<CreateAvatarModalProps> = ({
       shortCode: '',
       avatarUrl: generatedAvatarUrl,
       description: avatarDescription.trim(),
-      activityScenes: {},
+      activityScenes: defaultScenes,
     };
 
     saveCustomPersona(newPersona);

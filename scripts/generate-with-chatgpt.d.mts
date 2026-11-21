@@ -26,3 +26,11 @@ export function runChatGPTGeneration(options: {
   sceneUrl?: string;
   outputSheet?: string;
 }>;
+
+export function runChatGPTAvatarFromPhoto(options: {
+  photoDataUrl: string;
+  onProgress?: (progress: { stage?: string; percent: number; message: string }) => void;
+}): Promise<{
+  success: boolean;
+  avatarDataUrl?: string;
+}>;

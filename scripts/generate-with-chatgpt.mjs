@@ -178,6 +178,76 @@ Row 10: Col 1 = Cykeltur, Col 2 = Weekendhygge
 ## Requirements:
 All 20 scenes on this single image, same clothing in all cells, transparent background, no text.`;
 
+export async function runChatGPTAvatarFromPhoto({
+  photoDataUrl,
+  onProgress = () => {},
+}) {
+  onProgress({ stage: 'saving', percent: 15, message: 'Forbereder foto til ChatGPT...' });
+
+  const tempDir = path.resolve(REPO_ROOT, 'public/reference/personas/temp');
+  if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
+
+  const tempPhotoPath = path.resolve(tempDir, `photo_${Date.now()}.png`);
+  const tempOutPath = path.resolve(tempDir, `avatar_${Date.now()}.png`);
+
+  const base64Data = photoDataUrl.replace(/^data:image\/\w+;base64,/, '');
+  fs.writeFileSync(tempPhotoPath, Buffer.from(base64Data, 'base64'));
+
+  const prompt = `Turn Real Photo into 2D Cartoon Pictogram Avatar. Transform the person in Image 1 into ONE clean, friendly 2D cartoon avatar portrait in autism pictogram schedule style. Authentic Likeness & Clothing: strictly preserve facial structure, glasses (if worn), facial hair/beard, exact hairstyle, and EXACT clothing from Image 1 (DO NOT default to a hoodie). Bold thick black outlines, flat saturated colors, friendly smile, transparent background, centered upper-body chest up portrait.`;
+
+  onProgress({ stage: 'generating', percent: 40, message: 'ChatGPT forvandler dit foto til 2D tegneseriefigur...' });
+
+  return new Promise((resolve, reject) => {
+    const runner = getImageUseRunner();
+    const child = spawn(
+      runner.cmd,
+      [
+        ...runner.prefixArgs,
+        prompt,
+        '-i', tempPhotoPath,
+        '--composition-ref', STYLE_REF_PATH,
+        '--project', '',
+        '--timeout', '240',
+        '-o', tempOutPath,
+      ],
+      { stdio: ['ignore', 'pipe', 'pipe'] }
+    );
+
+    let stderrData = '';
+    let stdoutData = '';
+
+    child.stdout.on('data', (d) => { stdoutData += d.toString(); });
+    child.stderr.on('data', (d) => {
+      stderrData += d.toString();
+      onProgress({ stage: 'generating', percent: 75, message: 'ChatGPT tegner din figur...' });
+    });
+
+    child.on('close', (code) => {
+      try { if (fs.existsSync(tempPhotoPath)) fs.unlinkSync(tempPhotoPath); } catch {}
+
+      if (code !== 0 || !fs.existsSync(tempOutPath)) {
+        return reject(new Error(`Fejl under ChatGPT avatar-generering: ${stderrData || stdoutData || code}`));
+      }
+
+      onProgress({ stage: 'processing', percent: 90, message: 'Fjerner baggrund og tilpasser figur...' });
+
+      try {
+        const outBase64 = fs.readFileSync(tempOutPath).toString('base64');
+        const dataUrl = `data:image/png;base64,${outBase64}`;
+        try { if (fs.existsSync(tempOutPath)) fs.unlinkSync(tempOutPath); } catch {}
+        resolve({ success: true, avatarDataUrl: dataUrl });
+      } catch (err) {
+        reject(err);
+      }
+    });
+
+    child.on('error', (err) => {
+      try { if (fs.existsSync(tempPhotoPath)) fs.unlinkSync(tempPhotoPath); } catch {}
+      reject(err);
+    });
+  });
+}
+
 export const GRID_2X10_BATCH2_PROMPT = `# 20-in-1 Master Sheet Prompt — Batch 2: Daily Life, Chores & Outings (2x10 Grid)
 
 You are creating a comprehensive MASTER SHEET (Batch 2) containing exactly 20 distinct autism schedule pictogram scenes arranged neatly in a 2-column by 10-row grid on ONE single tall portrait image.
