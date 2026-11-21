@@ -19,6 +19,15 @@ const REPO_ROOT = path.resolve(__dirname, '..');
 const PERSONAS_ROOT = path.resolve(REPO_ROOT, 'reference/personas');
 const PUBLIC_PERSONAS_ROOT = path.resolve(REPO_ROOT, 'public/reference/personas');
 const STYLE_REF_PATH = path.resolve(REPO_ROOT, 'reference/style_guide/ref2_example.jpg');
+const PY_CMD = process.platform === 'win32' ? 'python' : 'python3';
+
+// Ensure chrome-use bin directory is on PATH on Windows
+if (process.platform === 'win32') {
+  const chromeUseDir = path.resolve(process.env.LOCALAPPDATA || 'C:\\Users\\eloma\\AppData\\Local', 'Programs/chrome-use');
+  if (fs.existsSync(chromeUseDir) && !(process.env.PATH || '').includes('chrome-use')) {
+    process.env.PATH = `${chromeUseDir};${process.env.PATH || ''}`;
+  }
+}
 
 export const STANDARD_SCENE_PROMPTS = {
   vaesketoeg: 'Figuren står ved en vaskemaskine med en vasketøjskurv og hænger farverigt vasketøj op med klemmer på en tørresnor med et glad smil.',
@@ -206,7 +215,6 @@ export async function runChatGPTAvatarFromPhoto({
         prompt,
         '-i', tempPhotoPath,
         '--composition-ref', STYLE_REF_PATH,
-        '--project', '',
         '--timeout', '240',
         '-o', tempOutPath,
       ],
@@ -343,7 +351,6 @@ export async function runChatGPTGeneration({
         prompt,
         '-i', avatarImgPath,
         '--composition-ref', STYLE_REF_PATH,
-        '--project', '',
         '--timeout', '360',
         '-o', outputFilePath,
       ],
@@ -380,7 +387,7 @@ export async function runChatGPTGeneration({
       if (isGrid) {
         onProgress({ stage: 'slicing', percent: 90, message: 'Beskærer automatisk de 20 scener med OpenCV...' });
         try {
-          execSync(`python3 scripts/slice-sheet-2x10.py "${outputFilePath}" "${safeAvatar}" --batch ${batchNum}`, {
+          execSync(`${PY_CMD} scripts/slice-sheet-2x10.py "${outputFilePath}" "${safeAvatar}" --batch ${batchNum}`, {
             stdio: 'inherit',
           });
 
@@ -407,7 +414,7 @@ export async function runChatGPTGeneration({
         // Single scene
         onProgress({ stage: 'converting', percent: 90, message: 'Konverterer og gemmer scenen...' });
         try {
-          execSync(`python3 -c "from PIL import Image; im = Image.open('${outputFilePath}'); im.save('${webpOutputPath}', 'WEBP')"`);
+          execSync(`${PY_CMD} -c "from PIL import Image; im = Image.open('${outputFilePath}'); im.save('${webpOutputPath}', 'WEBP')"`);
           const pubScenesDir = path.resolve(PUBLIC_PERSONAS_ROOT, safeAvatar, 'scenes');
           if (!fs.existsSync(pubScenesDir)) fs.mkdirSync(pubScenesDir, { recursive: true });
           fs.copyFileSync(webpOutputPath, path.resolve(pubScenesDir, `${scene}.webp`));
