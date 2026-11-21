@@ -22,42 +22,26 @@ export const PICTO_STYLE_REF_URL = `${BASE}reference/style_guide/ref2_example.jp
 
 export const DEFAULT_PERSONAS: Persona[] = [
   {
-    id: 'avatar_jacob',
-    name: 'Jacob (Polo & Briller)',
-    shortCode: 'Jacob',
-    avatarUrl: `${BASE}reference/personas/avatar_jacob.png`,
-    description: 'Mand med briller, skæg og lyseblå polo',
-    activityScenes: getDefaultRoutineScenes('avatar_jacob'),
-  },
-  {
     id: 'avatar_1',
     name: 'avatar_1',
     shortCode: 'avatar_1',
     avatarUrl: `${BASE}reference/personas/avatar_1/avatar.webp`,
-    description: 'Tegneseriefigur i grå hættetrøje',
+    description: 'Noah: Tegneseriefigur i grå hættetrøje',
     activityScenes: getDefaultRoutineScenes('avatar_1'),
   },
   {
     id: 'avatar_sarah',
-    name: 'Sarah (Hestehale)',
+    name: 'Sarah',
     shortCode: 'Sarah',
     avatarUrl: `${BASE}reference/personas/avatar_sarah.png`,
-    description: 'Pige med hestehale og varm trøje',
-    activityScenes: getDefaultRoutineScenes('avatar_jacob'),
-  },
-  {
-    id: 'avatar_maryam',
-    name: 'Maryam (Tørklæde)',
-    shortCode: 'Maryam',
-    avatarUrl: `${BASE}reference/personas/avatar_maryam.png`,
-    description: 'Ung kvinde med tørklæde/hijab',
-    activityScenes: getDefaultRoutineScenes('avatar_jacob'),
+    description: 'Sarah: Pige med hestehale og trøje',
+    activityScenes: getDefaultRoutineScenes('avatar_sarah'),
   },
 ];
 
-export function getDefaultRoutineScenes(archetype: 'avatar_jacob' | 'avatar_1' = 'avatar_jacob'): Record<string, string> {
+export function getDefaultRoutineScenes(archetype: 'avatar_sarah' | 'avatar_1' = 'avatar_1'): Record<string, string> {
   const base = BASE;
-  const folder = archetype === 'avatar_1' ? 'avatar_1' : 'avatar_jacob';
+  const folder = archetype === 'avatar_sarah' ? 'avatar_sarah' : 'avatar_1';
   return {
     vaesketoeg: `${base}reference/personas/${folder}/scenes/vaesketoeg.webp`,
     kaffe: `${base}reference/personas/${folder}/scenes/kaffe.webp`,
@@ -191,7 +175,7 @@ export function getCustomPersonas(): Persona[] {
 
   // Filter out any legacy IDs and enforce clean avatar_1 name without gender
   const cleanList = list
-    .filter((p) => p && p.id && p.id !== 'man' && p.id !== 'woman' && p.id !== 'man_k' && p.id !== 'woman_a' && p.id !== 'avatar_2')
+    .filter((p) => p && p.id && p.id !== 'man' && p.id !== 'woman' && p.id !== 'man_k' && p.id !== 'woman_a' && p.id !== 'avatar_2' && p.id !== 'avatar_jacob' && p.id !== 'avatar_maryam')
     .map((p) => {
       if (p.id === 'avatar_1') {
         return {

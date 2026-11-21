@@ -237,12 +237,12 @@ export async function createAvatarFromPhoto(
     // Lokal backend ikke aktiv (GitHub Pages)
   }
 
-  // 2. Hvis på live GitHub Pages eller offline: Hent den ægte 2D tegneseriefigur med briller & skæg
-  options?.onProgress?.('Genererer 2D tegneseriefigur med briller & skæg...', 60);
+  // 2. Hvis på live GitHub Pages eller offline: Hent standard 2D tegneseriefigur
+  options?.onProgress?.('Genererer 2D tegneseriefigur...', 60);
   try {
     const base = import.meta.env.BASE_URL || './';
-    const jacobAvatarUrl = `${base}reference/personas/avatar_jacob.png`;
-    const response = await fetch(jacobAvatarUrl);
+    const defaultAvatarUrl = `${base}reference/personas/avatar_sarah.png`;
+    const response = await fetch(defaultAvatarUrl);
     if (response.ok) {
       const blob = await response.blob();
       const loadedDataUrl = await new Promise<string>((resolve) => {

@@ -4,7 +4,7 @@
  */
 
 import type { Persona } from '../types';
-import { getPersona, saveCustomPersona } from './personas';
+import { getPersona, saveCustomPersona, getDefaultRoutineScenes } from './personas';
 
 export const STORAGE_KEY_CHATGPT_CONNECTED = 'pictogram_chatgpt_connected';
 export const STORAGE_KEY_CHATGPT_PENDING = 'pictogram_chatgpt_pending_login';
@@ -314,30 +314,8 @@ export async function generateScenesWithChatGPT(
   onProgress?.({ stage: 'slicing', percent: 85, message: 'Gemmer og tilpasser piktogram-kort...' });
   await new Promise((r) => setTimeout(r, 400));
 
-  const base = import.meta.env.BASE_URL || './';
-  const defaultScenes: Record<string, string> = {
-    vaesketoeg: `${base}reference/personas/avatar_jacob/scenes/vaesketoeg.webp`,
-    kaffe: `${base}reference/personas/avatar_jacob/scenes/kaffe.webp`,
-    medicin: `${base}reference/personas/avatar_jacob/scenes/medicin.webp`,
-    badetid: `${base}reference/personas/avatar_jacob/scenes/badetid.webp`,
-    spisetid: `${base}reference/personas/avatar_jacob/scenes/spisetid.webp`,
-    morgenmad: `${base}reference/personas/avatar_jacob/scenes/morgenmad.webp`,
-    frokost: `${base}reference/personas/avatar_jacob/scenes/frokost.webp`,
-    aftensmad: `${base}reference/personas/avatar_jacob/scenes/aftensmad.webp`,
-    forberede_mad: `${base}reference/personas/avatar_jacob/scenes/aftensmad.webp`,
-    aktiviteter: `${base}reference/personas/avatar_jacob/scenes/aktiviteter.webp`,
-    vaske_op: `${base}reference/personas/avatar_jacob/scenes/vaske_op.webp`,
-    bolle: `${base}reference/personas/avatar_jacob/scenes/bolle.webp`,
-    sengetid: `${base}reference/personas/avatar_jacob/scenes/sengetid.webp`,
-    gatur: `${base}reference/personas/avatar_jacob/scenes/gatur.webp`,
-    rede_seng: `${base}reference/personas/avatar_jacob/scenes/rede_seng.webp`,
-    pause_sofa: `${base}reference/personas/avatar_jacob/scenes/pause_sofa.webp`,
-    skraldespand: `${base}reference/personas/avatar_jacob/scenes/skraldespand.webp`,
-    handle: `${base}reference/personas/avatar_jacob/scenes/handle.webp`,
-    boerste_taender: `${base}reference/personas/avatar_jacob/scenes/boerste_taender.webp`,
-    cykeltur: `${base}reference/personas/avatar_jacob/scenes/cykeltur.webp`,
-    weekend: `${base}reference/personas/avatar_jacob/scenes/weekend.webp`,
-  };
+  const archetype = personaId === 'avatar_sarah' ? 'avatar_sarah' : 'avatar_1';
+  const defaultScenes = getDefaultRoutineScenes(archetype);
 
   const persona = getPersona(personaId);
   if (persona) {
@@ -453,7 +431,8 @@ export async function generateSingleSceneWithChatGPT(
   onProgress?.({ stage: 'generating', percent: 50, message: 'Henter piktogram-scene...' });
   await new Promise((r) => setTimeout(r, 400));
   const base = import.meta.env.BASE_URL || './';
-  const sceneUrl = `${base}reference/personas/avatar_jacob/scenes/${sceneKey}.webp`;
+  const folder = personaId === 'avatar_sarah' ? 'avatar_sarah' : 'avatar_1';
+  const sceneUrl = `${base}reference/personas/${folder}/scenes/${sceneKey}.webp`;
   const persona = getPersona(personaId);
   let updatedPersona = persona;
   if (persona) {

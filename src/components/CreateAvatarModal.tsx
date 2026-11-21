@@ -40,7 +40,7 @@ export const CreateAvatarModal: React.FC<CreateAvatarModalProps> = ({
   const progressTimerRef = useRef<number | null>(null);
 
   const [characterName, setCharacterName] = useState('Min figur');
-  const [selectedStyle, setSelectedStyle] = useState<'jacob' | 'noah' | 'sarah' | 'maryam'>('jacob');
+  const [selectedStyle, setSelectedStyle] = useState<'noah' | 'sarah'>('noah');
 
   // Clear progress timer on unmount or modal close
   useEffect(() => {
@@ -168,7 +168,7 @@ export const CreateAvatarModal: React.FC<CreateAvatarModalProps> = ({
     if (!generatedAvatarUrl) return;
 
     const isNoah = selectedStyle === 'noah';
-    const defaultScenes = getDefaultRoutineScenes(isNoah ? 'avatar_1' : 'avatar_jacob');
+    const defaultScenes = getDefaultRoutineScenes(isNoah ? 'avatar_1' : 'avatar_sarah');
 
     const id = `avatar_${Date.now()}`;
     const trimmedName = characterName.trim() || 'Min figur';
@@ -453,28 +453,11 @@ export const CreateAvatarModal: React.FC<CreateAvatarModalProps> = ({
                   <button
                     type="button"
                     onClick={() => {
-                      setSelectedStyle('jacob');
-                      setCharacterName('Jacob');
-                      setGeneratedAvatarUrl('./reference/personas/avatar_jacob.png');
-                    }}
-                    className={`p-2 rounded-xl border-2 text-left transition-all cursor-pointer ${
-                      selectedStyle === 'jacob'
-                        ? 'border-slate-900 bg-amber-50 font-black'
-                        : 'border-slate-200 hover:border-slate-400 bg-white'
-                    }`}
-                  >
-                    <span className="text-xs font-bold block text-slate-900">Jacob</span>
-                    <span className="text-[10px] text-slate-500 block">Polo, briller & skæg</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
                       setSelectedStyle('noah');
                       setCharacterName('Noah');
                       setGeneratedAvatarUrl('./reference/personas/avatar_1/avatar.webp');
                     }}
-                    className={`p-2 rounded-xl border-2 text-left transition-all cursor-pointer ${
+                    className={`p-2.5 rounded-xl border-2 text-left transition-all cursor-pointer ${
                       selectedStyle === 'noah'
                         ? 'border-slate-900 bg-amber-50 font-black'
                         : 'border-slate-200 hover:border-slate-400 bg-white'
@@ -491,7 +474,7 @@ export const CreateAvatarModal: React.FC<CreateAvatarModalProps> = ({
                       setCharacterName('Sarah');
                       setGeneratedAvatarUrl('./reference/personas/avatar_sarah.png');
                     }}
-                    className={`p-2 rounded-xl border-2 text-left transition-all cursor-pointer ${
+                    className={`p-2.5 rounded-xl border-2 text-left transition-all cursor-pointer ${
                       selectedStyle === 'sarah'
                         ? 'border-slate-900 bg-amber-50 font-black'
                         : 'border-slate-200 hover:border-slate-400 bg-white'
@@ -499,23 +482,6 @@ export const CreateAvatarModal: React.FC<CreateAvatarModalProps> = ({
                   >
                     <span className="text-xs font-bold block text-slate-900">Sarah</span>
                     <span className="text-[10px] text-slate-500 block">Hestehale & trøje</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedStyle('maryam');
-                      setCharacterName('Maryam');
-                      setGeneratedAvatarUrl('./reference/personas/avatar_maryam.png');
-                    }}
-                    className={`p-2 rounded-xl border-2 text-left transition-all cursor-pointer ${
-                      selectedStyle === 'maryam'
-                        ? 'border-slate-900 bg-amber-50 font-black'
-                        : 'border-slate-200 hover:border-slate-400 bg-white'
-                    }`}
-                  >
-                    <span className="text-xs font-bold block text-slate-900">Maryam</span>
-                    <span className="text-[10px] text-slate-500 block">Tørklæde / Hijab</span>
                   </button>
                 </div>
               </div>
